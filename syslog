@@ -1,0 +1,93 @@
+autorun starting game Mon Jun  6 20:27:01 CEST 2016
+running bin/circle -q 4000
+Jun  6 20:27:01 :: CircleMUD, version 3.1
+Jun  6 20:27:01 :: Using lib as data directory.
+Jun  6 20:27:01 :: Running game on port 4000.
+Jun  6 20:27:01 :: Finding player limit.
+Jun  6 20:27:01 ::    Setting player limit to 300 using rlimit.
+Jun  6 20:27:01 :: Opening mother connection.
+Jun  6 20:27:01 :: Binding to all IP interfaces on this host.
+Jun  6 20:27:01 :: Boot db -- BEGIN.
+Jun  6 20:27:01 :: Resetting the game time:
+Jun  6 20:27:01 ::    Current Gametime: 16H 32D 14M 760Y.
+Jun  6 20:27:01 :: Reading news, credits, help, bground, info & motds.
+Jun  6 20:27:01 :: Loading spell definitions.
+Jun  6 20:27:01 :: Loading zone table.
+Jun  6 20:27:01 ::    30 zones, 1200 bytes.
+Jun  6 20:27:01 :: Loading rooms.
+Jun  6 20:27:01 ::    1880 rooms, 210560 bytes.
+Jun  6 20:27:01 :: Renumbering rooms.
+Jun  6 20:27:01 :: Checking start rooms.
+Jun  6 20:27:01 :: Loading mobs and generating index.
+Jun  6 20:27:01 ::    569 mobs, 9104 bytes in index, 268568 bytes in prototypes.
+Jun  6 20:27:01 :: Loading objs and generating index.
+Jun  6 20:27:01 ::    679 objs, 10864 bytes in index, 119504 bytes in prototypes.
+Jun  6 20:27:01 :: Renumbering zone table.
+Jun  6 20:27:01 :: Loading shops.
+Jun  6 20:27:01 :: Wrong mode 4 sent to index_boot()!
+Jun  6 20:27:01 :: Loading help entries.
+Jun  6 20:27:01 ::    298 entries, 7152 bytes.
+Jun  6 20:27:01 :: Generating player index.
+Jun  6 20:27:01 :: No playerfile.  Creating a new one.
+Jun  6 20:27:01 :: Loading fight messages.
+Jun  6 20:27:01 :: Loading social messages.
+Jun  6 20:27:01 :: Assigning function pointers:
+Jun  6 20:27:01 ::    Mobiles.
+Jun  6 20:27:01 ::    Shopkeepers.
+Jun  6 20:27:01 ::    Objects.
+Jun  6 20:27:01 ::    Rooms.
+Jun  6 20:27:01 :: Assigning spell and skill levels.
+Jun  6 20:27:01 :: Sorting command list and spells.
+Jun  6 20:27:01 :: Booting mail system.
+Jun  6 20:27:01 ::    0 bytes read.
+Jun  6 20:27:01 ::    Mail file read -- 0 messages.
+Jun  6 20:27:01 :: Reading banned site and invalid-name list.
+Jun  6 20:27:01 ::    Ban file 'etc/badsites' doesn't exist.
+Jun  6 20:27:01 :: Booting houses.
+Jun  6 20:27:01 :: Resetting #0: Limbo - Internal (rooms 0-99).
+Jun  6 20:27:01 :: Resetting #9: River Island Of Minos (rooms 900-999).
+Jun  6 20:27:01 :: Resetting #12: God Simplex (rooms 1200-1299).
+Jun  6 20:27:01 :: Resetting #15: The Straight Path (rooms 1500-1599).
+Jun  6 20:27:01 :: Resetting #25: The High Tower Of Magic (rooms 2500-2699).
+Jun  6 20:27:01 :: Resetting #30: Northern Midgaard Main City (rooms 3000-3099).
+Jun  6 20:27:01 :: Resetting #31: Southern part of Midgaard (rooms 3100-3299).
+Jun  6 20:27:01 :: Resetting #33: The Three Of Swords (rooms 3300-3399).
+Jun  6 20:27:01 :: Resetting #35: Miden'Nir (rooms 3500-3599).
+Jun  6 20:27:01 :: Resetting #36: The Chessboard of Midgaard (rooms 3600-3699).
+Jun  6 20:27:01 :: Resetting #40: Mines of Moria (rooms 4000-4198).
+Jun  6 20:27:01 :: Resetting #50: The Great Eastern Desert (rooms 5000-5099).
+Jun  6 20:27:01 :: Resetting #51: Drow City (rooms 5100-5199).
+Jun  6 20:27:01 :: Resetting #52: The City Of Thalos (rooms 5200-5299).
+Jun  6 20:27:01 :: Resetting #53: The Great Pyramid (rooms 5300-5399).
+Jun  6 20:27:01 :: Resetting #54: New Thalos (rooms 5400-5699).
+Jun  6 20:27:01 :: Resetting #60: Haon-Dor, Light Forest (rooms 6000-6099).
+Jun  6 20:27:01 :: Resetting #61: Haon-Dor, Dark Forest (rooms 6100-6199).
+Jun  6 20:27:01 :: Resetting #62: The Orc Enclave (rooms 6200-6299).
+Jun  6 20:27:01 :: Resetting #63: Arachnos (rooms 6300-6399).
+Jun  6 20:27:01 :: Resetting #64: Rand's Tower (rooms 6400-6499).
+Jun  6 20:27:01 :: Resetting #65: The Dwarven Kingdom (rooms 6500-6599).
+Jun  6 20:27:01 :: Resetting #70: The Sewer, First Level (rooms 7000-7099).
+Jun  6 20:27:01 :: Resetting #71: The Second Sewer (rooms 7100-7199).
+Jun  6 20:27:01 :: Resetting #72: The Sewer Maze (rooms 7200-7299).
+Jun  6 20:27:01 :: Resetting #73: The Tunnels In The Sewer (rooms 7300-7399).
+Jun  6 20:27:01 :: Resetting #79: Redferne's Residence (rooms 7900-7999).
+Jun  6 20:27:01 :: Resetting #120: Rome (rooms 12000-12099).
+Jun  6 20:27:01 :: Resetting #150: King Welmar's Castle (rooms 15000-15099).
+Jun  6 20:27:01 :: Resetting #186: Newbie Zone (rooms 18600-18699).
+Jun  6 20:27:01 :: Boot db -- DONE.
+Jun  6 20:27:01 :: Signal trapping.
+Jun  6 20:27:01 :: Entering game loop.
+Jun  6 20:27:01 :: No connections.  Going to sleep.
+Jun  6 20:27:05 :: New connection.  Waking up.
+Jun  6 20:27:18 :: Stefan [localhost] new player.
+Jun  6 20:27:25 :: Stefan entering game with no equipment.
+Jun  6 20:28:26 :: (GC) Shutdown by Stefan.
+Jun  6 20:28:26 :: Closing all sockets.
+Jun  6 20:28:26 :: Closing link to: Stefan.
+Jun  6 20:28:26 :: Saving current MUD time.
+Jun  6 20:28:26 :: Normal termination of game.
+Jun  6 20:28:26 :: Clearing game world.
+Jun  6 20:28:26 :: Clearing other memory.
+Jun  6 20:28:26 :: Done.
+Quick boot mode -- rent check supressed.
+Using file descriptor for logging.

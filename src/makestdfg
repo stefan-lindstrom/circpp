@@ -1,0 +1,46 @@
+make ../bin/circle
+make[1]: Entering directory '/home/asmodean/mud/circle-3.1/src'
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.comm.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.informative.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.item.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.movement.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.offensive.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.other.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.social.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  act.wizard.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  alias.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  ban.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  boards.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  castle.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  class.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  comm.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  db.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  fight.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  graph.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  handler.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  house.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  interpreter.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  limits.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  magic.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  mail.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  mobact.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  modify.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  objsave.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  olc.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  shop.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  spec_assign.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  spec_procs.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  spell_parser.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  spells.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  utils.c
+g++ -c -g -O2 -Wall -Wextra -Wno-char-subscripts -pedantic-errors -std=c++11  weather.c
+g++ -o ../bin/circle  act.comm.o act.informative.o act.item.o act.movement.o act.offensive.o act.other.o act.social.o act.wizard.o alias.o ban.o boards.o castle.o class.o comm.o config.o constants.o db.o fight.o graph.o handler.o house.o interpreter.o limits.o magic.o mail.o mobact.o modify.o objsave.o olc.o random.o shop.o spec_assign.o spec_procs.o spell_parser.o spells.o utils.o weather.o bsd-snprintf.o -lcrypt 
+make[1]: Leaving directory '/home/asmodean/mud/circle-3.1/src'
+make utils
+make[1]: Entering directory '/home/asmodean/mud/circle-3.1/src'
+(cd util; make all)
+make[2]: Entering directory '/home/asmodean/mud/circle-3.1/src/util'
+g++ -g -O2 -Wall -Wno-char-subscripts -DCIRCLE_UTIL -std=c++11  -I.. -o ../../bin/autowiz autowiz.c
+g++ -g -O2 -Wall -Wno-char-subscripts -DCIRCLE_UTIL -std=c++11  -I.. -o ../../bin/shopconv shopconv.c
+make[2]: Leaving directory '/home/asmodean/mud/circle-3.1/src/util'
+make[1]: Leaving directory '/home/asmodean/mud/circle-3.1/src'
