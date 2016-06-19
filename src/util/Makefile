@@ -6,7 +6,7 @@
 CC = g++
 
 # Any special flags you want to pass to the compiler
-MYFLAGS = -Wall -Wno-char-subscripts -DCIRCLE_UTIL -std=c++11
+MYFLAGS = -Wall -Wno-char-subscripts -DCIRCLE_UTIL -std=c++11 -pedantic-errors -Werror
 
 #flags for profiling (see hacker.doc for more information)
 PROFILE = 

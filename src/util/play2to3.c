@@ -243,8 +243,7 @@ int main(int argc, char *argv[])
   FILE *ptTwoHndl;
   FILE *ptThreeHndl;
   int iIndex;
-  char *apcClassAbbrev[] =
-  {"Mu", "Cl", "Th", "Wa"};
+  char apcClassAbbrev[][3] = {"Mu", "Cl", "Th", "Wa"};
   int aiSkillMappings[] =
   {138, 133, 139, 131, 135, 134, 132, 137};
 
