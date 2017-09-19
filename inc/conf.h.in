@@ -1,16 +1,17 @@
-/* src/conf.h.in.  Generated automatically from configure.in by autoheader.  */
+#ifndef __CONF_H
+#define __CONF_H
 
 /* Define to empty if the keyword does not work.  */
 #undef const
 
 /* Define if you don't have vprintf but do have _doprnt.  */
-#undef HAVE_DOPRNT
+#cmakedefine HAVE_DOPRNT
 
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
-#undef HAVE_SYS_WAIT_H
+#cmakedefine HAVE_SYS_WAIT_H
 
 /* Define if you have the vprintf function.  */
-#undef HAVE_VPRINTF
+#cmakedefine HAVE_VPRINTF
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef pid_t
@@ -31,7 +32,7 @@
 #undef CIRCLE_UNIX
 
 /* Define if the system is capable of using crypt() to encrypt.  */
-#undef CIRCLE_CRYPT
+#cmakedefine CIRCLE_CRYPT
 
 /* Define if we don't have proper support for the system's crypt().  */
 #undef HAVE_UNSAFE_CRYPT
@@ -40,16 +41,16 @@
 #undef HAVE_STRUCT_IN_ADDR
 
 /* Define to `int' if <sys/socket.h> doesn't define.  */
-#undef socklen_t
+#cmakedefine socklen_t
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef ssize_t
 
 /* Define if you have the gettimeofday function.  */
-#undef HAVE_GETTIMEOFDAY
+#cmakedefine HAVE_GETTIMEOFDAY
 
 /* Define if you have the inet_addr function.  */
-#undef HAVE_INET_ADDR
+#cmakedefine HAVE_INET_ADDR
 
 /* Define if you have the inet_aton function.  */
 #undef HAVE_INET_ATON
@@ -330,3 +331,4 @@
 /* Check for a prototype to write. */
 #undef NEED_WRITE_PROTO
 
+#endif
