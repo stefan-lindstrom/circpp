@@ -161,7 +161,7 @@
 #cmakedefine HAVE_UNISTD_H
 
 /* Define if you have the malloc library (-lmalloc).  */
-#undef HAVE_LIBMALLOC
+#cmakedefine HAVE_LIBMALLOC
 
 /* Check for a prototype to accept. */
 #undef NEED_ACCEPT_PROTO
