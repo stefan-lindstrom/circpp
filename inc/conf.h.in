@@ -5,13 +5,13 @@
 #undef const
 
 /* Define if you don't have vprintf but do have _doprnt.  */
-#cmakedefine HAVE_DOPRNT
+#cmakedefine HAVE_DOPRNT 1
 
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
-#cmakedefine HAVE_SYS_WAIT_H
+#cmakedefine HAVE_SYS_WAIT_H 1
 
 /* Define if you have the vprintf function.  */
-#cmakedefine HAVE_VPRINTF
+#cmakedefine HAVE_VPRINTF 1
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef pid_t
@@ -29,139 +29,139 @@
 #undef TIME_WITH_SYS_TIME
 
 /* Define if we're compiling CircleMUD under any type of UNIX system.  */
-#undef CIRCLE_UNIX
+#cmakedefine CIRCLE_UNIX 1
 
 /* Define if the system is capable of using crypt() to encrypt.  */
-#cmakedefine CIRCLE_CRYPT
+#cmakedefine CIRCLE_CRYPT 1
 
 /* Define if we don't have proper support for the system's crypt().  */
 #undef HAVE_UNSAFE_CRYPT
 
 /* Define if the system has struct in_addr.  */
-#cmakedefine HAVE_STRUCT_IN_ADDR
+#cmakedefine HAVE_STRUCT_IN_ADDR 1
 
 /* Define to `int' if <sys/socket.h> doesn't define.  */
-#cmakedefine socklen_t
+#cmakedefine socklen_t int
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef ssize_t
 
 /* Define if you have the gettimeofday function.  */
-#cmakedefine HAVE_GETTIMEOFDAY
+#cmakedefine HAVE_GETTIMEOFDAY 1
 
 /* Define if you have the inet_addr function.  */
-#cmakedefine HAVE_INET_ADDR
+#cmakedefine HAVE_INET_ADDR 1
 
 /* Define if you have the inet_aton function.  */
-#cmakedefine HAVE_INET_ATON
+#cmakedefine HAVE_INET_ATON 1
 
 /* Define if you have the select function.  */
-#cmakedefine HAVE_SELECT
+#cmakedefine HAVE_SELECT 1
 
 /* Define if you have the snprintf function.  */
-#cmakedefine HAVE_SNPRINTF
+#cmakedefine HAVE_SNPRINTF 1
 
 /* Define if you have the strcasecmp function.  */
-#cmakedefine HAVE_STRCASECMP
+#cmakedefine HAVE_STRCASECMP 1
 
 /* Define if you have the strdup function.  */
-#cmakedefine HAVE_STRDUP
+#cmakedefine HAVE_STRDUP 1
 
 /* Define if you have the strerror function.  */
-#cmakedefine HAVE_STRERROR
+#cmakedefine HAVE_STRERROR 1
 
 /* Define if you have the stricmp function.  */
-#cmakedefine HAVE_STRICMP
+#cmakedefine HAVE_STRICMP 1
 
 /* Define if you have the strlcpy function.  */
-#cmakedefine HAVE_STRLCPY
+#cmakedefine HAVE_STRLCPY 1
 
 /* Define if you have the strncasecmp function.  */
-#cmakedefine HAVE_STRNCASECMP
+#cmakedefine HAVE_STRNCASECMP 1
 
 /* Define if you have the strnicmp function.  */
-#cmakedefine HAVE_STRNICMP
+#cmakedefine HAVE_STRNICMP 1
 
 /* Define if you have the strstr function.  */
-#cmakedefine HAVE_STRSTR
+#cmakedefine HAVE_STRSTR 1
 
 /* Define if you have the vsnprintf function.  */
-#cmakedefine HAVE_VSNPRINTF
+#cmakedefine HAVE_VSNPRINTF 1
 
 /* Define if you have the <arpa/inet.h> header file.  */
-#cmakedefine HAVE_ARPA_INET_H
+#cmakedefine HAVE_ARPA_INET_H 1
 
 /* Define if you have the <arpa/telnet.h> header file.  */
-#cmakedefine HAVE_ARPA_TELNET_H
+#cmakedefine HAVE_ARPA_TELNET_H 1
 
 /* Define if you have the <assert.h> header file.  */
-#cmakedefine HAVE_ASSERT_H
+#cmakedefine HAVE_ASSERT_H 1
 
 /* Define if you have the <crypt.h> header file.  */
-#cmakedefine HAVE_CRYPT_H
+#cmakedefine HAVE_CRYPT_H 1
 
 /* Define if you have the <errno.h> header file.  */
-#cmakedefine HAVE_ERRNO_H
+#cmakedefine HAVE_ERRNO_H 1
 
 /* Define if you have the <fcntl.h> header file.  */
-#cmakedefine HAVE_FCNTL_H
+#cmakedefine HAVE_FCNTL_H 1
 
 /* Define if you have the <limits.h> header file.  */
-#cmakedefine HAVE_LIMITS_H
+#cmakedefine HAVE_LIMITS_H 1
 
 /* Define if you have the <mcheck.h> header file.  */
-#cmakedefine HAVE_MCHECK_H
+#cmakedefine HAVE_MCHECK_H 1
 
 /* Define if you have the <memory.h> header file.  */
-#cmakedefine HAVE_MEMORY_H
+#cmakedefine HAVE_MEMORY_H 1
 
 /* Define if you have the <net/errno.h> header file.  */
-#cmakedefine HAVE_NET_ERRNO_H
+#cmakedefine HAVE_NET_ERRNO_H 1
 
 /* Define if you have the <netdb.h> header file.  */
-#cmakedefine HAVE_NETDB_H
+#cmakedefine HAVE_NETDB_H 1
 
 /* Define if you have the <netinet/in.h> header file.  */
-#cmakedefine HAVE_NETINET_IN_H
+#cmakedefine HAVE_NETINET_IN_H 1
 
 /* Define if you have the <signal.h> header file.  */
-#cmakedefine HAVE_SIGNAL_H
+#cmakedefine HAVE_SIGNAL_H 1
 
 /* Define if you have the <string.h> header file.  */
-#cmakedefine HAVE_STRING_H
+#cmakedefine HAVE_STRING_H 1
 
 /* Define if you have the <strings.h> header file.  */
-#cmakedefine HAVE_STRINGS_H
+#cmakedefine HAVE_STRINGS_H 1
 
 /* Define if you have the <sys/fcntl.h> header file.  */
-#cmakedefine HAVE_SYS_FCNTL_H
+#cmakedefine HAVE_SYS_FCNTL_H 1
 
 /* Define if you have the <sys/resource.h> header file.  */
-#cmakedefine HAVE_SYS_RESOURCE_H
+#cmakedefine HAVE_SYS_RESOURCE_H 1
 
 /* Define if you have the <sys/select.h> header file.  */
-#cmakedefine HAVE_SYS_SELECT_H
+#cmakedefine HAVE_SYS_SELECT_H 1
 
 /* Define if you have the <sys/socket.h> header file.  */
-#cmakedefine HAVE_SYS_SOCKET_H
+#cmakedefine HAVE_SYS_SOCKET_H 1
 
 /* Define if you have the <sys/stat.h> header file.  */
-#cmakedefine HAVE_SYS_STAT_H
+#cmakedefine HAVE_SYS_STAT_H 1
 
 /* Define if you have the <sys/time.h> header file.  */
-#cmakedefine HAVE_SYS_TIME_H
+#cmakedefine HAVE_SYS_TIME_H 1
 
 /* Define if you have the <sys/types.h> header file.  */
-#cmakedefine HAVE_SYS_TYPES_H
+#cmakedefine HAVE_SYS_TYPES_H 1
 
 /* Define if you have the <sys/uio.h> header file.  */
-#cmakedefine HAVE_SYS_UIO_H
+#cmakedefine HAVE_SYS_UIO_H 1
 
 /* Define if you have the <unistd.h> header file.  */
-#cmakedefine HAVE_UNISTD_H
+#cmakedefine HAVE_UNISTD_H 1
 
 /* Define if you have the malloc library (-lmalloc).  */
-#cmakedefine HAVE_LIBMALLOC
+#cmakedefine HAVE_LIBMALLOC 1
 
 /* Check for a prototype to accept. */
 #undef NEED_ACCEPT_PROTO
@@ -308,7 +308,7 @@
 #undef NEED_STRICMP_PROTO
 
 /* Check for a prototype to strlcpy. */
-#undef NEED_STRLCPY_PROTO
+#cmakedefine NEED_STRLCPY_PROTO
 
 /* Check for a prototype to strncasecmp. */
 #undef NEED_STRNCASECMP_PROTO
