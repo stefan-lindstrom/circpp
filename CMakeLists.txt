@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(circle)
 
-add_definitions(-std=c++11 -Wl,--no-as-needed)
+add_definitions(-std=c++11 -Wl,--no-as-needed -Wall -Werror)
 
 include_directories(inc/)
 add_subdirectory(inc/)
