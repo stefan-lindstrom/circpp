@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 2.8)
+
+SET(autowiz_src   ${CMAKE_CURRENT_SOURCE_DIR}/autowiz.cpp   PARENT_SCOPE)
+SET(listrent_src  ${CMAKE_CURRENT_SOURCE_DIR}/listrent.cpp  PARENT_SCOPE)
+SET(play2to3_src  ${CMAKE_CURRENT_SOURCE_DIR}/play2to3.cpp  PARENT_SCOPE)   
+SET(shopconv_src  ${CMAKE_CURRENT_SOURCE_DIR}/shopconv.cpp  PARENT_SCOPE)  
+SET(sign_src      ${CMAKE_CURRENT_SOURCE_DIR}/sign.cpp      PARENT_SCOPE)   
+SET(wld2html_src  ${CMAKE_CURRENT_SOURCE_DIR}/wld2html.cpp  PARENT_SCOPE)
+SET(delobjs_src   ${CMAKE_CURRENT_SOURCE_DIR}/delobjs.cpp   PARENT_SCOPE) 
+SET(mudpasswd_src ${CMAKE_CURRENT_SOURCE_DIR}/mudpasswd.cpp PARENT_SCOPE)  
+SET(purgeplay_src ${CMAKE_CURRENT_SOURCE_DIR}/purgeplay.cpp PARENT_SCOPE)  
+SET(showplay_src  ${CMAKE_CURRENT_SOURCE_DIR}/showplay.cpp  PARENT_SCOPE)  
+SET(split_src     ${CMAKE_CURRENT_SOURCE_DIR}/split.cpp     PARENT_SCOPE)
