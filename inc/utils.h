@@ -16,8 +16,6 @@
 extern struct weather_data weather_info;
 extern FILE *logfile;
 
-#define log			basic_mud_log
-
 #define READ_SIZE	256
 
 /* public functions in utils.c */
@@ -151,7 +149,7 @@ void	update_pos(struct char_data *victim);
 
 #define CREATE(result, type, number)  do {\
 	if ((number) * sizeof(type) <= 0)	\
-		log("SYSERR: Zero bytes or less requested at %s:%d.", __FILE__, __LINE__);	\
+		basic_mud_log("SYSERR: Zero bytes or less requested at %s:%d.", __FILE__, __LINE__);	\
 	if (!((result) = (type *) calloc ((number), sizeof(type))))	\
 		{ perror("SYSERR: malloc failure"); abort(); } } while(0)
 
@@ -198,7 +196,7 @@ void	update_pos(struct char_data *victim);
 #if 1
 /* Subtle bug in the '#var', but works well for now. */
 #define CHECK_PLAYER_SPECIAL(ch, var) \
-	(*(((ch)->player_specials == &dummy_mob) ? (log("SYSERR: Mob using '"#var"' at %s:%d.", __FILE__, __LINE__), &(var)) : &(var)))
+	(*(((ch)->player_specials == &dummy_mob) ? (basic_mud_log("SYSERR: Mob using '"#var"' at %s:%d.", __FILE__, __LINE__), &(var)) : &(var)))
 #else
 #define CHECK_PLAYER_SPECIAL(ch, var)	(var)
 #endif

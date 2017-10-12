@@ -14,6 +14,7 @@
 #include "sysdep.h"
 
 #include <vector>
+#include <algorithm>
 
 #include "structs.h"
 #include "utils.h"
@@ -251,29 +252,29 @@ ACMD(do_reboot)
 
 void boot_world(void)
 {
-  log("Loading zone table.");
+  basic_mud_log("Loading zone table.");
   index_boot(DBBoot::DB_BOOT_ZON);
 
-  log("Loading rooms.");
+  basic_mud_log("Loading rooms.");
   index_boot(DBBoot::DB_BOOT_WLD);
 
-  log("Renumbering rooms.");
+  basic_mud_log("Renumbering rooms.");
   renum_world();
 
-  log("Checking start rooms.");
+  basic_mud_log("Checking start rooms.");
   check_start_rooms();
 
-  log("Loading mobs and generating index.");
+  basic_mud_log("Loading mobs and generating index.");
   index_boot(DBBoot::DB_BOOT_MOB);
 
-  log("Loading objs and generating index.");
+  basic_mud_log("Loading objs and generating index.");
   index_boot(DBBoot::DB_BOOT_OBJ);
 
-  log("Renumbering zone table.");
+  basic_mud_log("Renumbering zone table.");
   renum_zone_table();
 
   if (!no_specials) {
-    log("Loading shops.");
+    basic_mud_log("Loading shops.");
     index_boot(DBBoot::DB_BOOT_SHP);
   }
 }
@@ -388,12 +389,12 @@ void boot_db(void)
 {
   zone_rnum i;
 
-  log("Boot db -- BEGIN.");
+  basic_mud_log("Boot db -- BEGIN.");
 
-  log("Resetting the game time:");
+  basic_mud_log("Resetting the game time:");
   reset_time();
 
-  log("Reading news, credits, help, bground, info & motds.");
+  basic_mud_log("Reading news, credits, help, bground, info & motds.");
   file_to_string_alloc(NEWS_FILE, &news);
   file_to_string_alloc(CREDITS_FILE, &credits);
   file_to_string_alloc(MOTD_FILE, &motd);
@@ -408,66 +409,66 @@ void boot_db(void)
   if (file_to_string_alloc(GREETINGS_FILE, &GREETINGS) == 0)
     prune_crlf(GREETINGS);
 
-  log("Loading spell definitions.");
+  basic_mud_log("Loading spell definitions.");
   mag_assign_spells();
 
   boot_world();
 
-  log("Loading help entries.");
+  basic_mud_log("Loading help entries.");
   index_boot(DBBoot::DB_BOOT_HLP);
 
-  log("Generating player index.");
+  basic_mud_log("Generating player index.");
   build_player_index();
 
-  log("Loading fight messages.");
+  basic_mud_log("Loading fight messages.");
   load_messages();
 
-  log("Loading social messages.");
+  basic_mud_log("Loading social messages.");
   boot_social_messages();
 
-  log("Assigning function pointers:");
+  basic_mud_log("Assigning function pointers:");
 
   if (!no_specials) {
-    log("   Mobiles.");
+    basic_mud_log("   Mobiles.");
     assign_mobiles();
-    log("   Shopkeepers.");
+    basic_mud_log("   Shopkeepers.");
     assign_the_shopkeepers();
-    log("   Objects.");
+    basic_mud_log("   Objects.");
     assign_objects();
-    log("   Rooms.");
+    basic_mud_log("   Rooms.");
     assign_rooms();
   }
 
-  log("Assigning spell and skill levels.");
+  basic_mud_log("Assigning spell and skill levels.");
   init_spell_levels();
 
-  log("Sorting command list and spells.");
+  basic_mud_log("Sorting command list and spells.");
   sort_commands();
   sort_spells();
 
-  log("Booting mail system.");
+  basic_mud_log("Booting mail system.");
   if (!scan_file()) {
-    log("    Mail boot failed -- Mail system disabled");
+    basic_mud_log("    Mail boot failed -- Mail system disabled");
     no_mail = 1;
   }
-  log("Reading banned site and invalid-name list.");
+  basic_mud_log("Reading banned site and invalid-name list.");
   load_banned();
   Read_Invalid_List();
 
   if (!no_rent_check) {
-    log("Deleting timed-out crash and rent files:");
+    basic_mud_log("Deleting timed-out crash and rent files:");
     update_obj_file();
-    log("   Done.");
+    basic_mud_log("   Done.");
   }
 
   /* Moved here so the object limit code works. -gg 6/24/98 */
   if (!mini_mud) {
-    log("Booting houses.");
+    basic_mud_log("Booting houses.");
     House_boot();
   }
 
   for (i = 0; i <= top_of_zone_table; i++) {
-    log("Resetting #%d: %s (rooms %d-%d).", zone_table[i].number,
+    basic_mud_log("Resetting #%d: %s (rooms %d-%d).", zone_table[i].number,
 	zone_table[i].name, zone_table[i].bot, zone_table[i].top);
     reset_zone(i);
   }
@@ -476,7 +477,7 @@ void boot_db(void)
 
   boot_time = time(0);
 
-  log("Boot db -- DONE.");
+  basic_mud_log("Boot db -- DONE.");
 }
 
 
@@ -487,7 +488,7 @@ void reset_time(void)
   FILE *bgtime;
 
   if ((bgtime = fopen(TIME_FILE, "r")) == NULL)
-    log("SYSERR: Can't read from '%s' time file.", TIME_FILE);
+    basic_mud_log("SYSERR: Can't read from '%s' time file.", TIME_FILE);
   else {
     fscanf(bgtime, "%ld\n", &beginning_of_time);
     fclose(bgtime);
@@ -508,7 +509,7 @@ void reset_time(void)
   else
     weather_info.sunlight = SUN_DARK;
 
-  log("   Current Gametime: %dH %dD %dM %dY.", time_info.hours,
+  basic_mud_log("   Current Gametime: %dH %dD %dM %dY.", time_info.hours,
 	  time_info.day, time_info.month, time_info.year);
 
   weather_info.pressure = 960;
@@ -536,7 +537,7 @@ void save_mud_time(struct time_info_data *when)
   FILE *bgtime;
 
   if ((bgtime = fopen(TIME_FILE, "w")) == NULL)
-    log("SYSERR: Can't write to '%s' time file.", TIME_FILE);
+    basic_mud_log("SYSERR: Can't write to '%s' time file.", TIME_FILE);
   else {
     fprintf(bgtime, "%ld\n", mud_time_to_secs(when));
     fclose(bgtime);
@@ -573,7 +574,7 @@ void build_player_index(void)
       perror("SYSERR: fatal error opening playerfile");
       exit(1);
     } else {
-      log("No playerfile.  Creating a new one.");
+      basic_mud_log("No playerfile.  Creating a new one.");
       touch(PLAYER_FILE);
       if (!(player_fl = fopen(PLAYER_FILE, "r+b"))) {
 	perror("SYSERR: fatal error opening playerfile");
@@ -586,10 +587,10 @@ void build_player_index(void)
   size = ftell(player_fl);
   rewind(player_fl);
   if (size % sizeof(struct char_file_u))
-    log("\aWARNING:  PLAYERFILE IS PROBABLY CORRUPT!");
+    basic_mud_log("\aWARNING:  PLAYERFILE IS PROBABLY CORRUPT!");
   recs = size / sizeof(struct char_file_u);
   if (recs) {
-    log("   %ld players in database.", recs);
+    basic_mud_log("   %ld players in database.", recs);
     CREATE(player_table, struct player_index_element, recs);
   } else {
     player_table = NULL;
@@ -655,7 +656,7 @@ int count_alias_records(FILE *fl)
 
   /* No, they are not evil. -gg 6/24/98 */
 ackeof:	
-  log("SYSERR: Unexpected end of help file.");
+  basic_mud_log("SYSERR: Unexpected end of help file.");
   exit(1);	/* Some day we hope to handle these things better... */
 }
 
@@ -715,7 +716,7 @@ static void index_boot(DBBoot mode)
     prefix = HLP_PREFIX;
     break;
   default:
-    log("SYSERR: Unknown subcommand %d to index_boot!", mode);
+    basic_mud_log("SYSERR: Unknown subcommand %d to index_boot!", mode);
     exit(1);
   }
 
@@ -726,7 +727,7 @@ static void index_boot(DBBoot mode)
 
   snprintf(buf2, sizeof(buf2), "%s%s", prefix, index_filename);
   if (!(db_index = fopen(buf2, "r"))) {
-    log("SYSERR: opening index file '%s': %s", buf2, strerror(errno));
+    basic_mud_log("SYSERR: opening index file '%s': %s", buf2, strerror(errno));
    exit(1);
   }
 
@@ -735,7 +736,7 @@ static void index_boot(DBBoot mode)
   while (*buf1 != '$') {
     snprintf(buf2, sizeof(buf2), "%s%s", prefix, buf1);
     if (!(db_file = fopen(buf2, "r"))) {
-      log("SYSERR: File '%s' listed in '%s/%s': %s", buf2, prefix,
+      basic_mud_log("SYSERR: File '%s' listed in '%s/%s': %s", buf2, prefix,
 	  index_filename, strerror(errno));
       fscanf(db_index, "%s\n", buf1);
       continue;
@@ -756,7 +757,7 @@ static void index_boot(DBBoot mode)
   if (!rec_count) {
     if (mode == DBBoot::DB_BOOT_SHP)
       return;
-    log("SYSERR: boot error - 0 records counted in %s/%s.", prefix,
+    basic_mud_log("SYSERR: boot error - 0 records counted in %s/%s.", prefix,
 	index_filename);
     exit(1);
   }
@@ -768,35 +769,35 @@ static void index_boot(DBBoot mode)
   case DBBoot::DB_BOOT_WLD:
     CREATE(world, struct room_data, rec_count);
     size[0] = sizeof(struct room_data) * rec_count;
-    log("   %d rooms, %d bytes.", rec_count, size[0]);
+    basic_mud_log("   %d rooms, %d bytes.", rec_count, size[0]);
     break;
   case DBBoot::DB_BOOT_MOB:
     CREATE(mob_proto, struct char_data, rec_count);
     CREATE(mob_index, struct index_data, rec_count);
     size[0] = sizeof(struct index_data) * rec_count;
     size[1] = sizeof(struct char_data) * rec_count;
-    log("   %d mobs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
+    basic_mud_log("   %d mobs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
     break;
   case DBBoot::DB_BOOT_OBJ:
     CREATE(obj_proto, struct obj_data, rec_count);
     CREATE(obj_index, struct index_data, rec_count);
     size[0] = sizeof(struct index_data) * rec_count;
     size[1] = sizeof(struct obj_data) * rec_count;
-    log("   %d objs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
+    basic_mud_log("   %d objs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
     break;
   case DBBoot::DB_BOOT_ZON:
     CREATE(zone_table, struct zone_data, rec_count);
     size[0] = sizeof(struct zone_data) * rec_count;
-    log("   %d zones, %d bytes.", rec_count, size[0]);
+    basic_mud_log("   %d zones, %d bytes.", rec_count, size[0]);
     break;
   case DBBoot::DB_BOOT_HLP:
     CREATE(help_table, struct help_index_element, rec_count);
     size[0] = sizeof(struct help_index_element) * rec_count;
-    log("   %d entries, %d bytes.", rec_count, size[0]);
+    basic_mud_log("   %d entries, %d bytes.", rec_count, size[0]);
     break;
   case DBBoot::DB_BOOT_SHP:
   default:
-    log("Wrong mode %d sent to index_boot()!", static_cast<int>(mode));
+    basic_mud_log("Wrong mode %d sent to index_boot()!", static_cast<int>(mode));
     break;
   }
 
@@ -805,7 +806,7 @@ static void index_boot(DBBoot mode)
   while (*buf1 != '$') {
     snprintf(buf2, sizeof(buf2), "%s%s", prefix, buf1);
     if (!(db_file = fopen(buf2, "r"))) {
-      log("SYSERR: %s: %s", buf2, strerror(errno));
+      basic_mud_log("SYSERR: %s: %s", buf2, strerror(errno));
       exit(1);
     }
     switch (mode) {
@@ -857,9 +858,9 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
     if (mode != DBBoot::DB_BOOT_OBJ || nr < 0)
       if (!get_line(fl, line)) {
 	if (nr == -1) {
-	  log("SYSERR: %s file %s is empty!", modes[static_cast<int>(mode)], filename);
+	  basic_mud_log("SYSERR: %s file %s is empty!", modes[static_cast<int>(mode)], filename);
 	} else {
-	  log("SYSERR: Format error in %s after %s #%d\n"
+	  basic_mud_log("SYSERR: Format error in %s after %s #%d\n"
 	      "...expecting a new %s, but file ended!\n"
 	      "(maybe the file is not terminated with '$'?)", filename,
 	      modes[static_cast<int>(mode)], nr, modes[static_cast<int>(mode)]);
@@ -872,7 +873,7 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
     if (*line == '#') {
       last = nr;
       if (sscanf(line, "#%d", &nr) != 1) {
-	log("SYSERR: Format error after %s #%d", modes[static_cast<int>(mode)], last);
+	basic_mud_log("SYSERR: Format error after %s #%d", modes[static_cast<int>(mode)], last);
 	exit(1);
       }
       if (nr >= 99999)
@@ -895,9 +896,9 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
 	  break;
 	}
     } else {
-      log("SYSERR: Format error in %s file %s near %s #%d", modes[static_cast<int>(mode)],
+      basic_mud_log("SYSERR: Format error in %s file %s near %s #%d", modes[static_cast<int>(mode)],
 	  filename, modes[static_cast<int>(mode)], nr);
-      log("SYSERR: ... offending line: '%s'", line);
+      basic_mud_log("SYSERR: ... offending line: '%s'", line);
       exit(1);
     }
   }
@@ -938,12 +939,12 @@ void parse_room(FILE *fl, int virtual_nr)
   snprintf(buf2, sizeof(buf2), "room #%d", virtual_nr);
 
   if (virtual_nr < zone_table[zone].bot) {
-    log("SYSERR: Room #%d is below zone %d.", virtual_nr, zone);
+    basic_mud_log("SYSERR: Room #%d is below zone %d.", virtual_nr, zone);
     exit(1);
   }
   while (virtual_nr > zone_table[zone].top)
     if (++zone > top_of_zone_table) {
-      log("SYSERR: Room %d is outside of any zone.", virtual_nr);
+      basic_mud_log("SYSERR: Room %d is outside of any zone.", virtual_nr);
       exit(1);
     }
   world[room_nr].zone = zone;
@@ -952,13 +953,13 @@ void parse_room(FILE *fl, int virtual_nr)
   world[room_nr].description = fread_string(fl, buf2);
 
   if (!get_line(fl, line)) {
-    log("SYSERR: Expecting roomflags/sector type of room #%d but file ended!",
+    basic_mud_log("SYSERR: Expecting roomflags/sector type of room #%d but file ended!",
 	virtual_nr);
     exit(1);
   }
 
   if (sscanf(line, " %d %s %d ", t, flags, t + 2) != 3) {
-    log("SYSERR: Format error in roomflags/sector type of room #%d",
+    basic_mud_log("SYSERR: Format error in roomflags/sector type of room #%d",
 	virtual_nr);
     exit(1);
   }
@@ -984,7 +985,7 @@ void parse_room(FILE *fl, int virtual_nr)
 
   for (;;) {
     if (!get_line(fl, line)) {
-      log("%s", buf);
+      basic_mud_log("%s", buf);
       exit(1);
     }
     switch (*line) {
@@ -1002,7 +1003,7 @@ void parse_room(FILE *fl, int virtual_nr)
       top_of_world = room_nr++;
       return;
     default:
-      log("%s", buf);
+      basic_mud_log("%s", buf);
       exit(1);
     }
   }
@@ -1023,11 +1024,11 @@ void setup_dir(FILE *fl, int room, int dir)
   world[room].dir_option[dir]->keyword = fread_string(fl, buf2);
 
   if (!get_line(fl, line)) {
-    log("SYSERR: Format error, %s", buf2);
+    basic_mud_log("SYSERR: Format error, %s", buf2);
     exit(1);
   }
   if (sscanf(line, " %d %d %d ", t, t + 1, t + 2) != 3) {
-    log("SYSERR: Format error, %s", buf2);
+    basic_mud_log("SYSERR: Format error, %s", buf2);
     exit(1);
   }
   if (t[0] == 1)
@@ -1046,17 +1047,17 @@ void setup_dir(FILE *fl, int room, int dir)
 void check_start_rooms(void)
 {
   if ((r_mortal_start_room = real_room(mortal_start_room)) == NOWHERE) {
-    log("SYSERR:  Mortal start room does not exist.  Change in config.c.");
+    basic_mud_log("SYSERR:  Mortal start room does not exist.  Change in config.c.");
     exit(1);
   }
   if ((r_immort_start_room = real_room(immort_start_room)) == NOWHERE) {
     if (!mini_mud)
-      log("SYSERR:  Warning: Immort start room does not exist.  Change in config.c.");
+      basic_mud_log("SYSERR:  Warning: Immort start room does not exist.  Change in config.c.");
     r_immort_start_room = r_mortal_start_room;
   }
   if ((r_frozen_start_room = real_room(frozen_start_room)) == NOWHERE) {
     if (!mini_mud)
-      log("SYSERR:  Warning: Frozen start room does not exist.  Change in config.c.");
+      basic_mud_log("SYSERR:  Warning: Frozen start room does not exist.  Change in config.c.");
     r_frozen_start_room = r_mortal_start_room;
   }
 }
@@ -1156,13 +1157,13 @@ void parse_simple_mob(FILE *mob_f, int i, int nr)
   mob_proto[i].real_abils.cha = 11;
 
   if (!get_line(mob_f, line)) {
-    log("SYSERR: Format error in mob #%d, file ended after S flag!", nr);
+    basic_mud_log("SYSERR: Format error in mob #%d, file ended after S flag!", nr);
     exit(1);
   }
 
   if (sscanf(line, " %d %d %d %dd%d+%d %dd%d+%d ",
 	  t, t + 1, t + 2, t + 3, t + 4, t + 5, t + 6, t + 7, t + 8) != 9) {
-    log("SYSERR: Format error in mob #%d, first line after S flag\n"
+    basic_mud_log("SYSERR: Format error in mob #%d, first line after S flag\n"
 	"...expecting line of form '# # # #d#+# #d#+#'", nr);
     exit(1);
   }
@@ -1185,13 +1186,13 @@ void parse_simple_mob(FILE *mob_f, int i, int nr)
   GET_DAMROLL(mob_proto + i) = t[8];
 
   if (!get_line(mob_f, line)) {
-      log("SYSERR: Format error in mob #%d, second line after S flag\n"
+      basic_mud_log("SYSERR: Format error in mob #%d, second line after S flag\n"
 	  "...expecting line of form '# #', but file ended!", nr);
       exit(1);
     }
 
   if (sscanf(line, " %d %d ", t, t + 1) != 2) {
-    log("SYSERR: Format error in mob #%d, second line after S flag\n"
+    basic_mud_log("SYSERR: Format error in mob #%d, second line after S flag\n"
 	"...expecting line of form '# #'", nr);
     exit(1);
   }
@@ -1200,13 +1201,13 @@ void parse_simple_mob(FILE *mob_f, int i, int nr)
   GET_EXP(mob_proto + i) = t[1];
 
   if (!get_line(mob_f, line)) {
-    log("SYSERR: Format error in last line of mob #%d\n"
+    basic_mud_log("SYSERR: Format error in last line of mob #%d\n"
 	"...expecting line of form '# # #', but file ended!", nr);
     exit(1);
   }
 
   if (sscanf(line, " %d %d %d ", t, t + 1, t + 2) != 3) {
-    log("SYSERR: Format error in last line of mob #%d\n"
+    basic_mud_log("SYSERR: Format error in last line of mob #%d\n"
 	"...expecting line of form '# # #'", nr);
     exit(1);
   }
@@ -1299,7 +1300,7 @@ void interpret_espec(const char *keyword, const char *value, int i, int nr)
   }
 
   if (!matched) {
-    log("SYSERR: Warning: unrecognized espec keyword %s in mob #%d",
+    basic_mud_log("SYSERR: Warning: unrecognized espec keyword %s in mob #%d",
 	    keyword, nr);
   }    
 }
@@ -1331,13 +1332,13 @@ void parse_enhanced_mob(FILE *mob_f, int i, int nr)
     if (!strcmp(line, "E"))	/* end of the enhanced section */
       return;
     else if (*line == '#') {	/* we've hit the next mob, maybe? */
-      log("SYSERR: Unterminated E section in mob #%d", nr);
+      basic_mud_log("SYSERR: Unterminated E section in mob #%d", nr);
       exit(1);
     } else
       parse_espec(line, i, nr);
   }
 
-  log("SYSERR: Unexpected end of file reached after mob #%d", nr);
+  basic_mud_log("SYSERR: Unexpected end of file reached after mob #%d", nr);
   exit(1);
 }
 
@@ -1376,7 +1377,7 @@ void parse_mobile(FILE *mob_f, int nr)
 
   /* *** Numeric data *** */
   if (!get_line(mob_f, line)) {
-    log("SYSERR: Format error after string section of mob #%d\n"
+    basic_mud_log("SYSERR: Format error after string section of mob #%d\n"
 	"...expecting line of form '# # # {S | E}', but file ended!", nr);
     exit(1);
   }
@@ -1386,7 +1387,7 @@ void parse_mobile(FILE *mob_f, int nr)
 #else
   if (sscanf(line, "%s %s %d %c", f1, f2, t + 2, &letter) != 4) {
 #endif
-    log("SYSERR: Format error after string section of mob #%d\n"
+    basic_mud_log("SYSERR: Format error after string section of mob #%d\n"
 	"...expecting line of form '# # # {S | E}'", nr);
     exit(1);
   }
@@ -1395,7 +1396,7 @@ void parse_mobile(FILE *mob_f, int nr)
   SET_BIT(MOB_FLAGS(mob_proto + i), MOB_ISNPC);
   if (MOB_FLAGGED(mob_proto + i, MOB_NOTDEADYET)) {
     /* Rather bad to load mobiles with this bit already set. */
-    log("SYSERR: Mob #%d has reserved bit MOB_NOTDEADYET set.", nr);
+    basic_mud_log("SYSERR: Mob #%d has reserved bit MOB_NOTDEADYET set.", nr);
     REMOVE_BIT(MOB_FLAGS(mob_proto + i), MOB_NOTDEADYET);
   }
   check_bitvector_names(MOB_FLAGS(mob_proto + i), action_bits_count, buf2, "mobile");
@@ -1407,7 +1408,7 @@ void parse_mobile(FILE *mob_f, int nr)
 
   /* AGGR_CommTarget::TO_ALIGN is ignored if the mob is AGGRESSIVE. */
   if (MOB_FLAGGED(mob_proto + i, MOB_AGGRESSIVE) && MOB_FLAGGED(mob_proto + i, MOB_AGGR_GOOD | MOB_AGGR_EVIL | MOB_AGGR_NEUTRAL))
-    log("SYSERR: Mob #%d both Aggressive and Aggressive_to_Alignment.", nr);
+    basic_mud_log("SYSERR: Mob #%d both Aggressive and Aggressive_to_Alignment.", nr);
 
   switch (UPPER(letter)) {
   case 'S':	/* Simple monsters */
@@ -1418,7 +1419,7 @@ void parse_mobile(FILE *mob_f, int nr)
     break;
   /* add new mob types here.. */
   default:
-    log("SYSERR: Unsupported mob type '%c' in mob #%d", letter, nr);
+    basic_mud_log("SYSERR: Unsupported mob type '%c' in mob #%d", letter, nr);
     exit(1);
   }
 
@@ -1457,7 +1458,7 @@ char *parse_object(FILE *obj_f, int nr)
 
   /* *** string data *** */
   if ((obj_proto[i].name = fread_string(obj_f, buf2)) == NULL) {
-    log("SYSERR: Null obj name or format error at or near %s", buf2);
+    basic_mud_log("SYSERR: Null obj name or format error at or near %s", buf2);
     exit(1);
   }
   tmpptr = obj_proto[i].short_description = fread_string(obj_f, buf2);
@@ -1473,11 +1474,11 @@ char *parse_object(FILE *obj_f, int nr)
 
   /* *** numeric data *** */
   if (!get_line(obj_f, line)) {
-    log("SYSERR: Expecting first numeric line of %s, but file ended!", buf2);
+    basic_mud_log("SYSERR: Expecting first numeric line of %s, but file ended!", buf2);
     exit(1);
   }
   if ((retval = sscanf(line, " %d %s %s", t, f1, f2)) != 3) {
-    log("SYSERR: Format error in first numeric line (expecting 3 args, got %d), %s", retval, buf2);
+    basic_mud_log("SYSERR: Format error in first numeric line (expecting 3 args, got %d), %s", retval, buf2);
     exit(1);
   }
 
@@ -1487,11 +1488,11 @@ char *parse_object(FILE *obj_f, int nr)
   GET_OBJ_WEAR(obj_proto + i) = asciiflag_conv(f2);
 
   if (!get_line(obj_f, line)) {
-    log("SYSERR: Expecting second numeric line of %s, but file ended!", buf2);
+    basic_mud_log("SYSERR: Expecting second numeric line of %s, but file ended!", buf2);
     exit(1);
   }
   if ((retval = sscanf(line, "%d %d %d %d", t, t + 1, t + 2, t + 3)) != 4) {
-    log("SYSERR: Format error in second numeric line (expecting 4 args, got %d), %s", retval, buf2);
+    basic_mud_log("SYSERR: Format error in second numeric line (expecting 4 args, got %d), %s", retval, buf2);
     exit(1);
   }
   GET_OBJ_VAL(obj_proto + i, 0) = t[0];
@@ -1500,11 +1501,11 @@ char *parse_object(FILE *obj_f, int nr)
   GET_OBJ_VAL(obj_proto + i, 3) = t[3];
 
   if (!get_line(obj_f, line)) {
-    log("SYSERR: Expecting third numeric line of %s, but file ended!", buf2);
+    basic_mud_log("SYSERR: Expecting third numeric line of %s, but file ended!", buf2);
     exit(1);
   }
   if ((retval = sscanf(line, "%d %d %d", t, t + 1, t + 2)) != 3) {
-    log("SYSERR: Format error in third numeric line (expecting 3 args, got %d), %s", retval, buf2);
+    basic_mud_log("SYSERR: Format error in third numeric line (expecting 3 args, got %d), %s", retval, buf2);
     exit(1);
   }
   GET_OBJ_WEIGHT(obj_proto + i) = t[0];
@@ -1530,7 +1531,7 @@ char *parse_object(FILE *obj_f, int nr)
 
   for (;;) {
     if (!get_line(obj_f, line)) {
-      log("SYSERR: Format error in %s", buf2);
+      basic_mud_log("SYSERR: Format error in %s", buf2);
       exit(1);
     }
     switch (*line) {
@@ -1543,17 +1544,17 @@ char *parse_object(FILE *obj_f, int nr)
       break;
     case 'A':
       if (j >= MAX_OBJ_AFFECT) {
-	log("SYSERR: Too many A fields (%d max), %s", MAX_OBJ_AFFECT, buf2);
+	basic_mud_log("SYSERR: Too many A fields (%d max), %s", MAX_OBJ_AFFECT, buf2);
 	exit(1);
       }
       if (!get_line(obj_f, line)) {
-	log("SYSERR: Format error in 'A' field, %s\n"
+	basic_mud_log("SYSERR: Format error in 'A' field, %s\n"
 	    "...expecting 2 numeric constants but file ended!", buf2);
 	exit(1);
       }
 
       if ((retval = sscanf(line, " %d %d ", t, t + 1)) != 2) {
-	log("SYSERR: Format error in 'A' field, %s\n"
+	basic_mud_log("SYSERR: Format error in 'A' field, %s\n"
 	    "...expecting 2 numeric arguments, got %d\n"
 	    "...offending line: '%s'", buf2, retval, line);
 	exit(1);
@@ -1568,7 +1569,7 @@ char *parse_object(FILE *obj_f, int nr)
       top_of_objt = i++;
       return (line);
     default:
-      log("SYSERR: Format error in (%c): %s", *line, buf2);
+      basic_mud_log("SYSERR: Format error in (%c): %s", *line, buf2);
       exit(1);
     }
   }
@@ -1601,7 +1602,7 @@ void load_zones(FILE *fl, char *zonename)
   rewind(fl);
 
   if (num_of_cmds == 0) {
-    log("SYSERR: %s is empty!", zname);
+    basic_mud_log("SYSERR: %s is empty!", zname);
     exit(1);
   } else
     CREATE(Z.cmd, struct reset_com, num_of_cmds);
@@ -1609,7 +1610,7 @@ void load_zones(FILE *fl, char *zonename)
   line_num += get_line(fl, buf);
 
   if (sscanf(buf, "#%hd", &Z.number) != 1) {
-    log("SYSERR: Format error in %s, line %d", zname, line_num);
+    basic_mud_log("SYSERR: Format error in %s, line %d", zname, line_num);
     exit(1);
   }
   snprintf(buf2, sizeof(buf2), "beginning of zone #%d", Z.number);
@@ -1621,11 +1622,11 @@ void load_zones(FILE *fl, char *zonename)
 
   line_num += get_line(fl, buf);
   if (sscanf(buf, " %hd %hd %d %d ", &Z.bot, &Z.top, &Z.lifespan, &Z.reset_mode) != 4) {
-    log("SYSERR: Format error in numeric constant line of %s", zname);
+    basic_mud_log("SYSERR: Format error in numeric constant line of %s", zname);
     exit(1);
   }
   if (Z.bot > Z.top) {
-    log("SYSERR: Zone %d bottom (%d) > top (%d).", Z.number, Z.bot, Z.top);
+    basic_mud_log("SYSERR: Zone %d bottom (%d) > top (%d).", Z.number, Z.bot, Z.top);
     exit(1);
   }
 
@@ -1633,7 +1634,7 @@ void load_zones(FILE *fl, char *zonename)
 
   for (;;) {
     if ((tmp = get_line(fl, buf)) == 0) {
-      log("SYSERR: Format error in %s - premature end of file", zname);
+      basic_mud_log("SYSERR: Format error in %s - premature end of file", zname);
       exit(1);
     }
     line_num += tmp;
@@ -1662,7 +1663,7 @@ void load_zones(FILE *fl, char *zonename)
     ZCMD.if_flag = tmp;
 
     if (error) {
-      log("SYSERR: Format error in %s, line %d: '%s'", zname, line_num, buf);
+      basic_mud_log("SYSERR: Format error in %s, line %d: '%s'", zname, line_num, buf);
       exit(1);
     }
     ZCMD.line = line_num;
@@ -1670,7 +1671,7 @@ void load_zones(FILE *fl, char *zonename)
   }
 
   if (num_of_cmds != cmd_no + 1) {
-    log("SYSERR: Zone command count mismatch for %s. Estimated: %d, Actual: %d", zname, num_of_cmds, cmd_no + 1);
+    basic_mud_log("SYSERR: Zone command count mismatch for %s. Estimated: %d, Actual: %d", zname, num_of_cmds, cmd_no + 1);
     exit(1);
   }
 
@@ -1683,7 +1684,7 @@ void load_zones(FILE *fl, char *zonename)
 void get_one_line(FILE *fl, char *buf)
 {
   if (fgets(buf, READ_SIZE, fl) == NULL) {
-    log("SYSERR: error reading help file: not terminated with $?");
+    basic_mud_log("SYSERR: error reading help file: not terminated with $?");
     exit(1);
   }
 
@@ -1747,7 +1748,7 @@ void load_help(FILE *fl)
       strcpy(entry + sizeof(entry) - strlen(truncmsg) - 1, truncmsg);	/* strcpy: OK (assuming sane 'entry' size) */
 
       keysize = strlen(key) - 2;
-      log("SYSERR: Help entry exceeded buffer space: %.*s", keysize, key);
+      basic_mud_log("SYSERR: Help entry exceeded buffer space: %.*s", keysize, key);
 
       /* If we ran out of buffer space, eat the rest of the entry. */
       while (*line != '#')
@@ -1834,7 +1835,7 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
 
   if (type == VIRTUAL) {
     if ((i = real_mobile(nr)) == NOBODY) {
-      log("WARNING: Mobile vnum %d does not exist in database.", nr);
+      basic_mud_log("WARNING: Mobile vnum %d does not exist in database.", nr);
       return (NULL);
     }
   } else
@@ -1887,7 +1888,7 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
   obj_rnum i = type == VIRTUAL ? real_object(nr) : nr;
 
   if (i == NOTHING || i > top_of_objt) {
-    log("Object (%c) %d does not exist in database.", type == VIRTUAL ? 'V' : 'R', nr);
+    basic_mud_log("Object (%c) %d does not exist in database.", type == VIRTUAL ? 'V' : 'R', nr);
     return (NULL);
   }
 
@@ -2345,7 +2346,7 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
     affect_remove(ch, ch->affected);
 
   if ((i >= MAX_AFFECT) && af && af->next)
-    log("SYSERR: WARNING: OUT OF STORE ROOM FOR AFFECTED TYPES!!!");
+    basic_mud_log("SYSERR: WARNING: OUT OF STORE ROOM FOR AFFECTED TYPES!!!");
 
   ch->aff_abils = ch->real_abils;
 
@@ -2379,7 +2380,7 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
 
   if (ch->player.description) {
     if (strlen(ch->player.description) >= sizeof(st->description)) {
-      log("SYSERR: char_to_store: %s's description length: %lu, max: %lu! "
+      basic_mud_log("SYSERR: char_to_store: %s's description length: %lu, max: %lu! "
          "Truncated.", GET_PC_NAME(ch), strlen(ch->player.description),
          sizeof(st->description));
       ch->player.description[sizeof(st->description) - 3] = '\0';
@@ -2460,7 +2461,7 @@ char *fread_string(FILE *fl, const char *error)
 
   do {
     if (!fgets(tmp, 512, fl)) {
-      log("SYSERR: fread_string: format error at or near %s", error);
+      basic_mud_log("SYSERR: fread_string: format error at or near %s", error);
       exit(1);
     }
     /* If there is a '~', end the string; else put an "\r\n" over the '\n'. */
@@ -2477,8 +2478,8 @@ char *fread_string(FILE *fl, const char *error)
     templength = strlen(tmp);
 
     if (length + templength >= MAX_STRING_LENGTH) {
-      log("SYSERR: fread_string: string too large (db.c)");
-      log("%s", error);
+      basic_mud_log("SYSERR: fread_string: string too large (db.c)");
+      basic_mud_log("%s", error);
       exit(1);
     } else {
       strcat(buf + length, tmp);	/* strcat: OK (size checked above) */
@@ -2508,7 +2509,7 @@ void free_char(struct char_data *ch)
       free(ch->player_specials->poofout);
     free(ch->player_specials);
     if (IS_NPC(ch))
-      log("SYSERR: Mob %s (#%d) had player_specials allocated!", GET_NAME(ch), GET_MOB_VNUM(ch));
+      basic_mud_log("SYSERR: Mob %s (#%d) had player_specials allocated!", GET_NAME(ch), GET_MOB_VNUM(ch));
   }
   if (!IS_NPC(ch) || (IS_NPC(ch) && GET_MOB_RNUM(ch) == NOBODY)) {
     /* if this is a player, or a non-prototyped non-player, free all */
@@ -2640,7 +2641,7 @@ int file_to_string(const char *name, char *buf)
   *buf = '\0';
 
   if (!(fl = fopen(name, "r"))) {
-    log("SYSERR: reading %s: %s", name, strerror(errno));
+    basic_mud_log("SYSERR: reading %s: %s", name, strerror(errno));
     return (-1);
   }
 
@@ -2652,7 +2653,7 @@ int file_to_string(const char *name, char *buf)
     strcat(tmp, "\r\n");	/* strcat: OK (tmp:READ_SIZE+3) */
 
     if (strlen(buf) + strlen(tmp) + 1 > MAX_STRING_LENGTH) {
-      log("SYSERR: %s: string too big (%d max)", name, MAX_STRING_LENGTH);
+      basic_mud_log("SYSERR: %s: string too big (%d max)", name, MAX_STRING_LENGTH);
       *buf = '\0';
       fclose(fl);
       return (-1);
@@ -2790,7 +2791,7 @@ void init_char(struct char_data *ch)
   if ((i = get_ptable_by_name(GET_NAME(ch))) != -1)
     player_table[i].id = GET_IDNUM(ch) = ++top_idnum;
   else
-    log("SYSERR: init_char: Character '%s' not found in player table.", GET_NAME(ch));
+    basic_mud_log("SYSERR: init_char: Character '%s' not found in player table.", GET_NAME(ch));
 
   for (i = 1; i <= MAX_SKILLS; i++) {
     if (GET_LEVEL(ch) < LVL_IMPL)
@@ -2928,11 +2929,11 @@ int check_object(struct obj_data *obj)
   int error = FALSE;
 
   if (GET_OBJ_WEIGHT(obj) < 0 && (error = TRUE))
-    log("SYSERR: Object #%d (%s) has negative weight (%d).",
+    basic_mud_log("SYSERR: Object #%d (%s) has negative weight (%d).",
 	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_WEIGHT(obj));
 
   if (GET_OBJ_RENT(obj) < 0 && (error = TRUE))
-    log("SYSERR: Object #%d (%s) has negative cost/day (%d).",
+    basic_mud_log("SYSERR: Object #%d (%s) has negative cost/day (%d).",
 	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_RENT(obj));
 
   snprintf(objname, sizeof(objname), "Object #%d (%s)", GET_OBJ_VNUM(obj), obj->short_description);
@@ -2947,13 +2948,13 @@ int check_object(struct obj_data *obj)
 
     strlcpy(onealias, space ? space + 1 : obj->name, sizeof(onealias));
     if (search_block(onealias, drinknames, TRUE) < 0 && (error = TRUE))
-      log("SYSERR: Object #%d (%s) doesn't have drink type as last alias. (%s)",
+      basic_mud_log("SYSERR: Object #%d (%s) doesn't have drink type as last alias. (%s)",
 		GET_OBJ_VNUM(obj), obj->short_description, obj->name);
   }
   /* Fall through. */
   case ITEM_FOUNTAIN:
     if (GET_OBJ_VAL(obj, 1) > GET_OBJ_VAL(obj, 0) && (error = TRUE))
-      log("SYSERR: Object #%d (%s) contains (%d) more than maximum (%d).",
+      basic_mud_log("SYSERR: Object #%d (%s) contains (%d) more than maximum (%d).",
 		GET_OBJ_VNUM(obj), obj->short_description,
 		GET_OBJ_VAL(obj, 1), GET_OBJ_VAL(obj, 0));
     break;
@@ -2969,7 +2970,7 @@ int check_object(struct obj_data *obj)
     error |= check_object_level(obj, 0);
     error |= check_object_spell_number(obj, 3);
     if (GET_OBJ_VAL(obj, 2) > GET_OBJ_VAL(obj, 1) && (error = TRUE))
-      log("SYSERR: Object #%d (%s) has more charges (%d) than maximum (%d).",
+      basic_mud_log("SYSERR: Object #%d (%s) has more charges (%d) than maximum (%d).",
 		GET_OBJ_VNUM(obj), obj->short_description,
 		GET_OBJ_VAL(obj, 2), GET_OBJ_VAL(obj, 1));
     break;
@@ -2997,7 +2998,7 @@ int check_object_spell_number(struct obj_data *obj, int val)
   if (GET_OBJ_VAL(obj, val) > MAX_SPELLS && GET_OBJ_VAL(obj, val) <= MAX_SKILLS)
     error = TRUE;
   if (error)
-    log("SYSERR: Object #%d (%s) has out of range spell #%d.",
+    basic_mud_log("SYSERR: Object #%d (%s) has out of range spell #%d.",
 	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_VAL(obj, val));
 
   /*
@@ -3006,7 +3007,7 @@ int check_object_spell_number(struct obj_data *obj, int val)
 #if 0
   if (GET_OBJ_TYPE(obj) == ITEM_STAFF &&
 	HAS_SPELL_ROUTINE(GET_OBJ_VAL(obj, val), MAG_AREAS | MAG_MASSES))
-    log("... '%s' (#%d) uses %s spell '%s'.",
+    basic_mud_log("... '%s' (#%d) uses %s spell '%s'.",
 	obj->short_description,	GET_OBJ_VNUM(obj),
 	HAS_SPELL_ROUTINE(GET_OBJ_VAL(obj, val), MAG_AREAS) ? "area" : "mass",
 	skill_name(GET_OBJ_VAL(obj, val)));
@@ -3019,7 +3020,7 @@ int check_object_spell_number(struct obj_data *obj, int val)
   spellname = skill_name(GET_OBJ_VAL(obj, val));
 
   if ((spellname == unused_spellname || !str_cmp("UNDEFINED", spellname)) && (error = TRUE))
-    log("SYSERR: Object #%d (%s) uses '%s' spell #%d.",
+    basic_mud_log("SYSERR: Object #%d (%s) uses '%s' spell #%d.",
 		GET_OBJ_VNUM(obj), obj->short_description, spellname,
 		GET_OBJ_VAL(obj, val));
 
@@ -3031,7 +3032,7 @@ int check_object_level(struct obj_data *obj, int val)
   int error = FALSE;
 
   if ((GET_OBJ_VAL(obj, val) < 0 || GET_OBJ_VAL(obj, val) > LVL_IMPL) && (error = TRUE))
-    log("SYSERR: Object #%d (%s) has out of range level #%d.",
+    basic_mud_log("SYSERR: Object #%d (%s) has out of range level #%d.",
 	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_VAL(obj, val));
 
   return (error);
@@ -3048,7 +3049,7 @@ int check_bitvector_names(bitvector_t bits, size_t namecount, const char *whatam
 
   for (flagnum = namecount; flagnum < sizeof(bitvector_t) * 8; flagnum++)
     if ((1 << flagnum) & bits) {
-      log("SYSERR: %s has unknown %s flag, bit %u (0 through %lu known).", whatami, whatbits, flagnum, namecount - 1);
+      basic_mud_log("SYSERR: %s has unknown %s flag, bit %u (0 through %lu known).", whatami, whatbits, flagnum, namecount - 1);
       error = TRUE;
     }
 

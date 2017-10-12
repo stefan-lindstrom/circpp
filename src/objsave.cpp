@@ -224,14 +224,14 @@ int Crash_delete_file(char *name)
     return (0);
   if (!(fl = fopen(filename, "rb"))) {
     if (errno != ENOENT)	/* if it fails but NOT because of no file */
-      log("SYSERR: deleting crash file %s (1): %s", filename, strerror(errno));
+      basic_mud_log("SYSERR: deleting crash file %s (1): %s", filename, strerror(errno));
     return (0);
   }
   fclose(fl);
 
   /* if it fails, NOT because of no file */
   if (remove(filename) < 0 && errno != ENOENT)
-    log("SYSERR: deleting crash file %s (2): %s", filename, strerror(errno));
+    basic_mud_log("SYSERR: deleting crash file %s (2): %s", filename, strerror(errno));
 
   return (1);
 }
@@ -248,7 +248,7 @@ int Crash_delete_crashfile(struct char_data *ch)
     return (0);
   if (!(fl = fopen(filename, "rb"))) {
     if (errno != ENOENT)	/* if it fails, NOT because of no file */
-      log("SYSERR: checking for crash file %s (3): %s", filename, strerror(errno));
+      basic_mud_log("SYSERR: checking for crash file %s (3): %s", filename, strerror(errno));
     return (0);
   }
   numread = fread(&rent, sizeof(struct rent_info), 1, fl);
@@ -279,7 +279,7 @@ int Crash_clean_file(char *name)
    */
   if (!(fl = fopen(filename, "r+b"))) {
     if (errno != ENOENT)	/* if it fails, NOT because of no file */
-      log("SYSERR: OPENING OBJECT FILE %s (4): %s", filename, strerror(errno));
+      basic_mud_log("SYSERR: OPENING OBJECT FILE %s (4): %s", filename, strerror(errno));
     return (0);
   }
   numread = fread(&rent, sizeof(struct rent_info), 1, fl);
@@ -308,14 +308,14 @@ int Crash_clean_file(char *name)
         filetype = "UNKNOWN!";
         break;
       }
-      log("    Deleting %s's %s file.", name, filetype);
+      basic_mud_log("    Deleting %s's %s file.", name, filetype);
       return (1);
     }
     /* Must retrieve rented items w/in 30 days */
   } else if (rent.rentcode == RENT_RENTED)
     if (rent.time < time(0) - (rent_file_timeout * SECS_PER_REAL_DAY)) {
       Crash_delete_file(name);
-      log("    Deleting %s's rent file.", name);
+      basic_mud_log("    Deleting %s's rent file.", name);
       return (1);
     }
   return (0);
@@ -437,7 +437,7 @@ int Crash_load(struct char_data *ch)
     return (1);
   if (!(fl = fopen(filename, "r+b"))) {
     if (errno != ENOENT) {	/* if it fails, NOT because of no file */
-      log("SYSERR: READING OBJECT FILE %s (5): %s", filename, strerror(errno));
+      basic_mud_log("SYSERR: READING OBJECT FILE %s (5): %s", filename, strerror(errno));
       send_to_char(ch,
 		"\r\n********************* NOTICE *********************\r\n"
 		"There was a problem loading your objects from disk.\r\n"
@@ -449,7 +449,7 @@ int Crash_load(struct char_data *ch)
   if (!feof(fl))
     fread(&rent, sizeof(struct rent_info), 1, fl);
   else {
-    log("SYSERR: Crash_load: %s's rent file was empty!", GET_NAME(ch));
+    basic_mud_log("SYSERR: Crash_load: %s's rent file was empty!", GET_NAME(ch));
     return (1);
   }
 

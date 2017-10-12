@@ -138,7 +138,7 @@ void load_messages(void)
   char chk[128];
 
   if (!(fl = fopen(MESS_FILE, "r"))) {
-    log("SYSERR: Error reading combat message file %s: %s", MESS_FILE, strerror(errno));
+    basic_mud_log("SYSERR: Error reading combat message file %s: %s", MESS_FILE, strerror(errno));
     exit(1);
   }
 
@@ -158,7 +158,7 @@ void load_messages(void)
     for (i = 0; (i < MAX_MESSAGES) && (fight_messages[i].a_type != type) &&
 	 (fight_messages[i].a_type); i++);
     if (i >= MAX_MESSAGES) {
-      log("SYSERR: Too many combat messages.  Increase MAX_MESSAGES and recompile.");
+      basic_mud_log("SYSERR: Too many combat messages.  Increase MAX_MESSAGES and recompile.");
       exit(1);
     }
     CREATE(messages, struct message_type, 1);
@@ -674,7 +674,7 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
     if (PLR_FLAGGED(victim, PLR_NOTDEADYET) || MOB_FLAGGED(victim, MOB_NOTDEADYET))
       return (-1);
 
-    log("SYSERR: Attempt to damage corpse '%s' in room #%d by '%s'.",
+    basic_mud_log("SYSERR: Attempt to damage corpse '%s' in room #%d by '%s'.",
 		GET_NAME(victim), GET_ROOM_VNUM(IN_ROOM(victim)), GET_NAME(ch));
     die(victim);
     return (-1);			/* -je, 7/7/92 */

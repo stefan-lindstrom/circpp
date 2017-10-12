@@ -852,7 +852,7 @@ void mag_unaffects(int level, struct char_data *ch, struct char_data *victim, in
     to_vict = "You don't feel so unlucky.";
     break;
   default:
-    log("SYSERR: unknown spellnum %d passed to mag_unaffects.", spellnum);
+    basic_mud_log("SYSERR: unknown spellnum %d passed to mag_unaffects.", spellnum);
     return;
   }
 
@@ -963,7 +963,7 @@ void mag_creations(int level, struct char_data *ch, int spellnum)
 
   if (!(tobj = read_object(z, VIRTUAL))) {
     send_to_char(ch, "I seem to have goofed.\r\n");
-    log("SYSERR: spell_creations, spell %d, obj %d: obj not found",
+    basic_mud_log("SYSERR: spell_creations, spell %d, obj %d: obj not found",
 	    spellnum, z);
     return;
   }

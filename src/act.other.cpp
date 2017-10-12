@@ -669,7 +669,7 @@ ACMD(do_use)
       send_to_char(ch, "You don't seem to be holding %s %s.\r\n", AN(arg), arg);
       return;
     default:
-      log("SYSERR: Unknown subcmd %d passed to do_use.", subcmd);
+      basic_mud_log("SYSERR: Unknown subcmd %d passed to do_use.", subcmd);
       return;
     }
   }
@@ -959,7 +959,7 @@ ACMD(do_gen_tog)
     result = (track_through_doors = !track_through_doors);
     break;
   default:
-    log("SYSERR: Unknown subcmd %d in do_gen_toggle.", subcmd);
+    basic_mud_log("SYSERR: Unknown subcmd %d in do_gen_toggle.", subcmd);
     return;
   }
 

@@ -33,7 +33,7 @@ void write_aliases(struct char_data *ch)
     return;
 
   if ((file = fopen(fn, "w")) == NULL) {
-    log("SYSERR: Couldn't save aliases for %s in '%s'.", GET_NAME(ch), fn);
+    basic_mud_log("SYSERR: Couldn't save aliases for %s in '%s'.", GET_NAME(ch), fn);
     perror("SYSERR: write_aliases");
     return;
   }
@@ -64,7 +64,7 @@ void read_aliases(struct char_data *ch)
 
   if ((file = fopen(xbuf, "r")) == NULL) {
     if (errno != ENOENT) {
-      log("SYSERR: Couldn't open alias file '%s' for %s.", xbuf, GET_NAME(ch));
+      basic_mud_log("SYSERR: Couldn't open alias file '%s' for %s.", xbuf, GET_NAME(ch));
       perror("SYSERR: read_aliases");
     }
     return;
@@ -123,6 +123,6 @@ void delete_aliases(const char *charname)
     return;
 
   if (remove(filename) < 0 && errno != ENOENT)
-    log("SYSERR: deleting alias file %s: %s", filename, strerror(errno));
+    basic_mud_log("SYSERR: deleting alias file %s: %s", filename, strerror(errno));
 }
 

@@ -829,21 +829,21 @@ ACMD(do_shutdown)
   one_argument(argument, arg);
 
   if (!*arg) {
-    log("(GC) Shutdown by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Shutdown by %s.", GET_NAME(ch));
     send_to_all("Shutting down.\r\n");
     circle_shutdown = 1;
   } else if (!str_cmp(arg, "reboot")) {
-    log("(GC) Reboot by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Reboot by %s.", GET_NAME(ch));
     send_to_all("Rebooting.. come back in a minute or two.\r\n");
     touch(FASTBOOT_FILE);
     circle_shutdown = circle_reboot = 1;
   } else if (!str_cmp(arg, "die")) {
-    log("(GC) Shutdown by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Shutdown by %s.", GET_NAME(ch));
     send_to_all("Shutting down for maintenance.\r\n");
     touch(KILLSCRIPT_FILE);
     circle_shutdown = 1;
   } else if (!str_cmp(arg, "pause")) {
-    log("(GC) Shutdown by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Shutdown by %s.", GET_NAME(ch));
     send_to_all("Shutting down for maintenance.\r\n");
     touch(PAUSE_FILE);
     circle_shutdown = 1;
@@ -1262,10 +1262,10 @@ ACMD(do_advance)
   send_to_char(ch, "%s", OK);
 
   if (newlevel < oldlevel)
-    log("(GC) %s demoted %s from level %d to %d.",
+    basic_mud_log("(GC) %s demoted %s from level %d to %d.",
 		GET_NAME(ch), GET_NAME(victim), oldlevel, newlevel);
   else
-    log("(GC) %s has advanced %s to level %d (from %d)",
+    basic_mud_log("(GC) %s has advanced %s to level %d (from %d)",
 		GET_NAME(ch), GET_NAME(victim), newlevel, oldlevel);
 
   if (oldlevel >= LVL_IMMORT && newlevel < LVL_IMMORT) {
@@ -1490,7 +1490,7 @@ ACMD(do_dc)
       STATE(d) = CON_CLOSE;
 
     send_to_char(ch, "Connection #%d closed.\r\n", num_to_dc);
-    log("(GC) Connection closed by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Connection closed by %s.", GET_NAME(ch));
   }
 }
 
@@ -1790,7 +1790,7 @@ ACMD(do_wizutil)
     case SCMD_REROLL:
       send_to_char(ch, "Rerolled...\r\n");
       roll_real_abils(vict);
-      log("(GC) %s has rerolled %s.", GET_NAME(ch), GET_NAME(vict));
+      basic_mud_log("(GC) %s has rerolled %s.", GET_NAME(ch), GET_NAME(vict));
       send_to_char(ch, "New stats: Str %d/%d, Int %d, Wis %d, Dex %d, Con %d, Cha %d\r\n",
 	      GET_STR(vict), GET_ADD(vict), GET_INT(vict), GET_WIS(vict),
 	      GET_DEX(vict), GET_CON(vict), GET_CHA(vict));
@@ -1861,7 +1861,7 @@ ACMD(do_wizutil)
       }
       break;
     default:
-      log("SYSERR: Unknown subcmd %d passed to do_wizutil (%s)", subcmd, __FILE__);
+      basic_mud_log("SYSERR: Unknown subcmd %d passed to do_wizutil (%s)", subcmd, __FILE__);
       break;
     }
     save_char(vict);

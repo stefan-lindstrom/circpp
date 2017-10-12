@@ -945,7 +945,7 @@ char *one_argument(char *argument, char *first_arg)
   char *begin = first_arg;
 
   if (!argument) {
-    log("SYSERR: one_argument received a NULL pointer!");
+    basic_mud_log("SYSERR: one_argument received a NULL pointer!");
     *first_arg = '\0';
     return (NULL);
   }
@@ -1693,7 +1693,7 @@ void nanny(struct descriptor_data *d, char *arg)
     break;
 
   default:
-    log("SYSERR: Nanny: illegal state of con'ness (%d) for '%s'; closing connection.",
+    basic_mud_log("SYSERR: Nanny: illegal state of con'ness (%d) for '%s'; closing connection.",
 	STATE(d), d->character ? GET_NAME(d->character) : "<unknown>");
     STATE(d) = CON_DISCONNECT;	/* Safest to do. */
     break;

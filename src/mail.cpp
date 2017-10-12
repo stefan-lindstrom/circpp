@@ -135,7 +135,7 @@ mail_index_type *find_char_in_index(long searchee)
   mail_index_type *tmp;
 
   if (searchee < 0) {
-    log("SYSERR: Mail system -- non fatal error #1 (searchee == %ld).", searchee);
+    basic_mud_log("SYSERR: Mail system -- non fatal error #1 (searchee == %ld).", searchee);
     return (NULL);
   }
   for (tmp = mail_index; (tmp && tmp->recipient != searchee); tmp = tmp->next);
@@ -157,12 +157,12 @@ void write_to_file(void *buf, int size, long filepos)
   FILE *mail_file;
 
   if (filepos % BLOCK_SIZE) {
-    log("SYSERR: Mail system -- fatal error #2!!! (invalid file position %ld)", filepos);
+    basic_mud_log("SYSERR: Mail system -- fatal error #2!!! (invalid file position %ld)", filepos);
     no_mail = TRUE;
     return;
   }
   if (!(mail_file = fopen(MAIL_FILE, "r+b"))) {
-    log("SYSERR: Unable to open mail file '%s'.", MAIL_FILE);
+    basic_mud_log("SYSERR: Unable to open mail file '%s'.", MAIL_FILE);
     no_mail = TRUE;
     return;
   }
@@ -190,12 +190,12 @@ void read_from_file(void *buf, int size, long filepos)
   FILE *mail_file;
 
   if (filepos % BLOCK_SIZE) {
-    log("SYSERR: Mail system -- fatal error #3!!! (invalid filepos read %ld)", filepos);
+    basic_mud_log("SYSERR: Mail system -- fatal error #3!!! (invalid filepos read %ld)", filepos);
     no_mail = TRUE;
     return;
   }
   if (!(mail_file = fopen(MAIL_FILE, "r+b"))) {
-    log("SYSERR: Unable to open mail file '%s'.", MAIL_FILE);
+    basic_mud_log("SYSERR: Unable to open mail file '%s'.", MAIL_FILE);
     no_mail = TRUE;
     return;
   }
@@ -213,7 +213,7 @@ void index_mail(long id_to_index, long pos)
   position_list_type *new_position;
 
   if (id_to_index < 0) {
-    log("SYSERR: Mail system -- non-fatal error #4. (id_to_index == %ld)", id_to_index);
+    basic_mud_log("SYSERR: Mail system -- non-fatal error #4. (id_to_index == %ld)", id_to_index);
     return;
   }
   if (!(new_index = find_char_in_index(id_to_index))) {
@@ -248,7 +248,7 @@ int scan_file(void)
   int total_messages = 0, block_num = 0;
 
   if (!(mail_file = fopen(MAIL_FILE, "rb"))) {
-    log("   Mail file non-existant... creating new file.");
+    basic_mud_log("   Mail file non-existant... creating new file.");
     touch(MAIL_FILE);
     return (1);
   }
@@ -263,13 +263,13 @@ int scan_file(void)
 
   file_end_pos = ftell(mail_file);
   fclose(mail_file);
-  log("   %ld bytes read.", file_end_pos);
+  basic_mud_log("   %ld bytes read.", file_end_pos);
   if (file_end_pos % BLOCK_SIZE) {
-    log("SYSERR: Error booting mail system -- Mail file corrupt!");
-    log("SYSERR: Mail disabled!");
+    basic_mud_log("SYSERR: Error booting mail system -- Mail file corrupt!");
+    basic_mud_log("SYSERR: Mail disabled!");
     return (0);
   }
-  log("   Mail file read -- %d messages.", total_messages);
+  basic_mud_log("   Mail file read -- %d messages.", total_messages);
   return (1);
 }				/* end of scan_file */
 
@@ -312,7 +312,7 @@ void store_mail(long to, long from, char *message_pointer)
   }
 
   if (from < 0 || to < 0 || !*message_pointer) {
-    log("SYSERR: Mail system -- non-fatal error #5. (from == %ld, to == %ld)", from, to);
+    basic_mud_log("SYSERR: Mail system -- non-fatal error #5. (from == %ld, to == %ld)", from, to);
     return;
   }
   memset((char *) &header, 0, sizeof(header));	/* clear the record */
@@ -403,15 +403,15 @@ char *read_delete(long recipient)
   char *from, *to;
 
   if (recipient < 0) {
-    log("SYSERR: Mail system -- non-fatal error #6. (recipient: %ld)", recipient);
+    basic_mud_log("SYSERR: Mail system -- non-fatal error #6. (recipient: %ld)", recipient);
     return (NULL);
   }
   if (!(mail_pointer = find_char_in_index(recipient))) {
-    log("SYSERR: Mail system -- post office spec_proc error?  Error #7. (invalid character in index)");
+    basic_mud_log("SYSERR: Mail system -- post office spec_proc error?  Error #7. (invalid character in index)");
     return (NULL);
   }
   if (!(position_pointer = mail_pointer->list_start)) {
-    log("SYSERR: Mail system -- non-fatal error #8. (invalid position pointer %p)", reinterpret_cast<void *>(position_pointer));
+    basic_mud_log("SYSERR: Mail system -- non-fatal error #8. (invalid position pointer %p)", reinterpret_cast<void *>(position_pointer));
     return (NULL);
   }
   if (!(position_pointer->next)) {	/* just 1 entry in list. */
@@ -443,9 +443,9 @@ char *read_delete(long recipient)
   read_from_file(&header, BLOCK_SIZE, mail_address);
 
   if (header.block_type != HEADER_BLOCK) {
-    log("SYSERR: Oh dear. (Header block %ld != %d)", header.block_type, HEADER_BLOCK);
+    basic_mud_log("SYSERR: Oh dear. (Header block %ld != %d)", header.block_type, HEADER_BLOCK);
     no_mail = TRUE;
-    log("SYSERR: Mail system disabled!  -- Error #9. (Invalid header block.)");
+    basic_mud_log("SYSERR: Mail system disabled!  -- Error #9. (Invalid header block.)");
     return (NULL);
   }
   tmstr = asctime(localtime(&header.header_data.mail_time));

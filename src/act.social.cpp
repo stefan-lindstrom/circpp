@@ -180,7 +180,7 @@ char *fread_action(FILE *fl, int nr)
 
   fgets(buf, MAX_STRING_LENGTH, fl);
   if (feof(fl)) {
-    log("SYSERR: fread_action: unexpected EOF near action #%d", nr);
+    basic_mud_log("SYSERR: fread_action: unexpected EOF near action #%d", nr);
     exit(1);
   }
   if (*buf == '#')
@@ -221,7 +221,7 @@ void boot_social_messages(void)
 
   /* open social file */
   if (!(fl = fopen(SOCMESS_FILE, "r"))) {
-    log("SYSERR: can't open socials file '%s': %s", SOCMESS_FILE, strerror(errno));
+    basic_mud_log("SYSERR: can't open socials file '%s': %s", SOCMESS_FILE, strerror(errno));
     exit(1);
   }
   /* count socials & allocate space */
@@ -237,11 +237,11 @@ void boot_social_messages(void)
     if (*next_soc == '$')
       break;
     if (fscanf(fl, " %d %d \n", &hide, &min_pos) != 2) {
-      log("SYSERR: format error in social file near social '%s'", next_soc);
+      basic_mud_log("SYSERR: format error in social file near social '%s'", next_soc);
       exit(1);
     }
     if (++curr_soc > list_top) {
-      log("SYSERR: Ran out of slots in social array. (%d > %d)", curr_soc, list_top);
+      basic_mud_log("SYSERR: Ran out of slots in social array. (%d > %d)", curr_soc, list_top);
       break;
     }
  
@@ -252,7 +252,7 @@ void boot_social_messages(void)
 
 #ifdef CIRCLE_ACORN
     if (fgetc(fl) != '\n')
-      log("SYSERR: Acorn bug workaround failed.");
+      basic_mud_log("SYSERR: Acorn bug workaround failed.");
 #endif
 
     soc_mess_list[curr_soc].char_no_arg = fread_action(fl, nr);
@@ -271,14 +271,14 @@ void boot_social_messages(void)
 
     /* If social not found, re-use this slot.  'curr_soc' will be reincremented. */
     if (nr < 0) {
-      log("SYSERR: Unknown social '%s' in social file.", next_soc);
+      basic_mud_log("SYSERR: Unknown social '%s' in social file.", next_soc);
       memset(&soc_mess_list[curr_soc--], 0, sizeof(struct social_messg));
       continue;
     }
 
     /* If the command we found isn't do_action, we didn't count it for the CREATE(). */
     if (cmd_info[nr].command_pointer != do_action) {
-      log("SYSERR: Social '%s' already assigned to a command.", next_soc);
+      basic_mud_log("SYSERR: Social '%s' already assigned to a command.", next_soc);
       memset(&soc_mess_list[curr_soc--], 0, sizeof(struct social_messg));
     }
   }

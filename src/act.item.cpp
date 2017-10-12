@@ -475,7 +475,7 @@ int perform_drop(struct char_data *ch, struct obj_data *obj,
     extract_obj(obj);
     return (value);
   default:
-    log("SYSERR: Incorrect argument %d passed to perform_drop.", mode);
+    basic_mud_log("SYSERR: Incorrect argument %d passed to perform_drop.", mode);
     break;
   }
 
@@ -744,7 +744,7 @@ void weight_change_object(struct obj_data *obj, int weight)
     GET_OBJ_WEIGHT(obj) += weight;
     obj_to_obj(obj, tmp_obj);
   } else {
-    log("SYSERR: Unknown attempt to subtract weight from an object.");
+    basic_mud_log("SYSERR: Unknown attempt to subtract weight from an object.");
   }
 }
 
@@ -761,7 +761,7 @@ void name_from_drinkcon(struct obj_data *obj)
 
   liqname = drinknames[GET_OBJ_VAL(obj, 2)];
   if (!isname(liqname, obj->name)) {
-    log("SYSERR: Can't remove liquid '%s' from '%s' (%d) item.", liqname, obj->name, obj->item_number);
+    basic_mud_log("SYSERR: Can't remove liquid '%s' from '%s' (%d) item.", liqname, obj->name, obj->item_number);
     return;
   }
 
@@ -1411,7 +1411,7 @@ void perform_remove(struct char_data *ch, int pos)
   struct obj_data *obj;
 
   if (!(obj = GET_EQ(ch, pos)))
-    log("SYSERR: perform_remove: bad pos %d passed.", pos);
+    basic_mud_log("SYSERR: perform_remove: bad pos %d passed.", pos);
   else if (OBJ_FLAGGED(obj, ITEM_NODROP))
     act("You can't remove $p, it must be CURSED!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
   else if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))

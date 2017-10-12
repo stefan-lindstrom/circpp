@@ -195,7 +195,7 @@ void affect_modify(struct char_data *ch, byte loc, sbyte mod,
     break;
 
   default:
-    log("SYSERR: Unknown apply adjust %d attempt (%s, affect_modify).", loc, __FILE__);
+    basic_mud_log("SYSERR: Unknown apply adjust %d attempt (%s, affect_modify).", loc, __FILE__);
     break;
 
   } /* switch */
@@ -367,7 +367,7 @@ void char_from_room(struct char_data *ch)
   struct char_data *temp;
 
   if (ch == NULL || IN_ROOM(ch) == NOWHERE) {
-    log("SYSERR: NULL character or NOWHERE in %s, char_from_room", __FILE__);
+    basic_mud_log("SYSERR: NULL character or NOWHERE in %s, char_from_room", __FILE__);
     exit(1);
   }
 
@@ -389,7 +389,7 @@ void char_from_room(struct char_data *ch)
 void char_to_room(struct char_data *ch, room_rnum room)
 {
   if (ch == NULL || room == NOWHERE || room > top_of_world)
-    log("SYSERR: Illegal value(s) passed to char_to_room. (Room: %d/%d Ch: %p", room, top_of_world, reinterpret_cast<void *>(ch));
+    basic_mud_log("SYSERR: Illegal value(s) passed to char_to_room. (Room: %d/%d Ch: %p", room, top_of_world, reinterpret_cast<void *>(ch));
   else {
     ch->next_in_room = world[room].people;
     world[room].people = ch;
@@ -424,7 +424,7 @@ void obj_to_char(struct obj_data *object, struct char_data *ch)
     if (!IS_NPC(ch))
       SET_BIT(PLR_FLAGS(ch), PLR_CRASH);
   } else
-    log("SYSERR: NULL obj (%p) or char (%p) passed to obj_to_char.", reinterpret_cast<void *>(object), reinterpret_cast<void *>(ch));
+    basic_mud_log("SYSERR: NULL obj (%p) or char (%p) passed to obj_to_char.", reinterpret_cast<void *>(object), reinterpret_cast<void *>(ch));
 }
 
 
@@ -434,7 +434,7 @@ void obj_from_char(struct obj_data *object)
   struct obj_data *temp;
 
   if (object == NULL) {
-    log("SYSERR: NULL object passed to obj_from_char.");
+    basic_mud_log("SYSERR: NULL object passed to obj_from_char.");
     return;
   }
   REMOVE_FROM_LIST(object, object->carried_by->carrying, next_content);
@@ -504,16 +504,16 @@ void equip_char(struct char_data *ch, struct obj_data *obj, int pos)
   }
 
   if (GET_EQ(ch, pos)) {
-    log("SYSERR: Char is already equipped: %s, %s", GET_NAME(ch),
+    basic_mud_log("SYSERR: Char is already equipped: %s, %s", GET_NAME(ch),
 	    obj->short_description);
     return;
   }
   if (obj->carried_by) {
-    log("SYSERR: EQUIP: Obj is carried_by when equip.");
+    basic_mud_log("SYSERR: EQUIP: Obj is carried_by when equip.");
     return;
   }
   if (IN_ROOM(obj) != NOWHERE) {
-    log("SYSERR: EQUIP: Obj is in_room when equip.");
+    basic_mud_log("SYSERR: EQUIP: Obj is in_room when equip.");
     return;
   }
   if (invalid_align(ch, obj) || invalid_class(ch, obj)) {
@@ -536,7 +536,7 @@ void equip_char(struct char_data *ch, struct obj_data *obj, int pos)
       if (GET_OBJ_VAL(obj, 2))	/* if light is ON */
 	world[IN_ROOM(ch)].light++;
   } else
-    log("SYSERR: IN_ROOM(ch) = NOWHERE when equipping char %s.", GET_NAME(ch));
+    basic_mud_log("SYSERR: IN_ROOM(ch) = NOWHERE when equipping char %s.", GET_NAME(ch));
 
   for (j = 0; j < MAX_OBJ_AFFECT; j++)
     affect_modify(ch, obj->affected[j].location,
@@ -570,7 +570,7 @@ struct obj_data *unequip_char(struct char_data *ch, int pos)
       if (GET_OBJ_VAL(obj, 2))	/* if light is ON */
 	world[IN_ROOM(ch)].light--;
   } else
-    log("SYSERR: IN_ROOM(ch) = NOWHERE when unequipping char %s.", GET_NAME(ch));
+    basic_mud_log("SYSERR: IN_ROOM(ch) = NOWHERE when unequipping char %s.", GET_NAME(ch));
 
   GET_EQ(ch, pos) = NULL;
 
@@ -679,7 +679,7 @@ struct char_data *get_char_num(mob_rnum nr)
 void obj_to_room(struct obj_data *object, room_rnum room)
 {
   if (!object || room == NOWHERE || room > top_of_world)
-    log("SYSERR: Illegal value(s) passed to obj_to_room. (Room #%d/%d, obj %p)", room, top_of_world, reinterpret_cast<void *>(object));
+    basic_mud_log("SYSERR: Illegal value(s) passed to obj_to_room. (Room #%d/%d, obj %p)", room, top_of_world, reinterpret_cast<void *>(object));
   else {
     object->next_content = world[room].contents;
     world[room].contents = object;
@@ -697,7 +697,7 @@ void obj_from_room(struct obj_data *object)
   struct obj_data *temp;
 
   if (!object || IN_ROOM(object) == NOWHERE) {
-    log("SYSERR: NULL object (%p) or obj not in a room (%d) passed to obj_from_room", reinterpret_cast<void *>(object), IN_ROOM(object));
+    basic_mud_log("SYSERR: NULL object (%p) or obj not in a room (%d) passed to obj_from_room", reinterpret_cast<void *>(object), IN_ROOM(object));
     return;
   }
 
@@ -716,7 +716,7 @@ void obj_to_obj(struct obj_data *obj, struct obj_data *obj_to)
   struct obj_data *tmp_obj;
 
   if (!obj || !obj_to || obj == obj_to) {
-    log("SYSERR: NULL object (%p) or same source (%p) and target (%p) obj passed to obj_to_obj.", 
+    basic_mud_log("SYSERR: NULL object (%p) or same source (%p) and target (%p) obj passed to obj_to_obj.", 
           reinterpret_cast<void *>(obj), reinterpret_cast<void *>(obj), reinterpret_cast<void *>(obj_to));
     return;
   }
@@ -741,7 +741,7 @@ void obj_from_obj(struct obj_data *obj)
   struct obj_data *temp, *obj_from;
 
   if (obj->in_obj == NULL) {
-    log("SYSERR: (%s): trying to illegally extract obj from obj.", __FILE__);
+    basic_mud_log("SYSERR: (%s): trying to illegally extract obj from obj.", __FILE__);
     return;
   }
   obj_from = obj->in_obj;
@@ -779,7 +779,7 @@ void extract_obj(struct obj_data *obj)
 
   if (obj->worn_by != NULL)
     if (unequip_char(obj->worn_by, obj->worn_on) != obj)
-      log("SYSERR: Inconsistent worn_by and worn_on pointers!!");
+      basic_mud_log("SYSERR: Inconsistent worn_by and worn_on pointers!!");
   if (IN_ROOM(obj) != NOWHERE)
     obj_from_room(obj);
   else if (obj->carried_by)
@@ -847,7 +847,7 @@ void extract_char_final(struct char_data *ch)
   int i;
 
   if (IN_ROOM(ch) == NOWHERE) {
-    log("SYSERR: NOWHERE extracting char %s. (%s, extract_char_final)",
+    basic_mud_log("SYSERR: NOWHERE extracting char %s. (%s, extract_char_final)",
         GET_NAME(ch), __FILE__);
     exit(1);
   }
@@ -981,7 +981,7 @@ void extract_pending_chars(void)
   struct char_data *vict, *next_vict, *prev_vict;
 
   if (extractions_pending < 0)
-    log("SYSERR: Negative (%d) extractions pending.", extractions_pending);
+    basic_mud_log("SYSERR: Negative (%d) extractions pending.", extractions_pending);
 
   for (vict = character_list, prev_vict = NULL; vict && extractions_pending; vict = next_vict) {
     next_vict = vict->next;
@@ -1006,7 +1006,7 @@ void extract_pending_chars(void)
   }
 
   if (extractions_pending > 0)
-    log("SYSERR: Couldn't find %d extractions as counted.", extractions_pending);
+    basic_mud_log("SYSERR: Couldn't find %d extractions as counted.", extractions_pending);
 
   extractions_pending = 0;
 }
@@ -1240,7 +1240,7 @@ const char *money_desc(int amount)
   };
 
   if (amount <= 0) {
-    log("SYSERR: Try to create negative or 0 money (%d).", amount);
+    basic_mud_log("SYSERR: Try to create negative or 0 money (%d).", amount);
     return (NULL);
   }
 
@@ -1259,7 +1259,7 @@ struct obj_data *create_money(int amount)
   char buf[200];
 
   if (amount <= 0) {
-    log("SYSERR: Try to create negative or 0 money. (%d)", amount);
+    basic_mud_log("SYSERR: Try to create negative or 0 money. (%d)", amount);
     return (NULL);
   }
   obj = create_obj();

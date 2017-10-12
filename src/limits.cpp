@@ -243,7 +243,7 @@ void run_autowiz(void)
       system(buf);
       reboot_wizlists();
     } else
-      log("Cannot run autowiz: command-line doesn't fit in buffer.");
+      basic_mud_log("Cannot run autowiz: command-line doesn't fit in buffer.");
   }
 #endif /* CIRCLE_UNIX || CIRCLE_WINDOWS */
 }

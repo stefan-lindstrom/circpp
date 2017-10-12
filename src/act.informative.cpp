@@ -82,7 +82,7 @@ int *cmd_sort_info;
 void show_obj_to_char(struct obj_data *obj, struct char_data *ch, int mode)
 {
   if (!obj || !ch) {
-    log("SYSERR: NULL pointer in show_obj_to_char(): obj=%p ch=%p", (void *)obj, (void *)ch);
+    basic_mud_log("SYSERR: NULL pointer in show_obj_to_char(): obj=%p ch=%p", (void *)obj, (void *)ch);
     return;
   }
 
@@ -118,7 +118,7 @@ void show_obj_to_char(struct obj_data *obj, struct char_data *ch, int mode)
     break;
 
   default:
-    log("SYSERR: Bad display mode (%d) in show_obj_to_char().", mode);
+    basic_mud_log("SYSERR: Bad display mode (%d) in show_obj_to_char().", mode);
     return;
   }
 
@@ -1318,7 +1318,7 @@ ACMD(do_gen_ps)
     send_to_char(ch, "%s\r\n", GET_NAME(ch));
     break;
   default:
-    log("SYSERR: Unhandled case in do_gen_ps. (%d)", subcmd);
+    basic_mud_log("SYSERR: Unhandled case in do_gen_ps. (%d)", subcmd);
     return;
   }
 }

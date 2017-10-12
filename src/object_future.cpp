@@ -33,7 +33,7 @@ void object_future::parse_single_idx(const std::string &idx, std::vector<obj_dat
     int vnum = -1;
     if (line[0] == '#') { 
       vnum = std::stoi(line.substr(1));
-      log("Reading object #%d", vnum);
+      basic_mud_log("Reading object #%d", vnum);
     } // else, _future.set_exception(some_exception), will throw when doing promise.get()
     reading.item_number = objs.size();
     reading.vnum = vnum; // store, for building index
@@ -80,7 +80,7 @@ void object_future::parse_single_idx(const std::string &idx, std::vector<obj_dat
         // next, line of 2 integers
         int first, second;
         objidx >> first >> second;
-        log("Affect number %d, read: (%d,%d)", aff, first, second);
+        basic_mud_log("Affect number %d, read: (%d,%d)", aff, first, second);
         if (aff >= MAX_OBJ_AFFECT) {
           // many errors, handle it. 
         }
