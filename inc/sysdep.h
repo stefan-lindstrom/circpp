@@ -10,6 +10,8 @@
 #ifndef __SYSDEP_H__
 #define __SYSDEP_H__
 
+#include "conf.h"
+
 /* Configurables: */
 
 /*

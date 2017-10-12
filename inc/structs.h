@@ -11,6 +11,7 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+#include "sysdep.h"
 #include "olc.h"
 
 /*

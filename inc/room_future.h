@@ -13,11 +13,12 @@ class room_future final {
   std::future<std::vector<room_data>> _worker_future;
 
   std::thread _worker;
+  bool _mini;
   
-  void __parse_rooms(std::promise<std::vector<room_data>> promise) noexcept;
-
+  void __parse(std::promise<std::vector<room_data>> promise) noexcept;
+  void parse_single_idx(const std::string &idx, std::vector<room_data> &rooms) noexcept;
  public:
-  room_future() { _worker_future = _room_future.get_future(); }
+  room_future(bool mini = false) : _mini(mini) { _worker_future = _room_future.get_future(); }
 
   room_future(const room_future &f) = delete;
   room_future(room_future &&f) = delete;

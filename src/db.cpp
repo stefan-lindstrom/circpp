@@ -25,6 +25,7 @@
 #include "interpreter.h"
 #include "house.h"
 #include "constants.h"
+#include "room_future.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -679,9 +680,16 @@ static void index_boot(DBBoot mode)
   int rec_count = 0, size[2];
   char buf2[PATH_MAX], buf1[MAX_STRING_LENGTH];
 
+  std::vector<room_data> rooms;
+  room_future f(mini_mud);
+
   switch (mode) {
   case DBBoot::DB_BOOT_WLD:
     prefix = WLD_PREFIX;
+
+    f.parse_rooms();
+    rooms = f.rooms();
+
     break;
   case DBBoot::DB_BOOT_MOB:
     prefix = MOB_PREFIX;
@@ -711,7 +719,7 @@ static void index_boot(DBBoot mode)
   snprintf(buf2, sizeof(buf2), "%s%s", prefix, index_filename);
   if (!(db_index = fopen(buf2, "r"))) {
     log("SYSERR: opening index file '%s': %s", buf2, strerror(errno));
-    exit(1);
+   exit(1);
   }
 
   /* first, count the number of records in the file so we can malloc */

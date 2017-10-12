@@ -20,7 +20,9 @@
 #cmakedefine size_t unsigned
 
 /* Define if you have the ANSI C header files. If __ANSI__ is defined, C89 (and C90) compliant compiler */
+#ifndef  STDC_HEADERS
 #define STDC_HEADERS __ANSI__ 
+#endif
 
 /* TODO: Define if you can safely include both <sys/time.h> and <time.h>.  */
 #define TIME_WITH_SYS_TIME 
