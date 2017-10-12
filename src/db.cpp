@@ -26,6 +26,7 @@
 #include "house.h"
 #include "constants.h"
 #include "room_future.h"
+#include "object_future.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -683,6 +684,9 @@ static void index_boot(DBBoot mode)
   std::vector<room_data> rooms;
   room_future f(mini_mud);
 
+  std::vector<obj_data> objs;
+  object_future o(mini_mud);
+
   switch (mode) {
   case DBBoot::DB_BOOT_WLD:
     prefix = WLD_PREFIX;
@@ -696,6 +700,10 @@ static void index_boot(DBBoot mode)
     break;
   case DBBoot::DB_BOOT_OBJ:
     prefix = OBJ_PREFIX;
+
+    o.parse();
+    objs = o.items();
+
     break;
   case DBBoot::DB_BOOT_ZON:
     prefix = ZON_PREFIX;

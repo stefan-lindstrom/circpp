@@ -10,6 +10,8 @@
 #ifndef __DB_H__
 #define __DB_H__
 
+#include "structs.h"
+
 #include <vector>
 
 /* arbitrary constants used by index_boot() (must be unique) */
