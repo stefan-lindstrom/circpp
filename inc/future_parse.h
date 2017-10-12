@@ -43,6 +43,21 @@ class future_parse {
 
   virtual void parse_single_idx(const std::string &idx, std::vector<T> &items) noexcept = 0;
 
+protected:
+  const std::string read(std::ifstream &f) const 
+  {
+    std::string rc, line;  
+    for(; std::getline(f, line); ) {
+      rc += line;
+      if (line.back() != '~') {
+        rc += "\r\n";
+      } else {
+        break;
+      }
+    }
+    return rc;
+  }
+
  public:
   future_parse(bool mini = false, const std::string &prefix = "") : _mini(mini), _prefix(prefix)
   { 

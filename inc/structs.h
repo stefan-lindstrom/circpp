@@ -604,7 +604,8 @@ struct obj_affected_type {
 
 /* ================== Memory Structure for Objects ================== */
 struct obj_data {
-   obj_vnum item_number;	/* Where in data-base			*/
+   obj_rnum item_number;	/* Where in data-base			*/
+   obj_vnum vnum;
    room_rnum in_room;		/* In what room -1 when conta/carr	*/
 
    struct obj_flag_data obj_flags;/* Object information               */
