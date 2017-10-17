@@ -5,6 +5,8 @@
 #include <future>
 #include <thread>
 #include <fstream>
+#include <algorithm>
+
 #include "db.h"
 
 template<class T>
@@ -32,11 +34,7 @@ class future_parse {
     }
     idx.close();
 
-   // std::for_each would be preferable, but uses ::log, which seems to collide with the mud log()... this'll work
-   auto it = indexes.begin();
-   while(it != indexes.end()) {
-     parse_single_idx(*it++, items);
-   }
+    std::for_each(indexes.begin(), indexes.end(), [this,&items](std::string &s) { this->parse_single_idx(s, items); });
 
     promise.set_value(items);
   }

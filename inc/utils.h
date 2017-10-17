@@ -36,6 +36,8 @@ int	num_pc_in_room(struct room_data *room);
 void	core_dump_real(const char *, int);
 int	room_is_dark(room_rnum room);
 
+bitvector_t asciiflag_conv(const char *flag);
+
 #define core_dump()		core_dump_real(__FILE__, __LINE__)
 
 /*

@@ -8,6 +8,9 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#include <list>
+#include <algorithm>
+
 #include "conf.h"
 #include "sysdep.h"
 
@@ -68,6 +71,7 @@ ACMD(do_exits);
 void look_in_direction(struct char_data *ch, int dir);
 void look_in_obj(struct char_data *ch, char *arg);
 char *find_exdesc(char *word, struct extra_descr_data *list);
+char *find_exdesc(char *word, const std::list<extra_descr_data> &list);
 void look_at_target(struct char_data *ch, char *arg);
 
 /* local globals */
@@ -500,7 +504,14 @@ void look_in_obj(struct char_data *ch, char *arg)
   }
 }
 
-
+char *find_exdesc(char *word, const std::list<extra_descr_data> &list)
+{
+  auto rc = std::find_if(list.begin(), list.end(), [&word](const extra_descr_data &ex) { return isname(word, ex.keyword); } );
+  if (list.end() != rc) {
+    return rc->description;
+  }
+  return nullptr;
+}
 
 char *find_exdesc(char *word, struct extra_descr_data *list)
 {

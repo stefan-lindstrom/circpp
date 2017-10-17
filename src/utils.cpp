@@ -678,3 +678,25 @@ int room_is_dark(room_rnum room)
 
   return (FALSE);
 }
+
+bitvector_t asciiflag_conv(const char *flag)
+{
+  bitvector_t flags = 0;
+  int is_num = TRUE;
+  const char *p;
+
+  for (p = flag; *p; p++) {
+    if (islower(*p))
+      flags |= 1 << (*p - 'a');
+    else if (isupper(*p))
+      flags |= 1 << (26 + (*p - 'A'));
+
+    if (!isdigit(*p))
+      is_num = FALSE;
+  }
+
+  if (is_num)
+    flags = atol(flag);
+
+  return (flags);
+}

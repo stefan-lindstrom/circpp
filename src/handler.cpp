@@ -1255,7 +1255,7 @@ const char *money_desc(int amount)
 struct obj_data *create_money(int amount)
 {
   struct obj_data *obj;
-  struct extra_descr_data *new_descr;
+  struct extra_descr_data new_descr;
   char buf[200];
 
   if (amount <= 0) {
@@ -1263,21 +1263,20 @@ struct obj_data *create_money(int amount)
     return (NULL);
   }
   obj = create_obj();
-  CREATE(new_descr, struct extra_descr_data, 1);
-
+  
   if (amount == 1) {
     obj->name = strdup("coin gold");
     obj->short_description = strdup("a gold coin");
     obj->description = strdup("One miserable gold coin is lying here.");
-    new_descr->keyword = strdup("coin gold");
-    new_descr->description = strdup("It's just one miserable little gold coin.");
+    new_descr.keyword = strdup("coin gold");
+    new_descr.description = strdup("It's just one miserable little gold coin.");
   } else {
     obj->name = strdup("coins gold");
     obj->short_description = strdup(money_desc(amount));
     snprintf(buf, sizeof(buf), "%s is lying here.", money_desc(amount));
     obj->description = strdup(CAP(buf));
 
-    new_descr->keyword = strdup("coins gold");
+    new_descr.keyword = strdup("coins gold");
     if (amount < 10)
       snprintf(buf, sizeof(buf), "There are %d coins.", amount);
     else if (amount < 100)
@@ -1289,11 +1288,10 @@ struct obj_data *create_money(int amount)
 	      1000 * ((amount / 1000) + rand_number(0, (amount / 1000))));
     else
       strcpy(buf, "There are a LOT of coins.");	/* strcpy: OK (is < 200) */
-    new_descr->description = strdup(buf);
+    new_descr.description = strdup(buf);
   }
-
-  new_descr->next = NULL;
-  obj->ex_description = new_descr;
+  
+  obj->ex_description.push_back(new_descr);
 
   GET_OBJ_TYPE(obj) = ITEM_MONEY;
   GET_OBJ_WEAR(obj) = ITEM_WEAR_TAKE;

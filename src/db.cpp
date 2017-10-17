@@ -114,7 +114,6 @@ ACMD(do_reboot);
 void boot_world(void);
 int count_alias_records(FILE *fl);
 int count_hash_records(FILE *fl);
-bitvector_t asciiflag_conv(char *flag);
 void parse_simple_mob(FILE *mob_f, int i, int nr);
 void interpret_espec(const char *keyword, const char *value, int i, int nr);
 void parse_espec(char *buf, int i, int nr);
@@ -268,7 +267,11 @@ void boot_world(void)
   index_boot(DBBoot::DB_BOOT_MOB);
 
   basic_mud_log("Loading objs and generating index.");
-  index_boot(DBBoot::DB_BOOT_OBJ);
+  // create future, and resolve all objects directly.. for now
+  object_future o(mini_mud);
+  std::vector<obj_data> objs = o.items();
+
+  //  index_boot(DBBoot::DB_BOOT_OBJ);
 
   basic_mud_log("Renumbering zone table.");
   renum_zone_table();
@@ -293,6 +296,10 @@ void free_extra_descriptions(struct extra_descr_data *edesc)
   }
 }
 
+template<typename T> 
+void free_ex_descs(T begin, T end) {
+  std::for_each(begin, end, [](extra_descr_data e) { free(e.keyword); free(e.description); });
+}
 
 /* Free the world, in a memory allocation sense. */
 void destroy_db(void)
@@ -346,9 +353,11 @@ void destroy_db(void)
       free(obj_proto[cnt].short_description);
     if (obj_proto[cnt].action_description)
       free(obj_proto[cnt].action_description);
-    free_extra_descriptions(obj_proto[cnt].ex_description);
+
+
+    free_ex_descs(obj_proto[cnt].ex_description.begin(), obj_proto[cnt].ex_description.end());
   }
-  free(obj_proto);
+  delete [] obj_proto;
   free(obj_index);
 
   /* Mobiles */
@@ -685,9 +694,6 @@ static void index_boot(DBBoot mode)
   std::vector<room_data> rooms;
   room_future f(mini_mud);
 
-  std::vector<obj_data> objs;
-  object_future o(mini_mud);
-
   switch (mode) {
   case DBBoot::DB_BOOT_WLD:
     prefix = WLD_PREFIX;
@@ -699,13 +705,11 @@ static void index_boot(DBBoot mode)
   case DBBoot::DB_BOOT_MOB:
     prefix = MOB_PREFIX;
     break;
+
   case DBBoot::DB_BOOT_OBJ:
     prefix = OBJ_PREFIX;
 
-    o.parse();
-    objs = o.items();
 
-    break;
   case DBBoot::DB_BOOT_ZON:
     prefix = ZON_PREFIX;
     break;
@@ -779,7 +783,8 @@ static void index_boot(DBBoot mode)
     basic_mud_log("   %d mobs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
     break;
   case DBBoot::DB_BOOT_OBJ:
-    CREATE(obj_proto, struct obj_data, rec_count);
+    obj_proto = new obj_data[rec_count];
+    //    CREATE(obj_proto, struct obj_data, rec_count);
     CREATE(obj_index, struct index_data, rec_count);
     size[0] = sizeof(struct index_data) * rec_count;
     size[1] = sizeof(struct obj_data) * rec_count;
@@ -903,29 +908,6 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
     }
   }
 }
-
-bitvector_t asciiflag_conv(char *flag)
-{
-  bitvector_t flags = 0;
-  int is_num = TRUE;
-  char *p;
-
-  for (p = flag; *p; p++) {
-    if (islower(*p))
-      flags |= 1 << (*p - 'a');
-    else if (isupper(*p))
-      flags |= 1 << (26 + (*p - 'A'));
-
-    if (!isdigit(*p))
-      is_num = FALSE;
-  }
-
-  if (is_num)
-    flags = atol(flag);
-
-  return (flags);
-}
-
 
 /* load the rooms */
 void parse_room(FILE *fl, int virtual_nr)
@@ -1445,13 +1427,13 @@ char *parse_object(FILE *obj_f, int nr)
   int t[10], j, retval;
   char *tmpptr;
   char f1[READ_SIZE], f2[READ_SIZE], buf2[128];
-  struct extra_descr_data *new_descr;
 
   obj_index[i].vnum = nr;
   obj_index[i].number = 0;
   obj_index[i].func = NULL;
 
   clear_object(obj_proto + i);
+  obj_proto[i].ex_description = std::list<extra_descr_data>();
   obj_proto[i].item_number = i;
 
   sprintf(buf2, "object #%d", nr);	/* sprintf: OK (for 'buf2 >= 19') */
@@ -1536,11 +1518,13 @@ char *parse_object(FILE *obj_f, int nr)
     }
     switch (*line) {
     case 'E':
-      CREATE(new_descr, struct extra_descr_data, 1);
-      new_descr->keyword = fread_string(obj_f, buf2);
-      new_descr->description = fread_string(obj_f, buf2);
-      new_descr->next = obj_proto[i].ex_description;
-      obj_proto[i].ex_description = new_descr;
+      extra_descr_data e;
+
+      e.keyword = fread_string(obj_f, buf2);
+      e.description = fread_string(obj_f, buf2);
+      e.next = nullptr;
+
+      obj_proto[i].ex_description.push_back(e);
       break;
     case 'A':
       if (j >= MAX_OBJ_AFFECT) {
@@ -1873,6 +1857,7 @@ struct obj_data *create_obj(void)
   struct obj_data *obj;
 
   CREATE(obj, struct obj_data, 1);
+  obj->ex_description = std::list<extra_descr_data>();
   clear_object(obj);
   obj->next = object_list;
   object_list = obj;
@@ -1892,7 +1877,8 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
     return (NULL);
   }
 
-  CREATE(obj, struct obj_data, 1);
+  
+  obj = new obj_data;
   clear_object(obj);
   *obj = obj_proto[i];
   obj->next = object_list;
@@ -2562,8 +2548,8 @@ void free_obj(struct obj_data *obj)
       free(obj->short_description);
     if (obj->action_description)
       free(obj->action_description);
-    if (obj->ex_description)
-      free_extra_descriptions(obj->ex_description);
+    if (!obj->ex_description.empty())
+      free_ex_descs(obj->ex_description.begin(), obj->ex_description.end());
   } else {
     if (obj->name && obj->name != obj_proto[nr].name)
       free(obj->name);
@@ -2573,11 +2559,11 @@ void free_obj(struct obj_data *obj)
       free(obj->short_description);
     if (obj->action_description && obj->action_description != obj_proto[nr].action_description)
       free(obj->action_description);
-    if (obj->ex_description && obj->ex_description != obj_proto[nr].ex_description)
-      free_extra_descriptions(obj->ex_description);
+    if (!obj->ex_description.empty())
+      free_ex_descs(obj->ex_description.begin(), obj->ex_description.end());
   }
 
-  free(obj);
+  delete obj;
 }
 
 
@@ -2721,7 +2707,7 @@ void clear_char(struct char_data *ch)
 
 void clear_object(struct obj_data *obj)
 {
-  memset((char *) obj, 0, sizeof(struct obj_data));
+  //  memset((char *) obj, 0, sizeof(struct obj_data));
 
   obj->item_number = NOTHING;
   IN_ROOM(obj) = NOWHERE;

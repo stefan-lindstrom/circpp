@@ -8,6 +8,8 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#include <algorithm>
+
 #include "conf.h"
 #include "sysdep.h"
 
@@ -446,7 +448,6 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
   int i, found;
   obj_vnum vnum;
   struct obj_data *j2;
-  struct extra_descr_data *desc;
   char buf[MAX_STRING_LENGTH];
 
   vnum = GET_OBJ_VNUM(j);
@@ -459,10 +460,10 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
 	CCGRN(ch, C_NRM), vnum, CCNRM(ch, C_NRM), GET_OBJ_RNUM(j), buf,
 	GET_OBJ_SPEC(j) ? "Exists" : "None");
 
-  if (j->ex_description) {
+  if (!j->ex_description.empty()) {
     send_to_char(ch, "Extra descs:%s", CCCYN(ch, C_NRM));
-    for (desc = j->ex_description; desc; desc = desc->next)
-      send_to_char(ch, " %s", desc->keyword);
+    std::for_each(j->ex_description.begin(), j->ex_description.end(),[&ch](const extra_descr_data &e){ send_to_char(ch, " %s", e.keyword); });
+
     send_to_char(ch, "%s\r\n", CCNRM(ch, C_NRM));
   }
 
