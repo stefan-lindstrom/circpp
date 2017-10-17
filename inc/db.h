@@ -18,7 +18,6 @@
 enum class DBBoot : unsigned char  {
   DB_BOOT_WLD = 0,
   DB_BOOT_MOB,
-  DB_BOOT_OBJ,
   DB_BOOT_ZON,
   DB_BOOT_SHP,
   DB_BOOT_HLP,
@@ -252,9 +251,9 @@ extern struct index_data *mob_index;
 extern struct char_data *mob_proto;
 extern mob_rnum top_of_mobt;
 
-extern struct index_data *obj_index;
+extern std::vector<index_data> obj_index;
+extern std::vector<obj_data> obj_proto;
 extern struct obj_data *object_list;
-extern struct obj_data *obj_proto;
 extern obj_rnum top_of_objt;
 
 extern char	*OK;

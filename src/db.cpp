@@ -33,7 +33,7 @@
 *  declarations of most of the 'global' variables                         *
 **************************************************************************/
 
-struct room_data *world = NULL;	/* array of rooms		 */
+struct room_data *world = NULL;	/* NOT array of rooms, ffs,    	 */
 //std::vector<room_data> world;
 room_rnum top_of_world = 0;	/* ref to top element of world	 */
 
@@ -44,8 +44,9 @@ struct char_data *mob_proto;	/* prototypes for mobs		 */
 mob_rnum top_of_mobt = 0;	/* top of mobile index table	 */
 
 struct obj_data *object_list = NULL;	/* global linked list of objs	 */
-struct index_data *obj_index;	/* index table for object file	 */
-struct obj_data *obj_proto;	/* prototypes for objs		 */
+
+std::vector<index_data> obj_index;
+std::vector<obj_data> obj_proto;
 obj_rnum top_of_objt = 0;	/* top of object index table	 */
 
 struct zone_data *zone_table;	/* zone table			 */
@@ -267,11 +268,19 @@ void boot_world(void)
   index_boot(DBBoot::DB_BOOT_MOB);
 
   basic_mud_log("Loading objs and generating index.");
-  // create future, and resolve all objects directly.. for now
   object_future o(mini_mud);
-  std::vector<obj_data> objs = o.items();
+  o.parse();
+  obj_proto = o.items();
+  top_of_objt = obj_proto.size() + 1;
 
-  //  index_boot(DBBoot::DB_BOOT_OBJ);
+  std::for_each(obj_proto.begin(), obj_proto.end(), [](const obj_data &o) {
+      index_data oi;
+      oi.vnum = o.vnum;
+      oi.number = 0;
+      oi.func = nullptr;
+      obj_index.push_back(oi);
+    });
+  basic_mud_log("   %d objs, %lu bytes in index, %lu bytes in prototypes.", top_of_objt, top_of_objt * sizeof(index_data), top_of_objt * sizeof(obj_data));
 
   basic_mud_log("Renumbering zone table.");
   renum_zone_table();
@@ -298,12 +307,13 @@ void free_extra_descriptions(struct extra_descr_data *edesc)
 
 template<typename T> 
 void free_ex_descs(T begin, T end) {
-  std::for_each(begin, end, [](extra_descr_data e) { free(e.keyword); free(e.description); });
+  std::for_each(begin, end, [](extra_descr_data e) { free(e.keyword); e.keyword = nullptr; free(e.description); e.description = nullptr; });
 }
 
 /* Free the world, in a memory allocation sense. */
 void destroy_db(void)
 {
+#if 0 // for now, re-enable (perhaps) once all switching to proper containers and stuff is done. (constructors, destructors, whatever) 
   ssize_t cnt, itr;
   struct char_data *chtmp;
   struct obj_data *objtmp;
@@ -356,9 +366,8 @@ void destroy_db(void)
 
 
     free_ex_descs(obj_proto[cnt].ex_description.begin(), obj_proto[cnt].ex_description.end());
+    obj_proto[cnt].ex_description.clear();
   }
-  delete [] obj_proto;
-  free(obj_index);
 
   /* Mobiles */
   for (cnt = 0; cnt <= top_of_mobt; cnt++) {
@@ -390,6 +399,7 @@ void destroy_db(void)
       free(zone_table[cnt].cmd);
   }
   free(zone_table);
+#endif
 }
 
 
@@ -706,10 +716,6 @@ static void index_boot(DBBoot mode)
     prefix = MOB_PREFIX;
     break;
 
-  case DBBoot::DB_BOOT_OBJ:
-    prefix = OBJ_PREFIX;
-
-
   case DBBoot::DB_BOOT_ZON:
     prefix = ZON_PREFIX;
     break;
@@ -782,14 +788,6 @@ static void index_boot(DBBoot mode)
     size[1] = sizeof(struct char_data) * rec_count;
     basic_mud_log("   %d mobs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
     break;
-  case DBBoot::DB_BOOT_OBJ:
-    obj_proto = new obj_data[rec_count];
-    //    CREATE(obj_proto, struct obj_data, rec_count);
-    CREATE(obj_index, struct index_data, rec_count);
-    size[0] = sizeof(struct index_data) * rec_count;
-    size[1] = sizeof(struct obj_data) * rec_count;
-    basic_mud_log("   %d objs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
-    break;
   case DBBoot::DB_BOOT_ZON:
     CREATE(zone_table, struct zone_data, rec_count);
     size[0] = sizeof(struct zone_data) * rec_count;
@@ -816,7 +814,6 @@ static void index_boot(DBBoot mode)
     }
     switch (mode) {
     case DBBoot::DB_BOOT_WLD:
-    case DBBoot::DB_BOOT_OBJ:
     case DBBoot::DB_BOOT_MOB:
       discrete_load(db_file, mode, buf2);
       break;
@@ -856,22 +853,17 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
   const char *modes[] = {"world", "mob", "obj"};
 
   for (;;) {
-    /*
-     * we have to do special processing with the obj files because they have
-     * no end-of-record marker :(
-     */
-    if (mode != DBBoot::DB_BOOT_OBJ || nr < 0)
-      if (!get_line(fl, line)) {
-	if (nr == -1) {
-	  basic_mud_log("SYSERR: %s file %s is empty!", modes[static_cast<int>(mode)], filename);
-	} else {
-	  basic_mud_log("SYSERR: Format error in %s after %s #%d\n"
-	      "...expecting a new %s, but file ended!\n"
-	      "(maybe the file is not terminated with '$'?)", filename,
-	      modes[static_cast<int>(mode)], nr, modes[static_cast<int>(mode)]);
-	}
-	exit(1);
+    if (!get_line(fl, line)) {
+      if (nr == -1) {
+	basic_mud_log("SYSERR: %s file %s is empty!", modes[static_cast<int>(mode)], filename);
+      } else {
+	basic_mud_log("SYSERR: Format error in %s after %s #%d\n"
+		      "...expecting a new %s, but file ended!\n"
+		      "(maybe the file is not terminated with '$'?)", filename,
+		      modes[static_cast<int>(mode)], nr, modes[static_cast<int>(mode)]);
       }
+      exit(1);
+    }
     if (*line == '$')
       return;
 
@@ -890,9 +882,6 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
 	  break;
 	case DBBoot::DB_BOOT_MOB:
 	  parse_mobile(fl, nr);
-	  break;
-	case DBBoot::DB_BOOT_OBJ:
-	  strlcpy(line, parse_object(fl, nr), sizeof(line));
 	  break;
 	case DBBoot::DB_BOOT_ZON:
 	case DBBoot::DB_BOOT_SHP:
@@ -1416,150 +1405,6 @@ void parse_mobile(FILE *mob_f, int nr)
   top_of_mobt = i++;
 }
 
-
-
-
-/* read all objects from obj file; generate index and prototypes */
-char *parse_object(FILE *obj_f, int nr)
-{
-  static int i = 0;
-  static char line[READ_SIZE];
-  int t[10], j, retval;
-  char *tmpptr;
-  char f1[READ_SIZE], f2[READ_SIZE], buf2[128];
-
-  obj_index[i].vnum = nr;
-  obj_index[i].number = 0;
-  obj_index[i].func = NULL;
-
-  clear_object(obj_proto + i);
-  obj_proto[i].ex_description = std::list<extra_descr_data>();
-  obj_proto[i].item_number = i;
-
-  sprintf(buf2, "object #%d", nr);	/* sprintf: OK (for 'buf2 >= 19') */
-
-  /* *** string data *** */
-  if ((obj_proto[i].name = fread_string(obj_f, buf2)) == NULL) {
-    basic_mud_log("SYSERR: Null obj name or format error at or near %s", buf2);
-    exit(1);
-  }
-  tmpptr = obj_proto[i].short_description = fread_string(obj_f, buf2);
-  if (tmpptr && *tmpptr)
-    if (!str_cmp(fname(tmpptr), "a") || !str_cmp(fname(tmpptr), "an") ||
-	!str_cmp(fname(tmpptr), "the"))
-      *tmpptr = LOWER(*tmpptr);
-
-  tmpptr = obj_proto[i].description = fread_string(obj_f, buf2);
-  if (tmpptr && *tmpptr)
-    CAP(tmpptr);
-  obj_proto[i].action_description = fread_string(obj_f, buf2);
-
-  /* *** numeric data *** */
-  if (!get_line(obj_f, line)) {
-    basic_mud_log("SYSERR: Expecting first numeric line of %s, but file ended!", buf2);
-    exit(1);
-  }
-  if ((retval = sscanf(line, " %d %s %s", t, f1, f2)) != 3) {
-    basic_mud_log("SYSERR: Format error in first numeric line (expecting 3 args, got %d), %s", retval, buf2);
-    exit(1);
-  }
-
-  /* Object flags checked in check_object(). */
-  GET_OBJ_TYPE(obj_proto + i) = t[0];
-  GET_OBJ_EXTRA(obj_proto + i) = asciiflag_conv(f1);
-  GET_OBJ_WEAR(obj_proto + i) = asciiflag_conv(f2);
-
-  if (!get_line(obj_f, line)) {
-    basic_mud_log("SYSERR: Expecting second numeric line of %s, but file ended!", buf2);
-    exit(1);
-  }
-  if ((retval = sscanf(line, "%d %d %d %d", t, t + 1, t + 2, t + 3)) != 4) {
-    basic_mud_log("SYSERR: Format error in second numeric line (expecting 4 args, got %d), %s", retval, buf2);
-    exit(1);
-  }
-  GET_OBJ_VAL(obj_proto + i, 0) = t[0];
-  GET_OBJ_VAL(obj_proto + i, 1) = t[1];
-  GET_OBJ_VAL(obj_proto + i, 2) = t[2];
-  GET_OBJ_VAL(obj_proto + i, 3) = t[3];
-
-  if (!get_line(obj_f, line)) {
-    basic_mud_log("SYSERR: Expecting third numeric line of %s, but file ended!", buf2);
-    exit(1);
-  }
-  if ((retval = sscanf(line, "%d %d %d", t, t + 1, t + 2)) != 3) {
-    basic_mud_log("SYSERR: Format error in third numeric line (expecting 3 args, got %d), %s", retval, buf2);
-    exit(1);
-  }
-  GET_OBJ_WEIGHT(obj_proto + i) = t[0];
-  GET_OBJ_COST(obj_proto + i) = t[1];
-  GET_OBJ_RENT(obj_proto + i) = t[2];
-
-  /* check to make sure that weight of containers exceeds curr. quantity */
-  if (GET_OBJ_TYPE(obj_proto + i) == ITEM_DRINKCON || GET_OBJ_TYPE(obj_proto + i) == ITEM_FOUNTAIN) {
-    if (GET_OBJ_WEIGHT(obj_proto + i) < GET_OBJ_VAL(obj_proto + i, 1))
-      GET_OBJ_WEIGHT(obj_proto + i) = GET_OBJ_VAL(obj_proto + i, 1) + 5;
-  }
-
-  /* *** extra descriptions and affect fields *** */
-
-  for (j = 0; j < MAX_OBJ_AFFECT; j++) {
-    obj_proto[i].affected[j].location = APPLY_NONE;
-    obj_proto[i].affected[j].modifier = 0;
-  }
-
-  strcat(buf2, ", after numeric constants\n"	/* strcat: OK (for 'buf2 >= 87') */
-	 "...expecting 'E', 'A', '$', or next object number");
-  j = 0;
-
-  for (;;) {
-    if (!get_line(obj_f, line)) {
-      basic_mud_log("SYSERR: Format error in %s", buf2);
-      exit(1);
-    }
-    switch (*line) {
-    case 'E':
-      extra_descr_data e;
-
-      e.keyword = fread_string(obj_f, buf2);
-      e.description = fread_string(obj_f, buf2);
-      e.next = nullptr;
-
-      obj_proto[i].ex_description.push_back(e);
-      break;
-    case 'A':
-      if (j >= MAX_OBJ_AFFECT) {
-	basic_mud_log("SYSERR: Too many A fields (%d max), %s", MAX_OBJ_AFFECT, buf2);
-	exit(1);
-      }
-      if (!get_line(obj_f, line)) {
-	basic_mud_log("SYSERR: Format error in 'A' field, %s\n"
-	    "...expecting 2 numeric constants but file ended!", buf2);
-	exit(1);
-      }
-
-      if ((retval = sscanf(line, " %d %d ", t, t + 1)) != 2) {
-	basic_mud_log("SYSERR: Format error in 'A' field, %s\n"
-	    "...expecting 2 numeric arguments, got %d\n"
-	    "...offending line: '%s'", buf2, retval, line);
-	exit(1);
-      }
-      obj_proto[i].affected[j].location = t[0];
-      obj_proto[i].affected[j].modifier = t[1];
-      j++;
-      break;
-    case '$':
-    case '#':
-      check_object(obj_proto + i);
-      top_of_objt = i++;
-      return (line);
-    default:
-      basic_mud_log("SYSERR: Format error in (%c): %s", *line, buf2);
-      exit(1);
-    }
-  }
-}
-
-
 #define Z	zone_table[zone]
 
 /* load the zone table and command tables */
@@ -1856,7 +1701,8 @@ struct obj_data *create_obj(void)
 {
   struct obj_data *obj;
 
-  CREATE(obj, struct obj_data, 1);
+  obj = new obj_data;
+
   obj->ex_description = std::list<extra_descr_data>();
   clear_object(obj);
   obj->next = object_list;
@@ -1880,7 +1726,9 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
   
   obj = new obj_data;
   clear_object(obj);
+
   *obj = obj_proto[i];
+
   obj->next = object_list;
   object_list = obj;
 
@@ -2562,6 +2410,8 @@ void free_obj(struct obj_data *obj)
     if (!obj->ex_description.empty())
       free_ex_descs(obj->ex_description.begin(), obj->ex_description.end());
   }
+  obj->name = obj->description = obj->short_description = obj->action_description = nullptr;
+  obj->ex_description.clear();
 
   delete obj;
 }
@@ -2707,8 +2557,7 @@ void clear_char(struct char_data *ch)
 
 void clear_object(struct obj_data *obj)
 {
-  //  memset((char *) obj, 0, sizeof(struct obj_data));
-
+  obj->clear();
   obj->item_number = NOTHING;
   IN_ROOM(obj) = NOWHERE;
   obj->worn_on = NOWHERE;
@@ -2859,24 +2708,8 @@ mob_rnum real_mobile(mob_vnum vnum)
 /* returns the real number of the object with given virtual number */
 obj_rnum real_object(obj_vnum vnum)
 {
-  obj_rnum bot, top, mid;
-
-  bot = 0;
-  top = top_of_objt;
-
-  /* perform binary search on obj-table */
-  for (;;) {
-    mid = (bot + top) / 2;
-
-    if ((obj_index + mid)->vnum == vnum)
-      return (mid);
-    if (bot >= top)
-      return (NOTHING);
-    if ((obj_index + mid)->vnum > vnum)
-      top = mid - 1;
-    else
-      bot = mid + 1;
-  }
+  auto it = std::find_if(obj_proto.begin(), obj_proto.end(), [&vnum](const obj_data &o) { return (o.vnum == vnum); });
+  return (it == obj_proto.end()) ? NOTHING : std::distance(obj_proto.begin(), it);
 }
 
 

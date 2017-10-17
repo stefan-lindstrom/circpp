@@ -12,6 +12,7 @@
 #define __STRUCTS_H__
 
 #include <list>
+#include <algorithm>
 
 #include "sysdep.h"
 #include "olc.h"
@@ -577,12 +578,15 @@ struct extra_descr_data {
    char	*keyword;                 /* Keyword in look/examine          */
    char	*description;             /* What to see                      */
    struct extra_descr_data *next; /* Next in list                     */
+
+  extra_descr_data() noexcept : keyword(nullptr), description(nullptr), next(nullptr) {}
+  extra_descr_data(const extra_descr_data &o) : keyword(strdup(o.keyword)), description(strdup(o.description)), next(nullptr) {}
 };
 
 
 /* object-related structures ******************************************/
 
-
+void basic_mud_log(const char *, ...);
 /* object flags; used in obj_data */
 struct obj_flag_data {
    int	value[4];	/* Values of the item (see list)    */
@@ -594,6 +598,18 @@ struct obj_flag_data {
    int	cost_per_day;	/* Cost to keep pr. real day        */
    int	timer;		/* Timer for object                 */
    long /*bitvector_t*/	bitvector;	/* To set chars bits                */
+ 
+  obj_flag_data() = default;
+  obj_flag_data(const obj_flag_data &f) = default;
+
+  void clear() {
+    std::for_each(value, value+4, [](int &val) { val = 0; });
+    type_flag = 0;
+    wear_flags = extra_flags = 0;
+    weight = cost = cost_per_day = 0;
+    timer = 0;
+    bitvector = 0;
+  }
 };
 
 
@@ -601,6 +617,11 @@ struct obj_flag_data {
 struct obj_affected_type {
    byte location;      /* Which ability to change (APPLY_XXX) */
    sbyte modifier;     /* How much it changes by              */
+
+  void clear() {
+    location = 0;
+    modifier = 0;
+  }
 };
 
 
@@ -618,7 +639,7 @@ struct obj_data {
    char	*short_description;       /* when worn/carry/in cont.         */
    char	*action_description;      /* What to write when used          */
    std::list<extra_descr_data> ex_description;
-   //   struct extra_descr_data *ex_description; /* extra descriptions     */
+
    struct char_data *carried_by;  /* Carried by :NULL in room/conta   */
    struct char_data *worn_by;	  /* Worn by?			      */
    sh_int worn_on;		  /* Worn where?		      */
@@ -628,6 +649,42 @@ struct obj_data {
 
    struct obj_data *next_content; /* For 'contains' lists             */
    struct obj_data *next;         /* For the object list              */
+
+  obj_data() noexcept {
+    clear();
+  }
+
+  obj_data(const obj_data &obj) noexcept {
+    item_number = obj.item_number;
+    vnum = obj.vnum;
+    in_room = obj.in_room;
+
+    obj_flags = obj.obj_flags;
+
+    for (int i = 0; i < MAX_OBJ_AFFECT; ++i) {
+      affected[i] = obj.affected[i];
+    }
+
+    name = strdup(obj.name);
+    description = strdup(obj.description);
+    short_description = strdup(obj.short_description);
+    action_description = strdup(obj.action_description);
+
+    ex_description = obj.ex_description; // should copy
+    in_obj = contains = next_content = next = nullptr; // for now
+    carried_by = worn_by =  nullptr;
+    worn_on = obj.worn_on;
+  }
+
+  void clear() {
+    in_obj = contains = next_content = next = nullptr;
+    worn_by = carried_by = nullptr;
+    ex_description.clear();
+    name = description = short_description = action_description = nullptr;
+    in_room = -1;
+    obj_flags.clear();
+    std::for_each(affected, affected +  MAX_OBJ_AFFECT, [](obj_affected_type &a) { a.clear(); });
+  }
 };
 /* ======================================================================= */
 

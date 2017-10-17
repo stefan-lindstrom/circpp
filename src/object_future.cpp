@@ -22,6 +22,7 @@ void object_future::parse_single_idx(const std::string &idx, std::vector<obj_dat
 
     aff = 0;
     obj_data reading;
+    reading.clear();
 
     // TODO: switch to std::list for affects as well, ffs. 
     for (int j = 0; j < MAX_OBJ_AFFECT; j++) {
@@ -104,7 +105,7 @@ void object_future::parse_single_idx(const std::string &idx, std::vector<obj_dat
           // many errors, handle it. 
         }
         reading.affected[aff].location = first;
-        reading.affected[aff].location = second;
+        reading.affected[aff].modifier = second;
         aff++;
       } else {
         // unexpected, error
