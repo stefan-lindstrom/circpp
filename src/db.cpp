@@ -1635,8 +1635,8 @@ int vnum_object(char *searchname, struct char_data *ch)
   int nr, found = 0;
 
   for (nr = 0; nr <= top_of_objt; nr++)
-    if (isname(searchname, obj_proto[nr].name))
-      send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, obj_index[nr].vnum, obj_proto[nr].short_description);
+    if (isname(searchname, obj_proto[nr].name.c_str()))
+      send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, obj_index[nr].vnum, obj_proto[nr].short_description.c_str());
 
   return (found);
 }
@@ -2383,34 +2383,10 @@ void free_char(struct char_data *ch)
 
 
 /* release memory allocated for an obj struct */
+// TODO: will be deprectaed once completely switched to std::
 void free_obj(struct obj_data *obj)
 {
-  int nr;
-
-  if ((nr = GET_OBJ_RNUM(obj)) == NOTHING) {
-    if (obj->name)
-      free(obj->name);
-    if (obj->description)
-      free(obj->description);
-    if (obj->short_description)
-      free(obj->short_description);
-    if (obj->action_description)
-      free(obj->action_description);
-    if (!obj->ex_description.empty())
-      free_ex_descs(obj->ex_description.begin(), obj->ex_description.end());
-  } else {
-    if (obj->name && obj->name != obj_proto[nr].name)
-      free(obj->name);
-    if (obj->description && obj->description != obj_proto[nr].description)
-      free(obj->description);
-    if (obj->short_description && obj->short_description != obj_proto[nr].short_description)
-      free(obj->short_description);
-    if (obj->action_description && obj->action_description != obj_proto[nr].action_description)
-      free(obj->action_description);
-    if (!obj->ex_description.empty())
-      free_ex_descs(obj->ex_description.begin(), obj->ex_description.end());
-  }
-  obj->name = obj->description = obj->short_description = obj->action_description = nullptr;
+  free_ex_descs(obj->ex_description.begin(), obj->ex_description.end());
   obj->ex_description.clear();
 
   delete obj;
@@ -2749,13 +2725,13 @@ int check_object(struct obj_data *obj)
 
   if (GET_OBJ_WEIGHT(obj) < 0 && (error = TRUE))
     basic_mud_log("SYSERR: Object #%d (%s) has negative weight (%d).",
-	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_WEIGHT(obj));
+		  GET_OBJ_VNUM(obj), obj->short_description.c_str(), GET_OBJ_WEIGHT(obj));
 
   if (GET_OBJ_RENT(obj) < 0 && (error = TRUE))
     basic_mud_log("SYSERR: Object #%d (%s) has negative cost/day (%d).",
-	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_RENT(obj));
+		  GET_OBJ_VNUM(obj), obj->short_description.c_str(), GET_OBJ_RENT(obj));
 
-  snprintf(objname, sizeof(objname), "Object #%d (%s)", GET_OBJ_VNUM(obj), obj->short_description);
+  snprintf(objname, sizeof(objname), "Object #%d (%s)", GET_OBJ_VNUM(obj), obj->short_description.c_str());
   error |= check_bitvector_names(GET_OBJ_WEAR(obj), wear_bits_count, objname, "object wear");
   error |= check_bitvector_names(GET_OBJ_EXTRA(obj), extra_bits_count, objname, "object extra");
   error |= check_bitvector_names(GET_OBJ_AFFECT(obj), affected_bits_count, objname, "object affect");
@@ -2763,19 +2739,21 @@ int check_object(struct obj_data *obj)
   switch (GET_OBJ_TYPE(obj)) {
   case ITEM_DRINKCON:
   {
-    char onealias[MAX_INPUT_LENGTH], *space = strrchr(obj->name, ' ');
+    char *name = strdup(obj->name.c_str());
+    char onealias[MAX_INPUT_LENGTH], *space = strrchr(name, ' ');
 
-    strlcpy(onealias, space ? space + 1 : obj->name, sizeof(onealias));
+    strlcpy(onealias, space ? space + 1 : obj->name.c_str(), sizeof(onealias));
     if (search_block(onealias, drinknames, TRUE) < 0 && (error = TRUE))
       basic_mud_log("SYSERR: Object #%d (%s) doesn't have drink type as last alias. (%s)",
-		GET_OBJ_VNUM(obj), obj->short_description, obj->name);
+		    GET_OBJ_VNUM(obj), obj->short_description.c_str(), obj->name.c_str());
+    free(name);
   }
   /* Fall through. */
   case ITEM_FOUNTAIN:
     if (GET_OBJ_VAL(obj, 1) > GET_OBJ_VAL(obj, 0) && (error = TRUE))
       basic_mud_log("SYSERR: Object #%d (%s) contains (%d) more than maximum (%d).",
-		GET_OBJ_VNUM(obj), obj->short_description,
-		GET_OBJ_VAL(obj, 1), GET_OBJ_VAL(obj, 0));
+		    GET_OBJ_VNUM(obj), obj->short_description.c_str(),
+		    GET_OBJ_VAL(obj, 1), GET_OBJ_VAL(obj, 0));
     break;
   case ITEM_SCROLL:
   case ITEM_POTION:
@@ -2790,11 +2768,10 @@ int check_object(struct obj_data *obj)
     error |= check_object_spell_number(obj, 3);
     if (GET_OBJ_VAL(obj, 2) > GET_OBJ_VAL(obj, 1) && (error = TRUE))
       basic_mud_log("SYSERR: Object #%d (%s) has more charges (%d) than maximum (%d).",
-		GET_OBJ_VNUM(obj), obj->short_description,
-		GET_OBJ_VAL(obj, 2), GET_OBJ_VAL(obj, 1));
+		    GET_OBJ_VNUM(obj), obj->short_description.c_str(),
+		    GET_OBJ_VAL(obj, 2), GET_OBJ_VAL(obj, 1));
     break;
  }
-
   return (error);
 }
 
@@ -2818,7 +2795,7 @@ int check_object_spell_number(struct obj_data *obj, int val)
     error = TRUE;
   if (error)
     basic_mud_log("SYSERR: Object #%d (%s) has out of range spell #%d.",
-	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_VAL(obj, val));
+		  GET_OBJ_VNUM(obj), obj->short_description.c_str(), GET_OBJ_VAL(obj, val));
 
   /*
    * This bug has been fixed, but if you don't like the special behavior...
@@ -2840,7 +2817,7 @@ int check_object_spell_number(struct obj_data *obj, int val)
 
   if ((spellname == unused_spellname || !str_cmp("UNDEFINED", spellname)) && (error = TRUE))
     basic_mud_log("SYSERR: Object #%d (%s) uses '%s' spell #%d.",
-		GET_OBJ_VNUM(obj), obj->short_description, spellname,
+		  GET_OBJ_VNUM(obj), obj->short_description.c_str(), spellname,
 		GET_OBJ_VAL(obj, val));
 
   return (error);
@@ -2852,7 +2829,7 @@ int check_object_level(struct obj_data *obj, int val)
 
   if ((GET_OBJ_VAL(obj, val) < 0 || GET_OBJ_VAL(obj, val) > LVL_IMPL) && (error = TRUE))
     basic_mud_log("SYSERR: Object #%d (%s) has out of range level #%d.",
-	GET_OBJ_VNUM(obj), obj->short_description, GET_OBJ_VAL(obj, val));
+		  GET_OBJ_VNUM(obj), obj->short_description.c_str(), GET_OBJ_VAL(obj, val));
 
   return (error);
 }

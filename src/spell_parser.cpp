@@ -316,8 +316,8 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
   switch (GET_OBJ_TYPE(obj)) {
   case ITEM_STAFF:
     act("You tap $p three times on the ground.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    if (obj->action_description)
-      act(obj->action_description, FALSE, ch, obj, 0, CommTarget::TO_ROOM);
+    if (!obj->action_description.empty())
+      act(obj->action_description.c_str(), FALSE, ch, obj, 0, CommTarget::TO_ROOM);
     else
       act("$n taps $p three times on the ground.", FALSE, ch, obj, 0, CommTarget::TO_ROOM);
 
@@ -357,15 +357,15 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
 	act("$n points $p at $mself.", FALSE, ch, obj, 0, CommTarget::TO_ROOM);
       } else {
 	act("You point $p at $N.", FALSE, ch, obj, tch, CommTarget::TO_CHAR);
-	if (obj->action_description)
-	  act(obj->action_description, FALSE, ch, obj, tch, CommTarget::TO_ROOM);
+	if (!obj->action_description.empty())
+	  act(obj->action_description.c_str(), FALSE, ch, obj, tch, CommTarget::TO_ROOM);
 	else
 	  act("$n points $p at $N.", TRUE, ch, obj, tch, CommTarget::TO_ROOM);
       }
     } else if (tobj != NULL) {
       act("You point $p at $P.", FALSE, ch, obj, tobj, CommTarget::TO_CHAR);
-      if (obj->action_description)
-	act(obj->action_description, FALSE, ch, obj, tobj, CommTarget::TO_ROOM);
+      if (!obj->action_description.empty())
+	act(obj->action_description.c_str(), FALSE, ch, obj, tobj, CommTarget::TO_ROOM);
       else
 	act("$n points $p at $P.", TRUE, ch, obj, tobj, CommTarget::TO_ROOM);
     } else if (IS_SET(spell_info[GET_OBJ_VAL(obj, 3)].routines, MAG_AREAS | MAG_MASSES)) {
@@ -402,8 +402,8 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
       tch = ch;
 
     act("You recite $p which dissolves.", TRUE, ch, obj, 0, CommTarget::TO_CHAR);
-    if (obj->action_description)
-      act(obj->action_description, FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
+    if (!obj->action_description.empty())
+      act(obj->action_description.c_str(), FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
     else
       act("$n recites $p.", FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
 
@@ -419,8 +419,8 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
   case ITEM_POTION:
     tch = ch;
     act("You quaff $p.", FALSE, ch, obj, NULL, CommTarget::TO_CHAR);
-    if (obj->action_description)
-      act(obj->action_description, FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
+    if (!obj->action_description.empty())
+      act(obj->action_description.c_str(), FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
     else
       act("$n quaffs $p.", TRUE, ch, obj, NULL, CommTarget::TO_ROOM);
 
@@ -572,7 +572,7 @@ ACMD(do_cast)
 
     if (!target && IS_SET(SINFO.targets, TAR_OBJ_EQUIP)) {
       for (i = 0; !target && i < NUM_WEARS; i++)
-	if (GET_EQ(ch, i) && isname(t, GET_EQ(ch, i)->name)) {
+	if (GET_EQ(ch, i) && isname(t, GET_EQ(ch, i)->name.c_str())) {
 	  tobj = GET_EQ(ch, i);
 	  target = TRUE;
 	}

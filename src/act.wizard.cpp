@@ -411,7 +411,7 @@ void do_stat_room(struct char_data *ch)
       if (!CAN_SEE_OBJ(ch, j))
 	continue;
 
-      column += send_to_char(ch, "%s %s", found++ ? "," : "", j->short_description);
+      column += send_to_char(ch, "%s %s", found++ ? "," : "", j->short_description.c_str());
       if (column >= 62) {
 	send_to_char(ch, "%s\r\n", j->next_content ? "," : "");
 	found = FALSE;
@@ -452,8 +452,8 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
 
   vnum = GET_OBJ_VNUM(j);
   send_to_char(ch, "Name: '%s%s%s', Aliases: %s\r\n", CCYEL(ch, C_NRM),
-	  j->short_description ? j->short_description : "<None>",
-	  CCNRM(ch, C_NRM), j->name);
+	       !j->short_description.empty() ? j->short_description.c_str() : "<None>",
+	       CCNRM(ch, C_NRM), j->name.c_str());
 
   sprinttype(GET_OBJ_TYPE(j), item_types, buf, sizeof(buf));
   send_to_char(ch, "VNum: [%s%5d%s], RNum: [%5d], Type: %s, SpecProc: %s\r\n",
@@ -486,7 +486,7 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
    * NOTE: In order to make it this far, we must already be able to see the
    *       character holding the object. Therefore, we do not need CAN_SEE().
    */
-  send_to_char(ch, "In object: %s, ", j->in_obj ? j->in_obj->short_description : "None");
+  send_to_char(ch, "In object: %s, ", j->in_obj ? j->in_obj->short_description.c_str() : "None");
   send_to_char(ch, "Carried by: %s, ", j->carried_by ? GET_NAME(j->carried_by) : "Nobody");
   send_to_char(ch, "Worn by: %s\r\n", j->worn_by ? GET_NAME(j->worn_by) : "Nobody");
 
@@ -562,7 +562,7 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
     column = 9;	/* ^^^ strlen ^^^ */
 
     for (found = 0, j2 = j->contains; j2; j2 = j2->next_content) {
-      column += send_to_char(ch, "%s %s", found++ ? "," : "", j2->short_description);
+      column += send_to_char(ch, "%s %s", found++ ? "," : "", j2->short_description.c_str());
       if (column >= 62) {
 	send_to_char(ch, "%s\r\n", j2->next_content ? "," : "");
 	found = FALSE;

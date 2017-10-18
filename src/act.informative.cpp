@@ -92,21 +92,19 @@ void show_obj_to_char(struct obj_data *obj, struct char_data *ch, int mode)
 
   switch (mode) {
   case SHOW_OBJ_LONG:
-    send_to_char(ch, "%s", obj->description);
+    send_to_char(ch, "%s", obj->description.c_str());
     break;
 
   case SHOW_OBJ_SHORT:
-    send_to_char(ch, "%s", obj->short_description);
+    send_to_char(ch, "%s", obj->short_description.c_str());
     break;
 
   case SHOW_OBJ_ACTION:
     switch (GET_OBJ_TYPE(obj)) {
     case ITEM_NOTE:
-      if (obj->action_description) {
-        char notebuf[MAX_NOTE_LENGTH + 64];
-
-        snprintf(notebuf, sizeof(notebuf), "There is something written on it:\r\n\r\n%s", obj->action_description);
-        page_string(ch->desc, notebuf, TRUE);
+      if (!obj->action_description.empty()) {
+	std::string note = "There is something written on it:\r\n\r\n" + obj->action_description;
+        page_string(ch->desc, note);
       } else
 	send_to_char(ch, "It's blank.\r\n");
       return;
@@ -472,7 +470,7 @@ void look_in_obj(struct char_data *ch, char *arg)
       if (OBJVAL_FLAGGED(obj, CONT_CLOSED))
 	send_to_char(ch, "It is closed.\r\n");
       else {
-	send_to_char(ch, "%s", fname(obj->name));
+	send_to_char(ch, "%s", fname(obj->name.c_str()));
 	switch (bits) {
 	case FIND_OBJ_INV:
 	  send_to_char(ch, " (carried): \r\n");
@@ -1373,7 +1371,7 @@ void print_object_location(int num, struct obj_data *obj, struct char_data *ch,
 			        int recur)
 {
   if (num > 0)
-    send_to_char(ch, "O%3d. %-25s - ", num, obj->short_description);
+    send_to_char(ch, "O%3d. %-25s - ", num, obj->short_description.c_str());
   else
     send_to_char(ch, "%33s", " - ");
 
@@ -1384,7 +1382,7 @@ void print_object_location(int num, struct obj_data *obj, struct char_data *ch,
   else if (obj->worn_by)
     send_to_char(ch, "worn by %s\r\n", PERS(obj->worn_by, ch));
   else if (obj->in_obj) {
-    send_to_char(ch, "inside %s%s\r\n", obj->in_obj->short_description, (recur ? ", which is" : " "));
+    send_to_char(ch, "inside %s%s\r\n", obj->in_obj->short_description.c_str(), (recur ? ", which is" : " "));
     if (recur)
       print_object_location(0, obj->in_obj, ch, recur);
   } else
@@ -1422,7 +1420,7 @@ void perform_immort_where(struct char_data *ch, char *arg)
 		GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name);
       }
     for (num = 0, k = object_list; k; k = k->next)
-      if (CAN_SEE_OBJ(ch, k) && isname(arg, k->name)) {
+      if (CAN_SEE_OBJ(ch, k) && isname(arg, k->name.c_str())) {
 	found = 1;
 	print_object_location(++num, k, ch, TRUE);
       }

@@ -8,9 +8,11 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#include <iterator>
+#include <list>
+
 #include "conf.h"
 #include "sysdep.h"
-
 
 #include "structs.h"
 #include "utils.h"
@@ -51,6 +53,13 @@ char *fname(const char *namelist)
   return (holder);
 }
 
+
+bool isname(const std::string &str, const std::string &namelist) noexcept 
+{
+  std::list<std::string> tokens;
+  split(namelist, ' ', std::back_inserter(tokens));
+  return tokens.end() != std::find(tokens.begin(), tokens.end(), str);
+}
 
 int isname(const char *str, const char *namelist)
 {
@@ -505,7 +514,7 @@ void equip_char(struct char_data *ch, struct obj_data *obj, int pos)
 
   if (GET_EQ(ch, pos)) {
     basic_mud_log("SYSERR: Char is already equipped: %s, %s", GET_NAME(ch),
-	    obj->short_description);
+		  obj->short_description.c_str());
     return;
   }
   if (obj->carried_by) {

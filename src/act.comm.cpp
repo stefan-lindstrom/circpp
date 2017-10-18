@@ -328,13 +328,14 @@ ACMD(do_write)
     act("$p is no good for writing with.", FALSE, ch, pen, 0, CommTarget::TO_CHAR);
   else if (GET_OBJ_TYPE(paper) != ITEM_NOTE)
     act("You can't write on $p.", FALSE, ch, paper, 0, CommTarget::TO_CHAR);
-  else if (paper->action_description)
+  else if (!paper->action_description.empty())
     send_to_char(ch, "There's something written on it already.\r\n");
   else {
     /* we can write - hooray! */
     send_to_char(ch, "Write your note.  End with '@' on a new line.\r\n");
     act("$n begins to jot down a note.", TRUE, ch, 0, 0, CommTarget::TO_ROOM);
-    string_write(ch->desc, &paper->action_description, MAX_NOTE_LENGTH, 0, NULL);
+    // TODO: string_write that handles std::string
+    //    string_write(ch->desc, &paper->action_description, MAX_NOTE_LENGTH, 0, NULL);
   }
 }
 

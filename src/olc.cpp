@@ -179,7 +179,7 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
   char command_string[MAX_INPUT_LENGTH];
   struct char_data *olc_mob = NULL;
   struct room_data *olc_room = NULL;
-  struct obj_data *olc_obj = NULL;
+  //  struct obj_data *olc_obj = NULL;
 
   half_chop(arg, command_string, arg);
   if ((command = search_block(command_string, olc_commands, FALSE)) < 0) {
@@ -194,7 +194,7 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
     olc_mob = (struct char_data *) targ;
     break;
   case OlcMode::OLC_OBJ:
-    olc_obj = (struct obj_data *) targ;
+    //    olc_obj = (struct obj_data *) targ;
     break;
   default:
     basic_mud_log("SYSERR: Invalid OLC mode %d passed to interp.", mode);
@@ -225,7 +225,8 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
       olc_string(&olc_mob->player.short_descr, MAX_MOB_NAME, arg);
       break;
     case OlcMode::OLC_OBJ:
-      olc_string(&olc_obj->short_description, MAX_OBJ_NAME, arg);
+      // TODO: handle with proper strings later
+      //      olc_string(&olc_obj->short_description, MAX_OBJ_NAME, arg);
       break;
     default:
       error = 1;
@@ -242,7 +243,8 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
       olc_string(&olc_mob->player.long_descr, MAX_MOB_DESC, arg);
       break;
     case OlcMode::OLC_OBJ:
-      olc_string(&olc_obj->description, MAX_OBJ_DESC, arg);
+      // TODO: handle with proper strings later
+      //      olc_string(&olc_obj->description, MAX_OBJ_DESC, arg);
       break;
     default:
       error = 1;

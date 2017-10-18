@@ -340,6 +340,13 @@ void paginate_string(char *str, struct descriptor_data *d)
 }
 
 
+void page_string(descriptor_data *d, const std::string &s) noexcept
+{
+  // Safe to consty cast, sending keep_internal=1 will make a copy of string. 
+  page_string(d, const_cast<char *>(s.c_str()), 1); 
+}
+
+// TODO: Pager that handles std::string without needing to modify string. Ever. 
 /* The call that gets the paging ball rolling... */
 void page_string(struct descriptor_data *d, char *str, int keep_internal)
 {

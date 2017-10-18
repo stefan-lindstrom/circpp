@@ -190,7 +190,7 @@ void House_listrent(struct char_data *ch, room_vnum vnum)
       return;
     }
     if (!feof(fl) && (obj = Obj_from_store(object, &i)) != NULL) {
-      send_to_char(ch, " [%5d] (%5dau) %s\r\n", GET_OBJ_VNUM(obj), GET_OBJ_RENT(obj), obj->short_description);
+      send_to_char(ch, " [%5d] (%5dau) %s\r\n", GET_OBJ_VNUM(obj), GET_OBJ_RENT(obj), obj->short_description.c_str());
       free_obj(obj);
     }
   }

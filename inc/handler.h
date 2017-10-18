@@ -1,3 +1,4 @@
+
 /* ************************************************************************
 *   File: handler.h                                     Part of CircleMUD *
 *  Usage: header file: prototypes of handling and utility functions       *
@@ -10,6 +11,10 @@
 
 #ifndef __HANDLER_H__
 #define __HANDLER_H__
+
+#include <string>
+
+#include "structs.h"
 
 /* handling the affected-structures */
 void	affect_total(struct char_data *ch);
@@ -25,6 +30,7 @@ bool add_dur, bool avg_dur, bool add_mod, bool avg_mod);
 /* utility */
 const char *money_desc(int amount);
 struct obj_data *create_money(int amount);
+bool    isname(const std::string &str, const std::string &list) noexcept;
 int	isname(const char *str, const char *namelist);
 char	*fname(const char *namelist);
 int	get_number(char **name);

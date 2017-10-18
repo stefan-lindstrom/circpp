@@ -163,21 +163,21 @@ ASPELL(spell_locate_object)
    * Since we're passed the object and not the keyword we can only guess
    * at what the player originally meant to search for. -gg
    */
-  strlcpy(name, fname(obj->name), sizeof(name));
+  strlcpy(name, fname(obj->name.c_str()), sizeof(name));
   j = level / 2;
 
   for (i = object_list; i && (j > 0); i = i->next) {
-    if (!isname(name, i->name))
+    if (!isname(name, i->name.c_str()))
       continue;
 
-    send_to_char(ch, "%c%s", UPPER(*i->short_description), i->short_description);
+    send_to_char(ch, "%c%s", UPPER(*i->short_description.c_str()), i->short_description.c_str());
 
     if (i->carried_by)
       send_to_char(ch, " is being carried by %s.\r\n", PERS(i->carried_by, ch));
     else if (IN_ROOM(i) != NOWHERE)
       send_to_char(ch, " is in %s.\r\n", world[IN_ROOM(i)].name);
     else if (i->in_obj)
-      send_to_char(ch, " is in %s.\r\n", i->in_obj->short_description);
+      send_to_char(ch, " is in %s.\r\n", i->in_obj->short_description.c_str());
     else if (i->worn_by)
       send_to_char(ch, " is being worn by %s.\r\n", PERS(i->worn_by, ch));
     else
@@ -254,7 +254,7 @@ ASPELL(spell_identify)
     char bitbuf[MAX_STRING_LENGTH];
 
     sprinttype(GET_OBJ_TYPE(obj), item_types, bitbuf, sizeof(bitbuf));
-    send_to_char(ch, "You feel informed:\r\nObject '%s', Item type: %s\r\n", obj->short_description, bitbuf);
+    send_to_char(ch, "You feel informed:\r\nObject '%s', Item type: %s\r\n", obj->short_description.c_str(), bitbuf);
 
     if (GET_OBJ_AFFECT(obj)) {
       sprintbit(GET_OBJ_AFFECT(obj), affected_bits, bitbuf, sizeof(bitbuf));

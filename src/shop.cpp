@@ -376,7 +376,7 @@ char *times_message(struct obj_data *obj, char *name, int num)
   char *ptr;
 
   if (obj)
-    len = strlcpy(buf, obj->short_description, sizeof(buf));
+    len = strlcpy(buf, obj->short_description.c_str(), sizeof(buf));
   else {
     if ((ptr = strchr(name, '.')) == NULL)
       ptr = name;
@@ -562,11 +562,11 @@ void shopping_buy(char *arg, struct char_data *ch, struct char_data *keeper, int
     }
   }
   if (IS_CARRYING_N(ch) + 1 > CAN_CARRY_N(ch)) {
-    send_to_char(ch, "%s: You can't carry any more items.\r\n", fname(obj->name));
+    send_to_char(ch, "%s: You can't carry any more items.\r\n", fname(obj->name.c_str()));
     return;
   }
   if (IS_CARRYING_W(ch) + GET_OBJ_WEIGHT(obj) > CAN_CARRY_W(ch)) {
-    send_to_char(ch, "%s: You can't carry that much weight.\r\n", fname(obj->name));
+    send_to_char(ch, "%s: You can't carry that much weight.\r\n", fname(obj->name.c_str()));
     return;
   }
   while (obj && (GET_GOLD(ch) >= buy_price(obj, shop_nr, keeper, ch) || IS_GOD(ch))
@@ -849,19 +849,19 @@ char *list_object(struct obj_data *obj, int cnt, int aindex, int shop_nr, struct
   switch (GET_OBJ_TYPE(obj)) {
   case ITEM_DRINKCON:
     if (GET_OBJ_VAL(obj, 1))
-      snprintf(itemname, sizeof(itemname), "%s of %s", obj->short_description, drinks[GET_OBJ_VAL(obj, 2)]);
+      snprintf(itemname, sizeof(itemname), "%s of %s", obj->short_description.c_str(), drinks[GET_OBJ_VAL(obj, 2)]);
     else
-      strlcpy(itemname, obj->short_description, sizeof(itemname));
+      strlcpy(itemname, obj->short_description.c_str(), sizeof(itemname));
     break;
 
   case ITEM_WAND:
   case ITEM_STAFF:
-    snprintf(itemname, sizeof(itemname), "%s%s", obj->short_description,
+    snprintf(itemname, sizeof(itemname), "%s%s", obj->short_description.c_str(),
 	GET_OBJ_VAL(obj, 2) < GET_OBJ_VAL(obj, 1) ? " (partially used)" : "");
     break;
 
   default:
-    strlcpy(itemname, obj->short_description, sizeof(itemname));
+    strlcpy(itemname, obj->short_description.c_str(), sizeof(itemname));
     break;
   }
   CAP(itemname);
@@ -1400,8 +1400,8 @@ void list_detailed_shop(struct char_data *ch, int shop_nr)
       column += 2;
     }
     linelen = snprintf(buf1, sizeof(buf1), "%s (#%d)",
-		obj_proto[SHOP_PRODUCT(shop_nr, sindex)].short_description,
-		obj_index[SHOP_PRODUCT(shop_nr, sindex)].vnum);
+		       obj_proto[SHOP_PRODUCT(shop_nr, sindex)].short_description.c_str(),
+		       obj_index[SHOP_PRODUCT(shop_nr, sindex)].vnum);
 
     /* Implementing word-wrapping: assumes screen-size == 80 */
     if (linelen + column >= 78 && column >= 20) {

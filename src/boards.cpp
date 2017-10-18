@@ -246,7 +246,7 @@ int Board_show_board(int board_type, struct char_data *ch, char *arg, struct obj
 
   one_argument(arg, tmp);
 
-  if (!*tmp || !isname(tmp, board->name))
+  if (!*tmp || !isname(tmp, board->name.c_str()))
     return (0);
 
   if (GET_LEVEL(ch) < READ_LVL(board_type)) {
@@ -306,7 +306,7 @@ int Board_display_msg(int board_type, struct char_data *ch, char *arg, struct ob
   one_argument(arg, number);
   if (!*number)
     return (0);
-  if (isname(number, board->name))	/* so "read board" works */
+  if (isname(number, board->name.c_str()))	/* so "read board" works */
     return (Board_show_board(board_type, ch, arg, board));
   if (!is_number(number))	/* read 2.mail, look 2.sword */
     return (0);

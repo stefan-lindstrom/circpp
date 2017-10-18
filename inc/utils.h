@@ -11,6 +11,21 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <string>
+#include <sstream>
+
+// perhaps not the most effecient solution, but it's a simple one. 
+template<typename Out>
+void split(const std::string &s, char delim, Out output) {
+  std::stringstream ss(s);
+  std::string token;
+  while (std::getline(ss, token, delim)) {
+    if (!token.empty()) {
+      *(output++) = token;
+    }
+  }
+}
+
 /* external declarations and prototypes **********************************/
 
 extern struct weather_data weather_info;
@@ -417,8 +432,8 @@ void	update_pos(struct char_data *victim);
 #define HSSH(ch) (GET_SEX(ch) ? (GET_SEX(ch)==SEX_MALE ? "he" :"she") : "it")
 #define HMHR(ch) (GET_SEX(ch) ? (GET_SEX(ch)==SEX_MALE ? "him":"her") : "it")
 
-#define ANA(obj) (strchr("aeiouAEIOU", *(obj)->name) ? "An" : "A")
-#define SANA(obj) (strchr("aeiouAEIOU", *(obj)->name) ? "an" : "a")
+#define ANA(obj) (strchr("aeiouAEIOU", *(obj)->name.c_str()) ? "An" : "A")
+#define SANA(obj) (strchr("aeiouAEIOU", *(obj)->name.c_str()) ? "an" : "a")
 
 
 /* Various macros building up to CAN_SEE */
@@ -470,10 +485,10 @@ void	update_pos(struct char_data *victim);
 #define PERS(ch, vict)   (CAN_SEE(vict, ch) ? GET_NAME(ch) : "someone")
 
 #define OBJS(obj, vict) (CAN_SEE_OBJ((vict), (obj)) ? \
-	(obj)->short_description  : "something")
+			 (obj)->short_description.c_str()  : "something")
 
 #define OBJN(obj, vict) (CAN_SEE_OBJ((vict), (obj)) ? \
-	fname((obj)->name) : "something")
+			 fname((obj)->name.c_str()) : "something")
 
 
 #define EXIT(ch, door)  (world[IN_ROOM(ch)].dir_option[door])

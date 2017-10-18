@@ -603,9 +603,8 @@ void postmaster_receive_mail(struct char_data *ch, struct char_data *mailman, in
     GET_OBJ_RENT(obj) = 10;
     obj->action_description = read_delete(GET_IDNUM(ch));
 
-    if (obj->action_description == NULL)
-      obj->action_description =
-	strdup("Mail system error - please report.  Error #11.\r\n");
+    if (obj->action_description.empty())
+      obj->action_description = "Mail system error - please report.  Error #11.\r\n";
 
     obj_to_char(obj, ch);
 

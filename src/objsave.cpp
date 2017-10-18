@@ -386,12 +386,12 @@ void Crash_listrent(struct char_data *ch, char *name)
 	obj = read_object(object.item_number, VIRTUAL);
 #if USE_AUTOEQ
 	send_to_char(ch, " [%5d] (%5dau) <%2d> %-20s\r\n",
-		object.item_number, GET_OBJ_RENT(obj),
-		object.location, obj->short_description);
+		     object.item_number, GET_OBJ_RENT(obj),
+		     object.location, obj->short_description.c_str());
 #else
 	send_to_char(ch, " [%5d] (%5dau) %-20s\r\n",
-		object.item_number, GET_OBJ_RENT(obj),
-		obj->short_description);
+		     object.item_number, GET_OBJ_RENT(obj),
+		     obj->short_description.c_str());
 #endif
 	extract_obj(obj);
       }

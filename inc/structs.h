@@ -627,29 +627,33 @@ struct obj_affected_type {
 
 /* ================== Memory Structure for Objects ================== */
 struct obj_data {
-   obj_rnum item_number;	/* Where in data-base			*/
-   obj_vnum vnum;
-   room_rnum in_room;		/* In what room -1 when conta/carr	*/
+  obj_rnum item_number;	/* Where in data-base			*/
+  obj_vnum vnum;
+  room_rnum in_room;		/* In what room -1 when conta/carr	*/
 
-   struct obj_flag_data obj_flags;/* Object information               */
-   struct obj_affected_type affected[MAX_OBJ_AFFECT];  /* affects */
+  struct obj_flag_data obj_flags;/* Object information               */
+  struct obj_affected_type affected[MAX_OBJ_AFFECT];  /* affects (make a list? or std::array<>?) */
 
-   char	*name;                    /* Title of object :get etc.        */
-   char	*description;		  /* When in room                     */
-   char	*short_description;       /* when worn/carry/in cont.         */
-   char	*action_description;      /* What to write when used          */
-   std::list<extra_descr_data> ex_description;
+  std::string name;                    /* Title of object :get etc.        */
+  std::string description;	       /* When in room                     */
+  std::string short_description;       /* when worn/carry/in cont.         */
+  std::string action_description;      /* What to write when used          */
+
+  std::list<extra_descr_data> ex_description;
 
    struct char_data *carried_by;  /* Carried by :NULL in room/conta   */
    struct char_data *worn_by;	  /* Worn by?			      */
    sh_int worn_on;		  /* Worn where?		      */
 
    struct obj_data *in_obj;       /* In what object NULL when none    */
+  // TODO: make this a list. 
    struct obj_data *contains;     /* Contains objects                 */
 
+  // TODO: make object list a std::list, remove these. 
    struct obj_data *next_content; /* For 'contains' lists             */
    struct obj_data *next;         /* For the object list              */
 
+  // clean this sh*t up later
   obj_data() noexcept {
     clear();
   }
@@ -665,10 +669,10 @@ struct obj_data {
       affected[i] = obj.affected[i];
     }
 
-    name = strdup(obj.name);
-    description = strdup(obj.description);
-    short_description = strdup(obj.short_description);
-    action_description = strdup(obj.action_description);
+    name = std::string(obj.name);
+    description = std::string(obj.description);
+    short_description = std::string(obj.short_description);
+    action_description = std::string(obj.action_description);
 
     ex_description = obj.ex_description; // should copy
     in_obj = contains = next_content = next = nullptr; // for now
@@ -680,7 +684,11 @@ struct obj_data {
     in_obj = contains = next_content = next = nullptr;
     worn_by = carried_by = nullptr;
     ex_description.clear();
-    name = description = short_description = action_description = nullptr;
+    name = "";
+    description = "";
+    short_description = "";
+    action_description = "";
+
     in_room = -1;
     obj_flags.clear();
     std::for_each(affected, affected +  MAX_OBJ_AFFECT, [](obj_affected_type &a) { a.clear(); });
