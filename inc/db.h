@@ -18,7 +18,6 @@
 enum class DBBoot : unsigned char  {
   DB_BOOT_WLD = 0,
   DB_BOOT_MOB,
-  DB_BOOT_ZON,
   DB_BOOT_SHP,
   DB_BOOT_HLP,
 };
@@ -169,23 +168,22 @@ struct reset_com {
 
 /* zone definition structure. for the 'zone-table'   */
 struct zone_data {
-   char	*name;		    /* name of this zone                  */
-   int	lifespan;           /* how long between resets (minutes)  */
-   int	age;                /* current age of this zone (minutes) */
-   room_vnum bot;           /* starting room number for this zone */
-   room_vnum top;           /* upper limit for rooms in this zone */
+  std::string name;		    /* name of this zone                  */
+  int	lifespan;           /* how long between resets (minutes)  */
+  int	age;                /* current age of this zone (minutes) */
+  room_vnum bot;           /* starting room number for this zone */
+  room_vnum top;           /* upper limit for rooms in this zone */
+  
+  int	reset_mode;         /* conditions for reset (see below)   */
+  zone_vnum number;	    /* virtual number of this zone	  */
 
-   int	reset_mode;         /* conditions for reset (see below)   */
-   zone_vnum number;	    /* virtual number of this zone	  */
-  // hence the count, switch for list
-   struct reset_com *cmd;   /* command table for reset	          */
-
-   /*
-    * Reset mode:
-    *   0: Don't reset, and don't update age.
-    *   1: Reset if no PC's are located in zone.
-    *   2: Just reset.
-    */
+  std::vector<reset_com> cmd;   /* command table for reset	          */  
+  /*
+   * Reset mode:
+   *   0: Don't reset, and don't update age.
+   *   1: Reset if no PC's are located in zone.
+   *   2: Just reset.
+   */
 };
 
 
@@ -241,7 +239,7 @@ extern struct room_data *world;
 //extern std::vector<room_data> world;
 extern room_rnum top_of_world;
 
-extern struct zone_data *zone_table;
+extern std::vector<zone_data> zone_table;
 extern zone_rnum top_of_zone_table;
 
 extern struct descriptor_data *descriptor_list;

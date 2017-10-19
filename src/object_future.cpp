@@ -39,19 +39,19 @@ void object_future::parse_single_idx(const std::string &idx, std::vector<obj_dat
 
     line = read(objidx);
     line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return '~' == c;} ), line.end());
-    reading.name = strdup(line.c_str());
+    reading.name = line; 
 
     line = read(objidx);
     line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return '~' == c;} ), line.end());
-    reading.short_description = strdup(line.c_str());
+    reading.short_description = line;
 
     line = read(objidx);
     line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return '~' == c;} ), line.end());
-    reading.description = strdup(line.c_str());
+    reading.description = line;
 
     line = read(objidx);
     line.erase(std::remove_if(line.begin(), line.end(), [](char c) { return '~' == c;} ), line.end());
-    reading.action_description = strdup(line.c_str());
+    reading.action_description = line;
 
     // then, 3 lines of numeric data
     // TODO: should really move from macros to members, with sanity checking. 

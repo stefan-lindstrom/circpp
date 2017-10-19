@@ -1759,8 +1759,8 @@ ACMD(do_zreset)
   }
   if (i <= top_of_zone_table) {
     reset_zone(i);
-    send_to_char(ch, "Reset zone %d (#%d): %s.\r\n", i, zone_table[i].number, zone_table[i].name);
-    mudlog(NRM, MAX(LVL_GRGOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s reset zone %d (%s)", GET_NAME(ch), i, zone_table[i].name);
+    send_to_char(ch, "Reset zone %d (#%d): %s.\r\n", i, zone_table[i].number, zone_table[i].name.c_str());
+    mudlog(NRM, MAX(LVL_GRGOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s reset zone %d (%s)", GET_NAME(ch), i, zone_table[i].name.c_str());
   } else
     send_to_char(ch, "Invalid zone number.\r\n");
 }
@@ -1878,10 +1878,10 @@ size_t print_zone_to_buf(char *bufptr, size_t left, zone_rnum zone)
 {
   return snprintf(bufptr, left,
 	"%3d %-30.30s Age: %3d; Reset: %3d (%1d); Range: %5d-%5d\r\n",
-	zone_table[zone].number, zone_table[zone].name,
-	zone_table[zone].age, zone_table[zone].lifespan,
-	zone_table[zone].reset_mode,
-	zone_table[zone].bot, zone_table[zone].top);
+		  zone_table[zone].number, zone_table[zone].name.c_str(),
+		  zone_table[zone].age, zone_table[zone].lifespan,
+		  zone_table[zone].reset_mode,
+		  zone_table[zone].bot, zone_table[zone].top);
 }
 
 

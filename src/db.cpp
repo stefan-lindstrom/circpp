@@ -50,8 +50,9 @@ std::vector<index_data> obj_index;
 std::vector<obj_data> obj_proto;
 obj_rnum top_of_objt = 0;	/* top of object index table	 */
 
-struct zone_data *zone_table;	/* zone table			 */
+std::vector<zone_data> zone_table;
 zone_rnum top_of_zone_table = 0;/* top element of zone tab	 */
+
 struct message_list fight_messages[MAX_MESSAGES];	/* fighting messages	 */
 
 struct player_index_element *player_table = NULL;	/* index to plr file	 */
@@ -252,15 +253,20 @@ ACMD(do_reboot)
 
 void boot_world(void)
 {
-  basic_mud_log("Loading zone table.");
-  index_boot(DBBoot::DB_BOOT_ZON);
+  basic_mud_log("Started future loading zone table.");
   zone_future z(mini_mud);
   z.parse();
-  std::vector<zone_data> t = z.items();
 
-  basic_mud_log("Loading objs and generating index.");
+  basic_mud_log("Started future loading objs and generating index.");
   object_future o(mini_mud);
   o.parse();
+
+  basic_mud_log("Waiting for completion of zone loading...");
+  zone_table = z.items();
+  top_of_zone_table = zone_table.size() - 1;
+  basic_mud_log("   %lu zones, %lu bytes.", zone_table.size(), zone_table.size() * sizeof(zone_data));
+
+  basic_mud_log("Waiting for completion of object loading ... then building index.");
   obj_proto = o.items();
   top_of_objt = obj_proto.size() + 1;
 
@@ -493,7 +499,7 @@ void boot_db(void)
 
   for (i = 0; i <= top_of_zone_table; i++) {
     basic_mud_log("Resetting #%d: %s (rooms %d-%d).", zone_table[i].number,
-	zone_table[i].name, zone_table[i].bot, zone_table[i].top);
+		  zone_table[i].name.c_str(), zone_table[i].bot, zone_table[i].top);
     reset_zone(i);
   }
 
@@ -721,9 +727,6 @@ static void index_boot(DBBoot mode)
     prefix = MOB_PREFIX;
     break;
 
-  case DBBoot::DB_BOOT_ZON:
-    prefix = ZON_PREFIX;
-    break;
   case DBBoot::DB_BOOT_SHP:
     prefix = SHP_PREFIX;
     break;
@@ -756,9 +759,7 @@ static void index_boot(DBBoot mode)
       fscanf(db_index, "%s\n", buf1);
       continue;
     } else {
-      if (mode == DBBoot::DB_BOOT_ZON)
-	rec_count++;
-      else if (mode == DBBoot::DB_BOOT_HLP)
+      if (mode == DBBoot::DB_BOOT_HLP)
 	rec_count += count_alias_records(db_file);
       else
 	rec_count += count_hash_records(db_file);
@@ -793,11 +794,7 @@ static void index_boot(DBBoot mode)
     size[1] = sizeof(struct char_data) * rec_count;
     basic_mud_log("   %d mobs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
     break;
-  case DBBoot::DB_BOOT_ZON:
-    CREATE(zone_table, struct zone_data, rec_count);
-    size[0] = sizeof(struct zone_data) * rec_count;
-    basic_mud_log("   %d zones, %d bytes.", rec_count, size[0]);
-    break;
+
   case DBBoot::DB_BOOT_HLP:
     CREATE(help_table, struct help_index_element, rec_count);
     size[0] = sizeof(struct help_index_element) * rec_count;
@@ -821,9 +818,6 @@ static void index_boot(DBBoot mode)
     case DBBoot::DB_BOOT_WLD:
     case DBBoot::DB_BOOT_MOB:
       discrete_load(db_file, mode, buf2);
-      break;
-    case DBBoot::DB_BOOT_ZON:
-      load_zones(db_file, buf2);
       break;
     case DBBoot::DB_BOOT_HLP:
       /*
@@ -888,7 +882,6 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
 	case DBBoot::DB_BOOT_MOB:
 	  parse_mobile(fl, nr);
 	  break;
-	case DBBoot::DB_BOOT_ZON:
 	case DBBoot::DB_BOOT_SHP:
 	case DBBoot::DB_BOOT_HLP:
 	default:
@@ -1068,13 +1061,13 @@ void renum_world(void)
  */
 void renum_zone_table(void)
 {
-  int cmd_no;
+  unsigned int cmd_no;
   room_rnum a, b, c, olda, oldb, oldc;
   zone_rnum zone;
   char buf[128];
 
   for (zone = 0; zone <= top_of_zone_table; zone++)
-    for (cmd_no = 0; ZCMD.command != 'S'; cmd_no++) {
+    for (cmd_no = 0; cmd_no < zone_table[zone].cmd.size(); cmd_no++) {
       a = b = c = 0;
       olda = ZCMD.arg1;
       oldb = ZCMD.arg2;
@@ -1410,111 +1403,6 @@ void parse_mobile(FILE *mob_f, int nr)
   top_of_mobt = i++;
 }
 
-#define Z	zone_table[zone]
-
-/* load the zone table and command tables */
-void load_zones(FILE *fl, char *zonename)
-{
-  static zone_rnum zone = 0;
-  int cmd_no, num_of_cmds = 0, line_num = 0, tmp, error;
-  char *ptr, buf[READ_SIZE], zname[READ_SIZE], buf2[MAX_STRING_LENGTH];
-
-  strlcpy(zname, zonename, sizeof(zname));
-
-  /* Skip first 3 lines lest we mistake the zone name for a command. */
-  for (tmp = 0; tmp < 3; tmp++)
-    get_line(fl, buf);
-
-  /*  More accurate count. Previous was always 4 or 5 too high. -gg 2001/1/17
-   *  Note that if a new zone command is added to reset_zone(), this string
-   *  will need to be updated to suit. - ae.
-   */
-  while (get_line(fl, buf))
-    if ((strchr("MOPGERD", buf[0]) && buf[1] == ' ') || (buf[0] == 'S' && buf[1] == '\0'))
-      num_of_cmds++;
-
-  rewind(fl);
-
-  if (num_of_cmds == 0) {
-    basic_mud_log("SYSERR: %s is empty!", zname);
-    exit(1);
-  } else
-    CREATE(Z.cmd, struct reset_com, num_of_cmds);
-
-  line_num += get_line(fl, buf);
-
-  if (sscanf(buf, "#%hd", &Z.number) != 1) {
-    basic_mud_log("SYSERR: Format error in %s, line %d", zname, line_num);
-    exit(1);
-  }
-  snprintf(buf2, sizeof(buf2), "beginning of zone #%d", Z.number);
-
-  line_num += get_line(fl, buf);
-  if ((ptr = strchr(buf, '~')) != NULL)	/* take off the '~' if it's there */
-    *ptr = '\0';
-  Z.name = strdup(buf);
-
-  line_num += get_line(fl, buf);
-  if (sscanf(buf, " %hd %hd %d %d ", &Z.bot, &Z.top, &Z.lifespan, &Z.reset_mode) != 4) {
-    basic_mud_log("SYSERR: Format error in numeric constant line of %s", zname);
-    exit(1);
-  }
-  if (Z.bot > Z.top) {
-    basic_mud_log("SYSERR: Zone %d bottom (%d) > top (%d).", Z.number, Z.bot, Z.top);
-    exit(1);
-  }
-
-  cmd_no = 0;
-
-  for (;;) {
-    if ((tmp = get_line(fl, buf)) == 0) {
-      basic_mud_log("SYSERR: Format error in %s - premature end of file", zname);
-      exit(1);
-    }
-    line_num += tmp;
-    ptr = buf;
-    skip_spaces(&ptr);
-
-    if ((ZCMD.command = *ptr) == '*')
-      continue;
-
-    ptr++;
-
-    if (ZCMD.command == 'S' || ZCMD.command == '$') {
-      ZCMD.command = 'S';
-      break;
-    }
-    error = 0;
-    if (strchr("MOEPD", ZCMD.command) == NULL) {	/* a 3-arg command */
-      if (sscanf(ptr, " %d %d %d ", &tmp, &ZCMD.arg1, &ZCMD.arg2) != 3)
-	error = 1;
-    } else {
-      if (sscanf(ptr, " %d %d %d %d ", &tmp, &ZCMD.arg1, &ZCMD.arg2,
-		 &ZCMD.arg3) != 4)
-	error = 1;
-    }
-
-    ZCMD.if_flag = tmp;
-
-    if (error) {
-      basic_mud_log("SYSERR: Format error in %s, line %d: '%s'", zname, line_num, buf);
-      exit(1);
-    }
-    ZCMD.line = line_num;
-    cmd_no++;
-  }
-
-  if (num_of_cmds != cmd_no + 1) {
-    basic_mud_log("SYSERR: Zone command count mismatch for %s. Estimated: %d, Actual: %d", zname, num_of_cmds, cmd_no + 1);
-    exit(1);
-  }
-
-  top_of_zone_table = zone++;
-}
-
-#undef Z
-
-
 void get_one_line(FILE *fl, char *buf)
 {
   if (fgets(buf, READ_SIZE, fl) == NULL) {
@@ -1797,7 +1685,7 @@ void zone_update(void)
     if (zone_table[update_u->zone_to_reset].reset_mode == 2 ||
 	is_empty(update_u->zone_to_reset)) {
       reset_zone(update_u->zone_to_reset);
-      mudlog(CMP, LVL_GOD, FALSE, "Auto zone reset: %s", zone_table[update_u->zone_to_reset].name);
+      mudlog(CMP, LVL_GOD, FALSE, "Auto zone reset: %s", zone_table[update_u->zone_to_reset].name.c_str());
       /* dequeue */
       if (update_u == reset_q.head)
 	reset_q.head = reset_q.head->next;
@@ -1829,11 +1717,11 @@ void log_zone_error(zone_rnum zone, int cmd_no, const char *message)
 /* execute the reset command table of a given zone */
 void reset_zone(zone_rnum zone)
 {
-  int cmd_no, last_cmd = 0;
+  unsigned int cmd_no, last_cmd = 0;
   struct char_data *mob = NULL;
   struct obj_data *obj, *obj_to;
 
-  for (cmd_no = 0; ZCMD.command != 'S'; cmd_no++) {
+  for (cmd_no = 0; cmd_no < zone_table[zone].cmd.size(); cmd_no++) {
 
     if (ZCMD.if_flag && !last_cmd)
       continue;
@@ -2697,26 +2585,9 @@ obj_rnum real_object(obj_vnum vnum)
 /* returns the real number of the zone with given virtual number */
 room_rnum real_zone(room_vnum vnum)
 {
-  room_rnum bot, top, mid;
-
-  bot = 0;
-  top = top_of_zone_table;
-
-  /* perform binary search on zone-table */
-  for (;;) {
-    mid = (bot + top) / 2;
-
-    if ((zone_table + mid)->number == vnum)
-      return (mid);
-    if (bot >= top)
-      return (NOWHERE);
-    if ((zone_table + mid)->number > vnum)
-      top = mid - 1;
-    else
-      bot = mid + 1;
-  }
+  auto it = std::find_if(zone_table.begin(), zone_table.end(), [&vnum](const zone_data &z) { return z.number == vnum; });
+  return (it == zone_table.end()) ? NOWHERE : std::distance(zone_table.begin(), it);
 }
-
 
 /*
  * Extend later to include more checks.
