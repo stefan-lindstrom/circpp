@@ -261,10 +261,14 @@ void boot_world(void)
   object_future o(mini_mud);
   o.parse();
 
+  // can start mob and shop parsing here when done
+
   basic_mud_log("Waiting for completion of zone loading...");
   zone_table = z.items();
   top_of_zone_table = zone_table.size() - 1;
   basic_mud_log("   %lu zones, %lu bytes.", zone_table.size(), zone_table.size() * sizeof(zone_data));
+
+  // Okay to start room parsing here
 
   basic_mud_log("Waiting for completion of object loading ... then building index.");
   obj_proto = o.items();
@@ -279,6 +283,7 @@ void boot_world(void)
     });
   basic_mud_log("   %d objs, %lu bytes in index, %lu bytes in prototypes.", top_of_objt, top_of_objt * sizeof(index_data), top_of_objt * sizeof(obj_data));
 
+  // can wait for all other future based parses to complete. 
 
   basic_mud_log("Loading rooms.");
   index_boot(DBBoot::DB_BOOT_WLD);
@@ -300,25 +305,6 @@ void boot_world(void)
     basic_mud_log("Loading shops.");
     index_boot(DBBoot::DB_BOOT_SHP);
   }
-}
-
-
-void free_extra_descriptions(struct extra_descr_data *edesc)
-{
-  struct extra_descr_data *enext;
-
-  for (; edesc; edesc = enext) {
-    enext = edesc->next;
-
-    free(edesc->keyword);
-    free(edesc->description);
-    free(edesc);
-  }
-}
-
-template<typename T> 
-void free_ex_descs(T begin, T end) {
-  std::for_each(begin, end, [](extra_descr_data e) { free(e.keyword); e.keyword = nullptr; free(e.description); e.description = nullptr; });
 }
 
 /* Free the world, in a memory allocation sense. */
@@ -362,23 +348,7 @@ void destroy_db(void)
       free(world[cnt].dir_option[itr]);
     }
   }
-  free(world);
-
-  /* Objects */
-  for (cnt = 0; cnt <= top_of_objt; cnt++) {
-    if (obj_proto[cnt].name)
-      free(obj_proto[cnt].name);
-    if (obj_proto[cnt].description)
-      free(obj_proto[cnt].description);
-    if (obj_proto[cnt].short_description)
-      free(obj_proto[cnt].short_description);
-    if (obj_proto[cnt].action_description)
-      free(obj_proto[cnt].action_description);
-
-
-    free_ex_descs(obj_proto[cnt].ex_description.begin(), obj_proto[cnt].ex_description.end());
-    obj_proto[cnt].ex_description.clear();
-  }
+  delete [] world;
 
   /* Mobiles */
   for (cnt = 0; cnt <= top_of_mobt; cnt++) {
@@ -783,7 +753,7 @@ static void index_boot(DBBoot mode)
    */
   switch (mode) {
   case DBBoot::DB_BOOT_WLD:
-    CREATE(world, struct room_data, rec_count);
+    world = new room_data[rec_count];
     size[0] = sizeof(struct room_data) * rec_count;
     basic_mud_log("   %d rooms, %d bytes.", rec_count, size[0]);
     break;
@@ -902,7 +872,6 @@ void parse_room(FILE *fl, int virtual_nr)
   static int room_nr = 0, zone = 0;
   int t[10], i;
   char line[READ_SIZE], flags[128], buf2[MAX_STRING_LENGTH], buf[128];
-  struct extra_descr_data *new_descr;
 
   /* This really had better fit or there are other problems. */
   snprintf(buf2, sizeof(buf2), "room #%d", virtual_nr);
@@ -948,11 +917,11 @@ void parse_room(FILE *fl, int virtual_nr)
   for (i = 0; i < NUM_OF_DIRS; i++)
     world[room_nr].dir_option[i] = NULL;
 
-  world[room_nr].ex_description = NULL;
-
   snprintf(buf, sizeof(buf), "SYSERR: Format error in room #%d (expecting D/E/S)", virtual_nr);
 
   for (;;) {
+    extra_descr_data d;
+
     if (!get_line(fl, line)) {
       basic_mud_log("%s", buf);
       exit(1);
@@ -962,11 +931,10 @@ void parse_room(FILE *fl, int virtual_nr)
       setup_dir(fl, room_nr, atoi(line + 1));
       break;
     case 'E':
-      CREATE(new_descr, struct extra_descr_data, 1);
-      new_descr->keyword = fread_string(fl, buf2);
-      new_descr->description = fread_string(fl, buf2);
-      new_descr->next = world[room_nr].ex_description;
-      world[room_nr].ex_description = new_descr;
+      d.keyword = fread_string(fl, buf2);
+      d.description = fread_string(fl, buf2);
+      world[room_nr].ex_description.push_back(d);
+
       break;
     case 'S':			/* end of room */
       top_of_world = room_nr++;
@@ -2279,9 +2247,6 @@ void free_char(struct char_data *ch)
 // TODO: will be deprectaed once completely switched to std::
 void free_obj(struct obj_data *obj)
 {
-  free_ex_descs(obj->ex_description.begin(), obj->ex_description.end());
-  obj->ex_description.clear();
-
   delete obj;
 }
 

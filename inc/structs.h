@@ -575,12 +575,13 @@ typedef unsigned long int	bitvector_t;
 
 /* Extra description: used in objects, mobiles, and rooms */
 struct extra_descr_data {
-   char	*keyword;                 /* Keyword in look/examine          */
-   char	*description;             /* What to see                      */
-   struct extra_descr_data *next; /* Next in list                     */
+  std::string keyword;                 /* Keyword in look/examine          */
+  std::string description;             /* What to see                      */
 
-  extra_descr_data() noexcept : keyword(nullptr), description(nullptr), next(nullptr) {}
-  extra_descr_data(const extra_descr_data &o) : keyword(strdup(o.keyword)), description(strdup(o.description)), next(nullptr) {}
+  extra_descr_data() noexcept : keyword(""), description("") {}
+  extra_descr_data(const extra_descr_data &o) : keyword(o.keyword), description(o.description){}
+
+  ~extra_descr_data() = default;
 };
 
 
@@ -755,7 +756,9 @@ struct room_data {
    int	sector_type;            /* sector type (move/hide)            */
    char	*name;                  /* Rooms name 'You are ...'           */
    char	*description;           /* Shown when entered                 */
-   struct extra_descr_data *ex_description; /* for examine/look       */
+
+  std::list<extra_descr_data> ex_description;
+
    struct room_direction_data *dir_option[NUM_OF_DIRS]; /* Directions */
    int /*bitvector_t*/ room_flags;		/* DEATH,DARK ... etc */
 

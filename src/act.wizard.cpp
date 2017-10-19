@@ -362,7 +362,6 @@ ACMD(do_vnum)
 void do_stat_room(struct char_data *ch)
 {
   char buf2[MAX_STRING_LENGTH];
-  struct extra_descr_data *desc;
   struct room_data *rm = &world[IN_ROOM(ch)];
   int i, found, column;
   struct obj_data *j;
@@ -380,10 +379,9 @@ void do_stat_room(struct char_data *ch)
 
   send_to_char(ch, "Description:\r\n%s", rm->description ? rm->description : "  None.\r\n");
 
-  if (rm->ex_description) {
+  if (!rm->ex_description.empty()) {
     send_to_char(ch, "Extra descs:%s", CCCYN(ch, C_NRM));
-    for (desc = rm->ex_description; desc; desc = desc->next)
-      send_to_char(ch, " %s", desc->keyword);
+    std::for_each(rm->ex_description.begin(), rm->ex_description.end(), [&ch](const extra_descr_data &e) { send_to_char(ch, " %s", e.keyword.c_str());});
     send_to_char(ch, "%s\r\n", CCNRM(ch, C_NRM));
   }
 
@@ -462,7 +460,7 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
 
   if (!j->ex_description.empty()) {
     send_to_char(ch, "Extra descs:%s", CCCYN(ch, C_NRM));
-    std::for_each(j->ex_description.begin(), j->ex_description.end(),[&ch](const extra_descr_data &e){ send_to_char(ch, " %s", e.keyword); });
+    std::for_each(j->ex_description.begin(), j->ex_description.end(),[&ch](const extra_descr_data &e){ send_to_char(ch, " %s", e.keyword.c_str()); });
 
     send_to_char(ch, "%s\r\n", CCNRM(ch, C_NRM));
   }

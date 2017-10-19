@@ -70,8 +70,7 @@ void do_auto_exits(struct char_data *ch);
 ACMD(do_exits);
 void look_in_direction(struct char_data *ch, int dir);
 void look_in_obj(struct char_data *ch, char *arg);
-char *find_exdesc(char *word, struct extra_descr_data *list);
-char *find_exdesc(char *word, const std::list<extra_descr_data> &list);
+std::string find_exdesc(const std::string &word, const std::list<extra_descr_data> &list);
 void look_at_target(struct char_data *ch, char *arg);
 
 /* local globals */
@@ -502,26 +501,14 @@ void look_in_obj(struct char_data *ch, char *arg)
   }
 }
 
-char *find_exdesc(char *word, const std::list<extra_descr_data> &list)
+std::string find_exdesc(const std::string &word, const std::list<extra_descr_data> &list)
 {
-  auto rc = std::find_if(list.begin(), list.end(), [&word](const extra_descr_data &ex) { return isname(word, ex.keyword); } );
+  auto rc = std::find_if(list.begin(), list.end(), [&word](const extra_descr_data &ex) { return isname(word.c_str(), ex.keyword.c_str()); } );
   if (list.end() != rc) {
     return rc->description;
   }
-  return nullptr;
+  return "";
 }
-
-char *find_exdesc(char *word, struct extra_descr_data *list)
-{
-  struct extra_descr_data *i;
-
-  for (i = list; i; i = i->next)
-    if (isname(word, i->keyword))
-      return (i->description);
-
-  return (NULL);
-}
-
 
 /*
  * Given the argument "look at <target>", figure out what object or char
@@ -536,7 +523,7 @@ void look_at_target(struct char_data *ch, char *arg)
   int bits, found = FALSE, j, fnum, i = 0;
   struct char_data *found_char = NULL;
   struct obj_data *obj, *found_obj = NULL;
-  char *desc;
+  std::string desc;
 
   if (!ch->desc)
     return;
@@ -567,24 +554,24 @@ void look_at_target(struct char_data *ch, char *arg)
   }
 
   /* Does the argument match an extra desc in the room? */
-  if ((desc = find_exdesc(arg, world[IN_ROOM(ch)].ex_description)) != NULL && ++i == fnum) {
-    page_string(ch->desc, desc, FALSE);
+  if ((desc = find_exdesc(arg, world[IN_ROOM(ch)].ex_description)) != "" && ++i == fnum) {
+    page_string(ch->desc, desc);
     return;
   }
 
   /* Does the argument match an extra desc in the char's equipment? */
   for (j = 0; j < NUM_WEARS && !found; j++)
     if (GET_EQ(ch, j) && CAN_SEE_OBJ(ch, GET_EQ(ch, j)))
-      if ((desc = find_exdesc(arg, GET_EQ(ch, j)->ex_description)) != NULL && ++i == fnum) {
-	send_to_char(ch, "%s", desc);
+      if ((desc = find_exdesc(arg, GET_EQ(ch, j)->ex_description)) != "" && ++i == fnum) {
+	send_to_char(ch, "%s", desc.c_str());
 	found = TRUE;
       }
 
   /* Does the argument match an extra desc in the char's inventory? */
   for (obj = ch->carrying; obj && !found; obj = obj->next_content) {
     if (CAN_SEE_OBJ(ch, obj))
-      if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
-	send_to_char(ch, "%s", desc);
+      if ((desc = find_exdesc(arg, obj->ex_description)) != "" && ++i == fnum) {
+	send_to_char(ch, "%s", desc.c_str());
 	found = TRUE;
       }
   }
@@ -592,8 +579,8 @@ void look_at_target(struct char_data *ch, char *arg)
   /* Does the argument match an extra desc of an object in the room? */
   for (obj = world[IN_ROOM(ch)].contents; obj && !found; obj = obj->next_content)
     if (CAN_SEE_OBJ(ch, obj))
-      if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
-	send_to_char(ch, "%s", desc);
+      if ((desc = find_exdesc(arg, obj->ex_description)) != "" && ++i == fnum) {
+	send_to_char(ch, "%s", desc.c_str());
 	found = TRUE;
       }
 
