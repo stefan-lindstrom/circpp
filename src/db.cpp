@@ -28,6 +28,7 @@
 #include "constants.h"
 #include "room_future.h"
 #include "object_future.h"
+#include "zone_future.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -98,7 +99,6 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename);
 int check_object(struct obj_data *);
 void parse_room(FILE *fl, int virtual_nr);
 void parse_mobile(FILE *mob_f, int nr);
-char *parse_object(FILE *obj_f, int nr);
 void load_zones(FILE *fl, char *zonename);
 void load_help(FILE *fl);
 void assign_mobiles(void);
@@ -254,18 +254,9 @@ void boot_world(void)
 {
   basic_mud_log("Loading zone table.");
   index_boot(DBBoot::DB_BOOT_ZON);
-
-  basic_mud_log("Loading rooms.");
-  index_boot(DBBoot::DB_BOOT_WLD);
-
-  basic_mud_log("Renumbering rooms.");
-  renum_world();
-
-  basic_mud_log("Checking start rooms.");
-  check_start_rooms();
-
-  basic_mud_log("Loading mobs and generating index.");
-  index_boot(DBBoot::DB_BOOT_MOB);
+  zone_future z(mini_mud);
+  z.parse();
+  std::vector<zone_data> t = z.items();
 
   basic_mud_log("Loading objs and generating index.");
   object_future o(mini_mud);
@@ -281,6 +272,20 @@ void boot_world(void)
       obj_index.push_back(oi);
     });
   basic_mud_log("   %d objs, %lu bytes in index, %lu bytes in prototypes.", top_of_objt, top_of_objt * sizeof(index_data), top_of_objt * sizeof(obj_data));
+
+
+  basic_mud_log("Loading rooms.");
+  index_boot(DBBoot::DB_BOOT_WLD);
+
+  basic_mud_log("Renumbering rooms.");
+  renum_world();
+
+  basic_mud_log("Checking start rooms.");
+  check_start_rooms();
+
+  basic_mud_log("Loading mobs and generating index.");
+  index_boot(DBBoot::DB_BOOT_MOB);
+
 
   basic_mud_log("Renumbering zone table.");
   renum_zone_table();

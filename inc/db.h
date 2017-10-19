@@ -177,6 +177,7 @@ struct zone_data {
 
    int	reset_mode;         /* conditions for reset (see below)   */
    zone_vnum number;	    /* virtual number of this zone	  */
+  // hence the count, switch for list
    struct reset_com *cmd;   /* command table for reset	          */
 
    /*
