@@ -761,7 +761,6 @@ struct room_data {
   std::list<extra_descr_data> ex_description;
   std::array<std::tuple<room_direction_data,bool>, NUM_OF_DIRS> dir_option;
 
-  //  struct room_direction_data *dir_option[NUM_OF_DIRS]; /* Directions */
   int /*bitvector_t*/ room_flags;		/* DEATH,DARK ... etc */
   
   byte light;                  /* Number of lightsources in room     */

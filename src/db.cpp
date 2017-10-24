@@ -34,8 +34,7 @@
 *  declarations of most of the 'global' variables                         *
 **************************************************************************/
 
-struct room_data *world = NULL;	/* NOT array of rooms, ffs,    	 */
-//std::vector<room_data> world;
+std::vector<room_data> world;
 room_rnum top_of_world = 0;	/* ref to top element of world	 */
 
 struct char_data *character_list = NULL;	/* global linked list of
@@ -94,11 +93,9 @@ struct reset_q_type reset_q;	/* queue of zones to be reset	 */
 int check_bitvector_names(bitvector_t bits, size_t namecount, const char *whatami, const char *whatbits);
 int check_object_spell_number(struct obj_data *obj, int val);
 int check_object_level(struct obj_data *obj, int val);
-void setup_dir(FILE *fl, int room, int dir);
 static void index_boot(DBBoot mode);
 static void discrete_load(FILE *fl, DBBoot mode, char *filename);
 int check_object(struct obj_data *);
-void parse_room(FILE *fl, int virtual_nr);
 void parse_mobile(FILE *mob_f, int nr);
 void load_zones(FILE *fl, char *zonename);
 void load_help(FILE *fl);
@@ -268,7 +265,14 @@ void boot_world(void)
   top_of_zone_table = zone_table.size() - 1;
   basic_mud_log("   %lu zones, %lu bytes.", zone_table.size(), zone_table.size() * sizeof(zone_data));
 
+  std::for_each(zone_table.begin(), zone_table.end(), [](zone_data z) {
+      basic_mud_log("Zone %s (%d): bot: %d, top: %d", z.name.c_str(), z.number, z.bot, z.top);
+    });
+
   // Okay to start room parsing here
+  basic_mud_log("Started future loading rooms.");
+  room_future r(mini_mud);
+  r.parse();
 
   basic_mud_log("Waiting for completion of object loading ... then building index.");
   obj_proto = o.items();
@@ -283,10 +287,11 @@ void boot_world(void)
     });
   basic_mud_log("   %d objs, %lu bytes in index, %lu bytes in prototypes.", top_of_objt, top_of_objt * sizeof(index_data), top_of_objt * sizeof(obj_data));
 
-  // can wait for all other future based parses to complete. 
-
-  basic_mud_log("Loading rooms.");
-  index_boot(DBBoot::DB_BOOT_WLD);
+  // get rooms.  
+  basic_mud_log("Waiting for completion of room loading...");
+  world = r.items();
+  top_of_world = world.size() - 1;
+  basic_mud_log("   %d rooms, %lu bytes.", top_of_world, top_of_world * sizeof(room_data));
 
   basic_mud_log("Renumbering rooms.");
   renum_world();
@@ -294,6 +299,7 @@ void boot_world(void)
   basic_mud_log("Checking start rooms.");
   check_start_rooms();
 
+  // can wait for all other fuqture based parses to complete. 
   basic_mud_log("Loading mobs and generating index.");
   index_boot(DBBoot::DB_BOOT_MOB);
 
@@ -664,17 +670,7 @@ static void index_boot(DBBoot mode)
   int rec_count = 0, size[2];
   char buf2[PATH_MAX], buf1[MAX_STRING_LENGTH];
 
-  std::vector<room_data> rooms;
-  room_future f(mini_mud);
-
   switch (mode) {
-  case DBBoot::DB_BOOT_WLD:
-    prefix = WLD_PREFIX;
-
-    f.parse();
-    rooms = f.items();
-
-    break;
   case DBBoot::DB_BOOT_MOB:
     prefix = MOB_PREFIX;
     break;
@@ -734,11 +730,6 @@ static void index_boot(DBBoot mode)
    * NOTE: "bytes" does _not_ include strings or other later malloc'd things.
    */
   switch (mode) {
-  case DBBoot::DB_BOOT_WLD:
-    world = new room_data[rec_count];
-    size[0] = sizeof(struct room_data) * rec_count;
-    basic_mud_log("   %d rooms, %d bytes.", rec_count, size[0]);
-    break;
   case DBBoot::DB_BOOT_MOB:
     CREATE(mob_proto, struct char_data, rec_count);
     CREATE(mob_index, struct index_data, rec_count);
@@ -767,7 +758,6 @@ static void index_boot(DBBoot mode)
       exit(1);
     }
     switch (mode) {
-    case DBBoot::DB_BOOT_WLD:
     case DBBoot::DB_BOOT_MOB:
       discrete_load(db_file, mode, buf2);
       break;
@@ -828,9 +818,6 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
 	return;
       else
 	switch (mode) {
-	case DBBoot::DB_BOOT_WLD:
-	  parse_room(fl, nr);
-	  break;
 	case DBBoot::DB_BOOT_MOB:
 	  parse_mobile(fl, nr);
 	  break;
@@ -847,124 +834,6 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
     }
   }
 }
-
-/* load the rooms */
-void parse_room(FILE *fl, int virtual_nr)
-{
-  static int room_nr = 0, zone = 0;
-  int t[10], i;
-  char line[READ_SIZE], flags[128], buf2[MAX_STRING_LENGTH], buf[128];
-
-  /* This really had better fit or there are other problems. */
-  snprintf(buf2, sizeof(buf2), "room #%d", virtual_nr);
-
-  if (virtual_nr < zone_table[zone].bot) {
-    basic_mud_log("SYSERR: Room #%d is below zone %d.", virtual_nr, zone);
-    exit(1);
-  }
-  while (virtual_nr > zone_table[zone].top)
-    if (++zone > top_of_zone_table) {
-      basic_mud_log("SYSERR: Room %d is outside of any zone.", virtual_nr);
-      exit(1);
-    }
-  world[room_nr].zone = zone;
-  world[room_nr].number = virtual_nr;
-  world[room_nr].name = fread_string(fl, buf2);
-  world[room_nr].description = fread_string(fl, buf2);
-
-  if (!get_line(fl, line)) {
-    basic_mud_log("SYSERR: Expecting roomflags/sector type of room #%d but file ended!",
-	virtual_nr);
-    exit(1);
-  }
-
-  if (sscanf(line, " %d %s %d ", t, flags, t + 2) != 3) {
-    basic_mud_log("SYSERR: Format error in roomflags/sector type of room #%d",
-	virtual_nr);
-    exit(1);
-  }
-  /* t[0] is the zone number; ignored with the zone-file system */
-
-  world[room_nr].room_flags = asciiflag_conv(flags);
-  sprintf(flags, "object #%d", virtual_nr);	/* sprintf: OK (until 399-bit integers) */
-  check_bitvector_names(world[room_nr].room_flags, room_bits_count, flags, "room");
-
-  world[room_nr].sector_type = t[2];
-
-  world[room_nr].func = NULL;
-  world[room_nr].contents = NULL;
-  world[room_nr].people = NULL;
-  world[room_nr].light = 0;	/* Zero light sources */
-
-  for (i = 0; i < NUM_OF_DIRS; i++)
-    world[room_nr].dir_option[i] = std::make_tuple(room_direction_data(), false);
-
-  snprintf(buf, sizeof(buf), "SYSERR: Format error in room #%d (expecting D/E/S)", virtual_nr);
-
-  for (;;) {
-    extra_descr_data d;
-
-    if (!get_line(fl, line)) {
-      basic_mud_log("%s", buf);
-      exit(1);
-    }
-    switch (*line) {
-    case 'D':
-      setup_dir(fl, room_nr, atoi(line + 1));
-      break;
-    case 'E':
-      d.keyword = fread_string(fl, buf2);
-      d.description = fread_string(fl, buf2);
-      world[room_nr].ex_description.push_back(d);
-
-      break;
-    case 'S':			/* end of room */
-      top_of_world = room_nr++;
-      return;
-    default:
-      basic_mud_log("%s", buf);
-      exit(1);
-    }
-  }
-}
-
-
-
-/* read direction data */
-void setup_dir(FILE *fl, int room, int dir)
-{
-  int t[5];
-  char line[READ_SIZE], buf2[128];
-
-  snprintf(buf2, sizeof(buf2), "room #%d, direction D%d", GET_ROOM_VNUM(room), dir);
-
-  world[room].dir_option[dir] = std::make_tuple(room_direction_data(), true);
-
-  char *tmp = fread_string(fl, buf2);
-  std::get<0>(world[room].dir_option[dir]).general_description = (nullptr == tmp) ? "" : tmp; 
-
-  tmp = fread_string(fl, buf2);
-  std::get<0>(world[room].dir_option[dir]).keyword = (nullptr == tmp) ? "" : tmp; 
-
-  if (!get_line(fl, line)) {
-    basic_mud_log("SYSERR: Format error, %s", buf2);
-    exit(1);
-  }
-  if (sscanf(line, " %d %d %d ", t, t + 1, t + 2) != 3) {
-    basic_mud_log("SYSERR: Format error, %s", buf2);
-    exit(1);
-  }
-  if (t[0] == 1)
-    std::get<0>(world[room].dir_option[dir]).exit_info = EX_ISDOOR;
-  else if (t[0] == 2)
-    std::get<0>(world[room].dir_option[dir]).exit_info = EX_ISDOOR | EX_PICKPROOF;
-  else
-    std::get<0>(world[room].dir_option[dir]).exit_info = 0;
-
-  std::get<0>(world[room].dir_option[dir]).key = t[1];
-  std::get<0>(world[room].dir_option[dir]).to_room = t[2];
-}
-
 
 /* make sure the start rooms exist & resolve their vnums to rnums */
 void check_start_rooms(void)
@@ -2473,26 +2342,9 @@ void init_char(struct char_data *ch)
 /* returns the real number of the room with given virtual number */
 room_rnum real_room(room_vnum vnum)
 {
-  room_rnum bot, top, mid;
-
-  bot = 0;
-  top = top_of_world;
-
-  /* perform binary search on world-table */
-  for (;;) {
-    mid = (bot + top) / 2;
-
-    if ((world + mid)->number == vnum)
-      return (mid);
-    if (bot >= top)
-      return (NOWHERE);
-    if ((world + mid)->number > vnum)
-      top = mid - 1;
-    else
-      bot = mid + 1;
-  }
+  auto it = std::find_if(world.begin(), world.end(), [&vnum](const room_data &r) { return (r.number == vnum); });
+  return (it == world.end()) ? NOWHERE : std::distance(world.begin(), it);
 }
-
 
 
 /* returns the real number of the monster with given virtual number */

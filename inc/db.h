@@ -16,8 +16,7 @@
 
 /* arbitrary constants used by index_boot() (must be unique) */
 enum class DBBoot : unsigned char  {
-  DB_BOOT_WLD = 0,
-  DB_BOOT_MOB,
+  DB_BOOT_MOB = 0,
   DB_BOOT_SHP,
   DB_BOOT_HLP,
 };
@@ -120,6 +119,9 @@ zone_rnum real_zone(zone_vnum vnum);
 room_rnum real_room(room_vnum vnum);
 mob_rnum real_mobile(mob_vnum vnum);
 obj_rnum real_object(obj_vnum vnum);
+
+int check_bitvector_names(bitvector_t bits, size_t namecount, const char *whatami, const char *whatbits);
+
 
 void	char_to_store(struct char_data *ch, struct char_file_u *st);
 void	store_to_char(struct char_file_u *st, struct char_data *ch);
@@ -235,8 +237,7 @@ struct ban_list_element {
 
 /* global buffering system */
 
-extern struct room_data *world;
-//extern std::vector<room_data> world;
+extern std::vector<room_data> world;
 extern room_rnum top_of_world;
 
 extern std::vector<zone_data> zone_table;
