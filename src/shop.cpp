@@ -1354,7 +1354,7 @@ void list_detailed_shop(struct char_data *ch, int shop_nr)
     }
 
     if ((temp = real_room(SHOP_ROOM(shop_nr, sindex))) != NOWHERE)
-      linelen = snprintf(buf1, sizeof(buf1), "%s (#%d)", world[temp].name, GET_ROOM_VNUM(temp));
+      linelen = snprintf(buf1, sizeof(buf1), "%s (#%d)", world[temp].name.c_str(), GET_ROOM_VNUM(temp));
     else
       linelen = snprintf(buf1, sizeof(buf1), "<UNKNOWN> (#%d)", SHOP_ROOM(shop_nr, sindex));
 

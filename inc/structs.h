@@ -751,11 +751,11 @@ struct room_direction_data {
 
 /* ================== Memory Structure for room ======================= */
 struct room_data {
-   room_vnum number;		/* Rooms number	(vnum)		      */
-   zone_rnum zone;              /* Room zone (for resetting)          */
-   int	sector_type;            /* sector type (move/hide)            */
-   char	*name;                  /* Rooms name 'You are ...'           */
-   char	*description;           /* Shown when entered                 */
+  room_vnum number;		/* Rooms number	(vnum)		      */
+  zone_rnum zone;               /* Room zone (for resetting)          */
+  int	sector_type;            /* sector type (move/hide)            */
+  std::string name;             /* Rooms name 'You are ...'           */
+  std::string description;      /* Shown when entered                 */
 
   std::list<extra_descr_data> ex_description;
 

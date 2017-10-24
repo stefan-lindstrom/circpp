@@ -689,8 +689,8 @@ static void index_boot(DBBoot mode)
   case DBBoot::DB_BOOT_WLD:
     prefix = WLD_PREFIX;
 
-    f.parse_rooms();
-    rooms = f.rooms();
+    f.parse();
+    rooms = f.items();
 
     break;
   case DBBoot::DB_BOOT_MOB:

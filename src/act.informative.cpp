@@ -378,10 +378,10 @@ ACMD(do_exits)
 
     if (GET_LEVEL(ch) >= LVL_IMMORT)
       send_to_char(ch, "%-5s - [%5d] %s\r\n", dirs[door], GET_ROOM_VNUM(EXIT(ch, door)->to_room),
-		world[EXIT(ch, door)->to_room].name);
+		   world[EXIT(ch, door)->to_room].name.c_str());
     else
       send_to_char(ch, "%-5s - %s\r\n", dirs[door], IS_DARK(EXIT(ch, door)->to_room) &&
-		!CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[EXIT(ch, door)->to_room].name);
+		   !CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[EXIT(ch, door)->to_room].name.c_str());
   }
 
   if (!len)
@@ -407,15 +407,15 @@ void look_at_room(struct char_data *ch, int ignore_brief)
     char buf[MAX_STRING_LENGTH];
 
     sprintbit(ROOM_FLAGS(IN_ROOM(ch)), room_bits, buf, sizeof(buf));
-    send_to_char(ch, "[%5d] %s [ %s]", GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name, buf);
+    send_to_char(ch, "[%5d] %s [ %s]", GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name.c_str(), buf);
   } else
-    send_to_char(ch, "%s", world[IN_ROOM(ch)].name);
+    send_to_char(ch, "%s", world[IN_ROOM(ch)].name.c_str());
 
   send_to_char(ch, "%s\r\n", CCNRM(ch, C_NRM));
 
   if ((!IS_NPC(ch) && !PRF_FLAGGED(ch, PRF_BRIEF)) || ignore_brief ||
       ROOM_FLAGGED(IN_ROOM(ch), ROOM_DEATH))
-    send_to_char(ch, "%s", world[IN_ROOM(ch)].description);
+    send_to_char(ch, "%s", world[IN_ROOM(ch)].description.c_str());
 
   /* autoexits */
   if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_AUTOEXIT))
@@ -1336,7 +1336,7 @@ void perform_mortal_where(struct char_data *ch, char *arg)
 	continue;
       if (world[IN_ROOM(ch)].zone != world[IN_ROOM(i)].zone)
 	continue;
-      send_to_char(ch, "%-20s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name);
+      send_to_char(ch, "%-20s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name.c_str());
     }
   } else {			/* print only FIRST char, not all. */
     for (i = character_list; i; i = i->next) {
@@ -1346,7 +1346,7 @@ void perform_mortal_where(struct char_data *ch, char *arg)
 	continue;
       if (!isname(arg, i->player.name))
 	continue;
-      send_to_char(ch, "%-25s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name);
+      send_to_char(ch, "%-25s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name.c_str());
       return;
     }
     send_to_char(ch, "Nobody around by that name.\r\n");
@@ -1363,7 +1363,7 @@ void print_object_location(int num, struct obj_data *obj, struct char_data *ch,
     send_to_char(ch, "%33s", " - ");
 
   if (IN_ROOM(obj) != NOWHERE)
-    send_to_char(ch, "[%5d] %s\r\n", GET_ROOM_VNUM(IN_ROOM(obj)), world[IN_ROOM(obj)].name);
+    send_to_char(ch, "[%5d] %s\r\n", GET_ROOM_VNUM(IN_ROOM(obj)), world[IN_ROOM(obj)].name.c_str());
   else if (obj->carried_by)
     send_to_char(ch, "carried by %s\r\n", PERS(obj->carried_by, ch));
   else if (obj->worn_by)
@@ -1393,10 +1393,10 @@ void perform_immort_where(struct char_data *ch, char *arg)
 	if (i && CAN_SEE(ch, i) && (IN_ROOM(i) != NOWHERE)) {
 	  if (d->original)
 	    send_to_char(ch, "%-20s - [%5d] %s (in %s)\r\n",
-		GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(d->character)),
-		world[IN_ROOM(d->character)].name, GET_NAME(d->character));
+			 GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(d->character)),
+			 world[IN_ROOM(d->character)].name.c_str(), GET_NAME(d->character));
 	  else
-	    send_to_char(ch, "%-20s - [%5d] %s\r\n", GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name);
+	    send_to_char(ch, "%-20s - [%5d] %s\r\n", GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name.c_str());
 	}
       }
   } else {
@@ -1404,7 +1404,7 @@ void perform_immort_where(struct char_data *ch, char *arg)
       if (CAN_SEE(ch, i) && IN_ROOM(i) != NOWHERE && isname(arg, i->player.name)) {
 	found = 1;
 	send_to_char(ch, "M%3d. %-25s - [%5d] %s\r\n", ++num, GET_NAME(i),
-		GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name);
+		     GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name.c_str());
       }
     for (num = 0, k = object_list; k; k = k->next)
       if (CAN_SEE_OBJ(ch, k) && isname(arg, k->name.c_str())) {

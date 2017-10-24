@@ -215,7 +215,7 @@ void check_killer(struct char_data *ch, struct char_data *vict)
   SET_BIT(PLR_FLAGS(ch), PLR_KILLER);
   send_to_char(ch, "If you want to be a PLAYER KILLER, so be it...\r\n");
   mudlog(BRF, LVL_IMMORT, TRUE, "PC Killer bit set on %s for initiating attack on %s at %s.",
-	    GET_NAME(ch), GET_NAME(vict), world[IN_ROOM(vict)].name);
+	 GET_NAME(ch), GET_NAME(vict), world[IN_ROOM(vict)].name.c_str());
 }
 
 
@@ -820,7 +820,7 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
     }
 
     if (!IS_NPC(victim)) {
-      mudlog(BRF, LVL_IMMORT, TRUE, "%s killed by %s at %s", GET_NAME(victim), GET_NAME(ch), world[IN_ROOM(victim)].name);
+      mudlog(BRF, LVL_IMMORT, TRUE, "%s killed by %s at %s", GET_NAME(victim), GET_NAME(ch), world[IN_ROOM(victim)].name.c_str());
       if (MOB_FLAGGED(ch, MOB_MEMORY))
 	forget(ch, victim);
     }

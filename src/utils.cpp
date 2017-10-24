@@ -186,7 +186,7 @@ int strn_cmp(const char *arg1, const char *arg2, int n)
 /* log a death trap hit */
 void log_death_trap(struct char_data *ch)
 {
-  mudlog(BRF, LVL_IMMORT, TRUE, "%s hit death trap #%d (%s)", GET_NAME(ch), GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name);
+  mudlog(BRF, LVL_IMMORT, TRUE, "%s hit death trap #%d (%s)", GET_NAME(ch), GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name.c_str());
 }
 
 

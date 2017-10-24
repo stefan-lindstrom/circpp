@@ -178,7 +178,7 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
   (void)error;
   char command_string[MAX_INPUT_LENGTH];
   struct char_data *olc_mob = NULL;
-  struct room_data *olc_room = NULL;
+  //  struct room_data *olc_room = NULL;
   //  struct obj_data *olc_obj = NULL;
 
   half_chop(arg, command_string, arg);
@@ -188,7 +188,7 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
   }
   switch (mode) {
   case OlcMode::OLC_ROOM:
-    olc_room = (struct room_data *) targ;
+    //    olc_room = (struct room_data *) targ;
     break;
   case OlcMode::OLC_MOB:
     olc_mob = (struct char_data *) targ;
@@ -219,7 +219,8 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
   case OlcCmd::OLC_NAME:
     switch (mode) {
     case OlcMode::OLC_ROOM:
-      olc_string(&(olc_room->name), MAX_ROOM_NAME, arg);
+      // TODO: handle with proper strings later
+      //      olc_string(&(olc_room->name), MAX_ROOM_NAME, arg);
       break;
     case OlcMode::OLC_MOB:
       olc_string(&olc_mob->player.short_descr, MAX_MOB_NAME, arg);
@@ -237,7 +238,8 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
   case OlcCmd::OLC_DESC:
     switch (mode) {
     case OlcMode::OLC_ROOM:
-      olc_string(&olc_room->description, MAX_ROOM_DESC, arg);
+      // TODO: handle with proper strings later
+      //      olc_string(&olc_room->description, MAX_ROOM_DESC, arg);
       break;
     case OlcMode::OLC_MOB:
       olc_string(&olc_mob->player.long_descr, MAX_MOB_DESC, arg);

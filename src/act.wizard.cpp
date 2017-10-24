@@ -367,7 +367,7 @@ void do_stat_room(struct char_data *ch)
   struct obj_data *j;
   struct char_data *k;
 
-  send_to_char(ch, "Room name: %s%s%s\r\n", CCCYN(ch, C_NRM), rm->name, CCNRM(ch, C_NRM));
+  send_to_char(ch, "Room name: %s%s%s\r\n", CCCYN(ch, C_NRM), rm->name.c_str(), CCNRM(ch, C_NRM));
 
   sprinttype(rm->sector_type, sector_types, buf2, sizeof(buf2));
   send_to_char(ch, "Zone: [%3d], VNum: [%s%5d%s], RNum: [%5d], Type: %s\r\n",
@@ -377,7 +377,7 @@ void do_stat_room(struct char_data *ch)
   sprintbit(rm->room_flags, room_bits, buf2, sizeof(buf2));
   send_to_char(ch, "SpecProc: %s, Flags: %s\r\n", rm->func == NULL ? "None" : "Exists", buf2);
 
-  send_to_char(ch, "Description:\r\n%s", rm->description ? rm->description : "  None.\r\n");
+  send_to_char(ch, "Description:\r\n%s", rm->description != "" ? rm->description.c_str() : "  None.\r\n");
 
   if (!rm->ex_description.empty()) {
     send_to_char(ch, "Extra descs:%s", CCCYN(ch, C_NRM));
@@ -478,7 +478,7 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
      GET_OBJ_WEIGHT(j), GET_OBJ_COST(j), GET_OBJ_RENT(j), GET_OBJ_TIMER(j));
 
   send_to_char(ch, "In room: %d (%s), ", GET_ROOM_VNUM(IN_ROOM(j)),
-	IN_ROOM(j) == NOWHERE ? "Nowhere" : world[IN_ROOM(j)].name);
+	       IN_ROOM(j) == NOWHERE ? "Nowhere" : world[IN_ROOM(j)].name.c_str());
 
   /*
    * NOTE: In order to make it this far, we must already be able to see the
@@ -2038,7 +2038,7 @@ ACMD(do_show)
     for (i = 0, k = 0; i <= top_of_world; i++)
       for (j = 0; j < NUM_OF_DIRS; j++)
 	if (world[i].dir_option[j] && world[i].dir_option[j]->to_room == 0) {
-	  nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++k, GET_ROOM_VNUM(i), world[i].name);
+	  nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++k, GET_ROOM_VNUM(i), world[i].name.c_str());
           if (len + nlen >= sizeof(buf) || nlen < 0)
             break;
           len += nlen;
@@ -2051,7 +2051,7 @@ ACMD(do_show)
     len = strlcpy(buf, "Death Traps\r\n-----------\r\n", sizeof(buf));
     for (i = 0, j = 0; i <= top_of_world; i++)
       if (ROOM_FLAGGED(i, ROOM_DEATH)) {
-        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name);
+        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name.c_str());
         if (len + nlen >= sizeof(buf) || nlen < 0)
           break;
         len += nlen;
@@ -2064,7 +2064,7 @@ ACMD(do_show)
     len = strlcpy(buf, "Godrooms\r\n--------------------------\r\n", sizeof(buf));
     for (i = 0, j = 0; i <= top_of_world; i++)
       if (ROOM_FLAGGED(i, ROOM_GODROOM)) {
-        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name);
+        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name.c_str());
         if (len + nlen >= sizeof(buf) || nlen < 0)
           break;
         len += nlen;
