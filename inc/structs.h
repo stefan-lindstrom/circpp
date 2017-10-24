@@ -739,13 +739,12 @@ struct rent_info {
 
 
 struct room_direction_data {
-   char	*general_description;       /* When look DIR.			*/
+  std::string general_description;       /* When look DIR.			*/
+  std::string keyword;	       	         /* for open/close			*/
 
-   char	*keyword;		/* for open/close			*/
-
-   sh_int /*bitvector_t*/ exit_info;	/* Exit info			*/
-   obj_vnum key;		/* Key's number (-1 for no key)		*/
-   room_rnum to_room;		/* Where direction leads (NOWHERE)	*/
+   sh_int /*bitvector_t*/ exit_info;	 /* Exit info			        */
+   obj_vnum key;		         /* Key's number (-1 for no key)	*/
+   room_rnum to_room;		         /* Where direction leads (NOWHERE)	*/
 };
 
 
@@ -759,14 +758,14 @@ struct room_data {
 
   std::list<extra_descr_data> ex_description;
 
-   struct room_direction_data *dir_option[NUM_OF_DIRS]; /* Directions */
-   int /*bitvector_t*/ room_flags;		/* DEATH,DARK ... etc */
-
-   byte light;                  /* Number of lightsources in room     */
-   SPECIAL(*func);
-
-   struct obj_data *contents;   /* List of items in room              */
-   struct char_data *people;    /* List of NPC / PC in room           */
+  struct room_direction_data *dir_option[NUM_OF_DIRS]; /* Directions */
+  int /*bitvector_t*/ room_flags;		/* DEATH,DARK ... etc */
+  
+  byte light;                  /* Number of lightsources in room     */
+  SPECIAL(*func);
+  
+  struct obj_data *contents;   /* List of items in room              */
+  struct char_data *people;    /* List of NPC / PC in room           */
 };
 /* ====================================================================== */
 

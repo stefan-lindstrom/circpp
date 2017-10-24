@@ -956,9 +956,13 @@ void setup_dir(FILE *fl, int room, int dir)
 
   snprintf(buf2, sizeof(buf2), "room #%d, direction D%d", GET_ROOM_VNUM(room), dir);
 
-  CREATE(world[room].dir_option[dir], struct room_direction_data, 1);
-  world[room].dir_option[dir]->general_description = fread_string(fl, buf2);
-  world[room].dir_option[dir]->keyword = fread_string(fl, buf2);
+  world[room].dir_option[dir] = new room_direction_data;
+
+  char *tmp = fread_string(fl, buf2);
+  world[room].dir_option[dir]->general_description = (nullptr == tmp) ? "" : tmp; 
+
+  tmp = fread_string(fl, buf2);
+  world[room].dir_option[dir]->keyword = (nullptr == tmp) ? "" : tmp; 
 
   if (!get_line(fl, line)) {
     basic_mud_log("SYSERR: Format error, %s", buf2);

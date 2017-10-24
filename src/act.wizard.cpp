@@ -433,9 +433,9 @@ void do_stat_room(struct char_data *ch)
     sprintbit(rm->dir_option[i]->exit_info, exit_bits, buf2, sizeof(buf2));
 
     send_to_char(ch, "Exit %s%-5s%s:  To: [%s], Key: [%5d], Keywrd: %s, Type: %s\r\n%s",
-	CCCYN(ch, C_NRM), dirs[i], CCNRM(ch, C_NRM), buf1, rm->dir_option[i]->key,
-	rm->dir_option[i]->keyword ? rm->dir_option[i]->keyword : "None", buf2,
-	rm->dir_option[i]->general_description ? rm->dir_option[i]->general_description : "  No exit description.\r\n");
+		 CCCYN(ch, C_NRM), dirs[i], CCNRM(ch, C_NRM), buf1, rm->dir_option[i]->key,
+		 !rm->dir_option[i]->keyword.empty() ? rm->dir_option[i]->keyword.c_str() : "None", buf2,
+		 !rm->dir_option[i]->general_description.empty() ? rm->dir_option[i]->general_description.c_str() : "  No exit description.\r\n");
   }
 }
 

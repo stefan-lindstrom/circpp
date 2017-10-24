@@ -186,8 +186,8 @@ int perform_move(struct char_data *ch, int dir, int need_specials_check)
   else if (!EXIT(ch, dir) || EXIT(ch, dir)->to_room == NOWHERE)
     send_to_char(ch, "Alas, you cannot go that way...\r\n");
   else if (EXIT_FLAGGED(EXIT(ch, dir), EX_CLOSED)) {
-    if (EXIT(ch, dir)->keyword)
-      send_to_char(ch, "The %s seems to be closed.\r\n", fname(EXIT(ch, dir)->keyword));
+    if (!EXIT(ch, dir)->keyword.empty())
+      send_to_char(ch, "The %s seems to be closed.\r\n", fname(EXIT(ch, dir)->keyword.c_str()));
     else
       send_to_char(ch, "It seems to be closed.\r\n");
   } else {
@@ -235,8 +235,8 @@ int find_door(struct char_data *ch, const char *type, char *dir, const char *cmd
       return (-1);
     }
     if (EXIT(ch, door)) {	/* Braces added according to indent. -gg */
-      if (EXIT(ch, door)->keyword) {
-	if (isname(type, EXIT(ch, door)->keyword))
+      if (!EXIT(ch, door)->keyword.empty()) {
+	if (isname(type, EXIT(ch, door)->keyword.c_str()))
 	  return (door);
 	else {
 	  send_to_char(ch, "I see no %s there.\r\n", type);
@@ -255,8 +255,8 @@ int find_door(struct char_data *ch, const char *type, char *dir, const char *cmd
     }
     for (door = 0; door < NUM_OF_DIRS; door++)
       if (EXIT(ch, door))
-	if (EXIT(ch, door)->keyword)
-	  if (isname(type, EXIT(ch, door)->keyword))
+	if (!EXIT(ch, door)->keyword.empty())
+	  if (isname(type, EXIT(ch, door)->keyword.c_str()))
 	    return (door);
 
     send_to_char(ch, "There doesn't seem to be %s %s here.\r\n", AN(type), type);
@@ -377,15 +377,15 @@ void do_doorcmd(struct char_data *ch, struct obj_data *obj, int door, int scmd)
   /* Notify the room. */
   if (len < sizeof(buf))
     snprintf(buf + len, sizeof(buf) - len, "%s%s.",
-	obj ? "" : "the ", obj ? "$p" : EXIT(ch, door)->keyword ? "$F" : "door");
+	     obj ? "" : "the ", obj ? "$p" : !EXIT(ch, door)->keyword.empty() ? "$F" : "door");
   if (!obj || IN_ROOM(obj) != NOWHERE)
-    act(buf, FALSE, ch, obj, obj ? 0 : EXIT(ch, door)->keyword, CommTarget::TO_ROOM);
+    act(buf, FALSE, ch, obj, obj ? 0 : EXIT(ch, door)->keyword.c_str(), CommTarget::TO_ROOM);
 
   /* Notify the other room */
   if (back && (scmd == SCMD_OPEN || scmd == SCMD_CLOSE))
       send_to_room(EXIT(ch, door)->to_room, "The %s is %s%s from the other side.",
-		back->keyword ? fname(back->keyword) : "door", cmd_door[scmd],
-		scmd == SCMD_CLOSE ? "d" : "ed");
+		   !back->keyword.empty() ? fname(back->keyword.c_str()) : "door", cmd_door[scmd],
+		   scmd == SCMD_CLOSE ? "d" : "ed");
 }
 
 
@@ -490,8 +490,8 @@ ACMD(do_enter)
 				 * keyword */
     for (door = 0; door < NUM_OF_DIRS; door++)
       if (EXIT(ch, door))
-	if (EXIT(ch, door)->keyword)
-	  if (!str_cmp(EXIT(ch, door)->keyword, buf)) {
+	if (!EXIT(ch, door)->keyword.empty())
+	  if (!str_cmp(EXIT(ch, door)->keyword.c_str(), buf)) {
 	    perform_move(ch, door, 1);
 	    return;
 	  }

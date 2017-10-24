@@ -434,15 +434,15 @@ void look_at_room(struct char_data *ch, int ignore_brief)
 void look_in_direction(struct char_data *ch, int dir)
 {
   if (EXIT(ch, dir)) {
-    if (EXIT(ch, dir)->general_description)
-      send_to_char(ch, "%s", EXIT(ch, dir)->general_description);
+    if (!EXIT(ch, dir)->general_description.empty())
+      send_to_char(ch, "%s", EXIT(ch, dir)->general_description.c_str());
     else
       send_to_char(ch, "You see nothing special.\r\n");
 
-    if (EXIT_FLAGGED(EXIT(ch, dir), EX_CLOSED) && EXIT(ch, dir)->keyword)
-      send_to_char(ch, "The %s is closed.\r\n", fname(EXIT(ch, dir)->keyword));
-    else if (EXIT_FLAGGED(EXIT(ch, dir), EX_ISDOOR) && EXIT(ch, dir)->keyword)
-      send_to_char(ch, "The %s is open.\r\n", fname(EXIT(ch, dir)->keyword));
+    if (EXIT_FLAGGED(EXIT(ch, dir), EX_CLOSED) && EXIT(ch, dir)->keyword.c_str())
+      send_to_char(ch, "The %s is closed.\r\n", fname(EXIT(ch, dir)->keyword.c_str()));
+    else if (EXIT_FLAGGED(EXIT(ch, dir), EX_ISDOOR) && EXIT(ch, dir)->keyword.c_str())
+      send_to_char(ch, "The %s is open.\r\n", fname(EXIT(ch, dir)->keyword.c_str()));
   } else
     send_to_char(ch, "Nothing special there...\r\n");
 }
