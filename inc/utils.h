@@ -238,7 +238,7 @@ void	update_pos(struct char_data *victim);
 #define AFF_FLAGGED(ch, flag) (IS_SET(AFF_FLAGS(ch), (flag)))
 #define PRF_FLAGGED(ch, flag) (IS_SET(PRF_FLAGS(ch), (flag)))
 #define ROOM_FLAGGED(loc, flag) (IS_SET(ROOM_FLAGS(loc), (flag)))
-#define EXIT_FLAGGED(exit, flag) (IS_SET((exit)->exit_info, (flag)))
+#define EXIT_FLAGGED(exit, flag) (IS_SET((exit).exit_info, (flag)))
 #define OBJAFF_FLAGGED(obj, flag) (IS_SET(GET_OBJ_AFFECT(obj), (flag)))
 #define OBJVAL_FLAGGED(obj, flag) (IS_SET(GET_OBJ_VAL((obj), 1), (flag)))
 #define OBJWEAR_FLAGGED(obj, flag) (IS_SET(GET_OBJ_WEAR(obj), (flag)))
@@ -491,11 +491,12 @@ void	update_pos(struct char_data *victim);
 			 fname((obj)->name.c_str()) : "something")
 
 
-#define EXIT(ch, door)  (world[IN_ROOM(ch)].dir_option[door])
+#define EXIT(ch, door)     (std::get<1>(world[IN_ROOM(ch)].dir_option[door]))
+#define GET_EXIT(ch, door) (std::get<0>(world[IN_ROOM(ch)].dir_option[door]))
 
 #define CAN_GO(ch, door) (EXIT(ch,door) && \
-			 (EXIT(ch,door)->to_room != NOWHERE) && \
-			 !IS_SET(EXIT(ch, door)->exit_info, EX_CLOSED))
+			 (GET_EXIT(ch,door).to_room != NOWHERE) && \
+			 !IS_SET(GET_EXIT(ch, door).exit_info, EX_CLOSED))
 
 
 #define CLASS_ABBR(ch) (IS_NPC(ch) ? "--" : class_abbrevs[(int)GET_CLASS(ch)])

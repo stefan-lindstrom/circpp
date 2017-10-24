@@ -347,7 +347,7 @@ void death_cry(struct char_data *ch)
 
   for (door = 0; door < NUM_OF_DIRS; door++)
     if (CAN_GO(ch, door))
-      send_to_room(world[IN_ROOM(ch)].dir_option[door]->to_room, "Your blood freezes as you hear someone's death cry.\r\n");
+      send_to_room(std::get<0>(world[IN_ROOM(ch)].dir_option[door]).to_room, "Your blood freezes as you hear someone's death cry.\r\n");
 }
 
 

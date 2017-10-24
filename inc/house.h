@@ -30,8 +30,8 @@ struct house_control_rec {
 
 
    
-#define TOROOM(room, dir) (world[room].dir_option[dir] ? \
-			    world[room].dir_option[dir]->to_room : NOWHERE)
+#define TOROOM(room, dir) (std::get<1>(world[room].dir_option[dir]) ?	\
+			   std::get<0>(world[room].dir_option[dir]).to_room : NOWHERE)
 
 void	House_listrent(struct char_data *ch, room_vnum vnum);
 void	House_boot(void);

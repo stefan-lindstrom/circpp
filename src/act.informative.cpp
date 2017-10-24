@@ -24,7 +24,10 @@
 #include "screen.h"
 #include "constants.h"
 
-/* extern functions. should bloody well be moved to headers */
+/*
+ * extern functions. should bloody well be moved to headers (or if 
+ * only used internally in this compilation unit, limit linkage to internal. ffs. 
+ */
 ACMD(do_action);
 ACMD(do_insult);
 bitvector_t find_class_bitvector(const char *arg);
@@ -340,9 +343,9 @@ void do_auto_exits(struct char_data *ch)
   send_to_char(ch, "%s[ Exits: ", CCCYN(ch, C_NRM));
 
   for (door = 0; door < NUM_OF_DIRS; door++) {
-    if (!EXIT(ch, door) || EXIT(ch, door)->to_room == NOWHERE)
+    if (!EXIT(ch, door) || GET_EXIT(ch, door).to_room == NOWHERE)
       continue;
-    if (EXIT_FLAGGED(EXIT(ch, door), EX_CLOSED))
+    if (EXIT_FLAGGED(GET_EXIT(ch, door), EX_CLOSED))
       continue;
 
     send_to_char(ch, "%c ", LOWER(*dirs[door]));
@@ -369,19 +372,19 @@ ACMD(do_exits)
   send_to_char(ch, "Obvious exits:\r\n");
 
   for (door = 0; door < NUM_OF_DIRS; door++) {
-    if (!EXIT(ch, door) || EXIT(ch, door)->to_room == NOWHERE)
+    if (!EXIT(ch, door) || GET_EXIT(ch, door).to_room == NOWHERE)
       continue;
-    if (EXIT_FLAGGED(EXIT(ch, door), EX_CLOSED))
+    if (EXIT_FLAGGED(GET_EXIT(ch, door), EX_CLOSED))
       continue;
 
     len++;
 
     if (GET_LEVEL(ch) >= LVL_IMMORT)
-      send_to_char(ch, "%-5s - [%5d] %s\r\n", dirs[door], GET_ROOM_VNUM(EXIT(ch, door)->to_room),
-		   world[EXIT(ch, door)->to_room].name.c_str());
+      send_to_char(ch, "%-5s - [%5d] %s\r\n", dirs[door], GET_ROOM_VNUM(GET_EXIT(ch, door).to_room),
+		   world[GET_EXIT(ch, door).to_room].name.c_str());
     else
-      send_to_char(ch, "%-5s - %s\r\n", dirs[door], IS_DARK(EXIT(ch, door)->to_room) &&
-		   !CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[EXIT(ch, door)->to_room].name.c_str());
+      send_to_char(ch, "%-5s - %s\r\n", dirs[door], IS_DARK(GET_EXIT(ch, door).to_room) &&
+		   !CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[GET_EXIT(ch, door).to_room].name.c_str());
   }
 
   if (!len)
@@ -434,15 +437,15 @@ void look_at_room(struct char_data *ch, int ignore_brief)
 void look_in_direction(struct char_data *ch, int dir)
 {
   if (EXIT(ch, dir)) {
-    if (!EXIT(ch, dir)->general_description.empty())
-      send_to_char(ch, "%s", EXIT(ch, dir)->general_description.c_str());
+    if (!GET_EXIT(ch, dir).general_description.empty())
+      send_to_char(ch, "%s", GET_EXIT(ch, dir).general_description.c_str());
     else
       send_to_char(ch, "You see nothing special.\r\n");
 
-    if (EXIT_FLAGGED(EXIT(ch, dir), EX_CLOSED) && EXIT(ch, dir)->keyword.c_str())
-      send_to_char(ch, "The %s is closed.\r\n", fname(EXIT(ch, dir)->keyword.c_str()));
-    else if (EXIT_FLAGGED(EXIT(ch, dir), EX_ISDOOR) && EXIT(ch, dir)->keyword.c_str())
-      send_to_char(ch, "The %s is open.\r\n", fname(EXIT(ch, dir)->keyword.c_str()));
+    if (EXIT_FLAGGED(GET_EXIT(ch, dir), EX_CLOSED) && GET_EXIT(ch, dir).keyword.c_str())
+      send_to_char(ch, "The %s is closed.\r\n", fname(GET_EXIT(ch, dir).keyword.c_str()));
+    else if (EXIT_FLAGGED(GET_EXIT(ch, dir), EX_ISDOOR) && GET_EXIT(ch, dir).keyword.c_str())
+      send_to_char(ch, "The %s is open.\r\n", fname(GET_EXIT(ch, dir).keyword.c_str()));
   } else
     send_to_char(ch, "Nothing special there...\r\n");
 }

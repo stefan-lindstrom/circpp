@@ -329,25 +329,7 @@ void destroy_db(void)
     free_obj(objtmp);
   }
 
-  /* Rooms */
-  for (cnt = 0; cnt <= top_of_world; cnt++) {
-    if (world[cnt].name)
-      free(world[cnt].name);
-    if (world[cnt].description)
-      free(world[cnt].description);
-    free_extra_descriptions(world[cnt].ex_description);
 
-    for (itr = 0; itr < NUM_OF_DIRS; itr++) {
-      if (!world[cnt].dir_option[itr])
-        continue;
-
-      if (world[cnt].dir_option[itr]->general_description)
-        free(world[cnt].dir_option[itr]->general_description);
-      if (world[cnt].dir_option[itr]->keyword)
-        free(world[cnt].dir_option[itr]->keyword);
-      free(world[cnt].dir_option[itr]);
-    }
-  }
   delete [] world;
 
   /* Mobiles */
@@ -915,7 +897,7 @@ void parse_room(FILE *fl, int virtual_nr)
   world[room_nr].light = 0;	/* Zero light sources */
 
   for (i = 0; i < NUM_OF_DIRS; i++)
-    world[room_nr].dir_option[i] = NULL;
+    world[room_nr].dir_option[i] = std::make_tuple(room_direction_data(), false);
 
   snprintf(buf, sizeof(buf), "SYSERR: Format error in room #%d (expecting D/E/S)", virtual_nr);
 
@@ -956,13 +938,13 @@ void setup_dir(FILE *fl, int room, int dir)
 
   snprintf(buf2, sizeof(buf2), "room #%d, direction D%d", GET_ROOM_VNUM(room), dir);
 
-  world[room].dir_option[dir] = new room_direction_data;
+  world[room].dir_option[dir] = std::make_tuple(room_direction_data(), true);
 
   char *tmp = fread_string(fl, buf2);
-  world[room].dir_option[dir]->general_description = (nullptr == tmp) ? "" : tmp; 
+  std::get<0>(world[room].dir_option[dir]).general_description = (nullptr == tmp) ? "" : tmp; 
 
   tmp = fread_string(fl, buf2);
-  world[room].dir_option[dir]->keyword = (nullptr == tmp) ? "" : tmp; 
+  std::get<0>(world[room].dir_option[dir]).keyword = (nullptr == tmp) ? "" : tmp; 
 
   if (!get_line(fl, line)) {
     basic_mud_log("SYSERR: Format error, %s", buf2);
@@ -973,14 +955,14 @@ void setup_dir(FILE *fl, int room, int dir)
     exit(1);
   }
   if (t[0] == 1)
-    world[room].dir_option[dir]->exit_info = EX_ISDOOR;
+    std::get<0>(world[room].dir_option[dir]).exit_info = EX_ISDOOR;
   else if (t[0] == 2)
-    world[room].dir_option[dir]->exit_info = EX_ISDOOR | EX_PICKPROOF;
+    std::get<0>(world[room].dir_option[dir]).exit_info = EX_ISDOOR | EX_PICKPROOF;
   else
-    world[room].dir_option[dir]->exit_info = 0;
+    std::get<0>(world[room].dir_option[dir]).exit_info = 0;
 
-  world[room].dir_option[dir]->key = t[1];
-  world[room].dir_option[dir]->to_room = t[2];
+  std::get<0>(world[room].dir_option[dir]).key = t[1];
+  std::get<0>(world[room].dir_option[dir]).to_room = t[2];
 }
 
 
@@ -1011,10 +993,10 @@ void renum_world(void)
 
   for (room = 0; room <= top_of_world; room++)
     for (door = 0; door < NUM_OF_DIRS; door++)
-      if (world[room].dir_option[door])
-	if (world[room].dir_option[door]->to_room != NOWHERE)
-	  world[room].dir_option[door]->to_room =
-	    real_room(world[room].dir_option[door]->to_room);
+      if (std::get<1>(world[room].dir_option[door]))
+	if (std::get<0>(world[room].dir_option[door]).to_room != NOWHERE)
+	  std::get<0>(world[room].dir_option[door]).to_room =
+	    real_room(std::get<0>(world[room].dir_option[door]).to_room);
 }
 
 
@@ -1787,28 +1769,22 @@ void reset_zone(zone_rnum zone)
 
     case 'D':			/* set state of door */
       if (ZCMD.arg2 < 0 || ZCMD.arg2 >= NUM_OF_DIRS ||
-	  (world[ZCMD.arg1].dir_option[ZCMD.arg2] == NULL)) {
+	  (!std::get<1>(world[ZCMD.arg1].dir_option[ZCMD.arg2]))) {
 	ZONE_ERROR("door does not exist, command disabled");
 	ZCMD.command = '*';
       } else
 	switch (ZCMD.arg3) {
 	case 0:
-	  REMOVE_BIT(world[ZCMD.arg1].dir_option[ZCMD.arg2]->exit_info,
-		     EX_LOCKED);
-	  REMOVE_BIT(world[ZCMD.arg1].dir_option[ZCMD.arg2]->exit_info,
-		     EX_CLOSED);
+	  REMOVE_BIT(std::get<0>(world[ZCMD.arg1].dir_option[ZCMD.arg2]).exit_info, EX_LOCKED);
+	  REMOVE_BIT(std::get<0>(world[ZCMD.arg1].dir_option[ZCMD.arg2]).exit_info, EX_CLOSED);
 	  break;
 	case 1:
-	  SET_BIT(world[ZCMD.arg1].dir_option[ZCMD.arg2]->exit_info,
-		  EX_CLOSED);
-	  REMOVE_BIT(world[ZCMD.arg1].dir_option[ZCMD.arg2]->exit_info,
-		     EX_LOCKED);
+	  SET_BIT(std::get<0>(world[ZCMD.arg1].dir_option[ZCMD.arg2]).exit_info, EX_CLOSED);
+	  REMOVE_BIT(std::get<0>(world[ZCMD.arg1].dir_option[ZCMD.arg2]).exit_info, EX_LOCKED);
 	  break;
 	case 2:
-	  SET_BIT(world[ZCMD.arg1].dir_option[ZCMD.arg2]->exit_info,
-		  EX_LOCKED);
-	  SET_BIT(world[ZCMD.arg1].dir_option[ZCMD.arg2]->exit_info,
-		  EX_CLOSED);
+	  SET_BIT(std::get<0>(world[ZCMD.arg1].dir_option[ZCMD.arg2]).exit_info, EX_LOCKED);
+	  SET_BIT(std::get<0>(world[ZCMD.arg1].dir_option[ZCMD.arg2]).exit_info, EX_CLOSED);
 	  break;
 	}
       last_cmd = 1;

@@ -46,12 +46,12 @@ static struct bfs_queue_struct *queue_head = 0, *queue_tail = 0;
 #define MARK(room)	(SET_BIT(ROOM_FLAGS(room), ROOM_BFS_MARK))
 #define UNMARK(room)	(REMOVE_BIT(ROOM_FLAGS(room), ROOM_BFS_MARK))
 #define IS_MARKED(room)	(ROOM_FLAGGED(room, ROOM_BFS_MARK))
-#define TOROOM(x, y)	(world[(x)].dir_option[(y)]->to_room)
-#define IS_CLOSED(x, y)	(EXIT_FLAGGED(world[(x)].dir_option[(y)], EX_CLOSED))
+#define TOROOM(x, y)	(std::get<0>(world[(x)].dir_option[(y)]).to_room)
+#define IS_CLOSED(x, y)	(EXIT_FLAGGED(std::get<0>(world[(x)].dir_option[(y)]), EX_CLOSED))
 
 int VALID_EDGE(room_rnum x, int y)
 {
-  if (world[x].dir_option[y] == NULL || TOROOM(x, y) == NOWHERE)
+  if (std::get<1>(world[x].dir_option[y]) || TOROOM(x, y) == NOWHERE)
     return 0;
   if (track_through_doors == FALSE && IS_CLOSED(x, y))
     return 0;

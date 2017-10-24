@@ -422,20 +422,20 @@ void do_stat_room(struct char_data *ch)
   for (i = 0; i < NUM_OF_DIRS; i++) {
     char buf1[128];
 
-    if (!rm->dir_option[i])
+    if (!std::get<1>(rm->dir_option[i]))
       continue;
 
-    if (rm->dir_option[i]->to_room == NOWHERE)
+    if (std::get<0>(rm->dir_option[i]).to_room == NOWHERE)
       snprintf(buf1, sizeof(buf1), " %sNONE%s", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
     else
-      snprintf(buf1, sizeof(buf1), "%s%5d%s", CCCYN(ch, C_NRM), GET_ROOM_VNUM(rm->dir_option[i]->to_room), CCNRM(ch, C_NRM));
+      snprintf(buf1, sizeof(buf1), "%s%5d%s", CCCYN(ch, C_NRM), GET_ROOM_VNUM(std::get<0>(rm->dir_option[i]).to_room), CCNRM(ch, C_NRM));
 
-    sprintbit(rm->dir_option[i]->exit_info, exit_bits, buf2, sizeof(buf2));
+    sprintbit(std::get<0>(rm->dir_option[i]).exit_info, exit_bits, buf2, sizeof(buf2));
 
     send_to_char(ch, "Exit %s%-5s%s:  To: [%s], Key: [%5d], Keywrd: %s, Type: %s\r\n%s",
-		 CCCYN(ch, C_NRM), dirs[i], CCNRM(ch, C_NRM), buf1, rm->dir_option[i]->key,
-		 !rm->dir_option[i]->keyword.empty() ? rm->dir_option[i]->keyword.c_str() : "None", buf2,
-		 !rm->dir_option[i]->general_description.empty() ? rm->dir_option[i]->general_description.c_str() : "  No exit description.\r\n");
+		 CCCYN(ch, C_NRM), dirs[i], CCNRM(ch, C_NRM), buf1, std::get<0>(rm->dir_option[i]).key,
+		 !std::get<0>(rm->dir_option[i]).keyword.empty() ? std::get<0>(rm->dir_option[i]).keyword.c_str() : "None", buf2,
+		 !std::get<0>(rm->dir_option[i]).general_description.empty() ? std::get<0>(rm->dir_option[i]).general_description.c_str() : "  No exit description.\r\n");
   }
 }
 
@@ -2037,7 +2037,7 @@ ACMD(do_show)
     len = strlcpy(buf, "Errant Rooms\r\n------------\r\n", sizeof(buf));
     for (i = 0, k = 0; i <= top_of_world; i++)
       for (j = 0; j < NUM_OF_DIRS; j++)
-	if (world[i].dir_option[j] && world[i].dir_option[j]->to_room == 0) {
+	if (std::get<1>(world[i].dir_option[j]) && std::get<0>(world[i].dir_option[j]).to_room == 0) {
 	  nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++k, GET_ROOM_VNUM(i), world[i].name.c_str());
           if (len + nlen >= sizeof(buf) || nlen < 0)
             break;
