@@ -69,25 +69,25 @@ int mag_savingthrow(struct char_data *ch, int type, int modifier)
 /* affect_update: called from comm.c (causes spells to wear off) */
 void affect_update(void)
 {
-  struct affected_type *af, *next;
   struct char_data *i;
 
-  for (i = character_list; i; i = i->next)
-    for (af = i->affected; af; af = next) {
-      next = af->next;
+  for (i = character_list; i; i = i->next) {
+    for (auto af = i->affected.begin(); af != i->affected.end(); ++af) {      
       if (af->duration >= 1)
 	af->duration--;
       else if (af->duration == -1)	/* No action */
 	af->duration = -1;	/* GODs only! unlimited */
       else {
-	if ((af->type > 0) && (af->type <= MAX_SPELLS))
-	  if (!af->next || (af->next->type != af->type) ||
-	      (af->next->duration > 0))
-	    if (spell_info[af->type].wear_off_msg)
+	if ((af->type > 0) && (af->type <= MAX_SPELLS)) {
+	  auto next = std::next(af, 1);
+	  if ((next == i->affected.end() || (next->type != af->type) || (next->duration > 0)))
+	    if (spell_info[af->type].wear_off_msg) 
 	      send_to_char(i, "%s\r\n", spell_info[af->type].wear_off_msg);
-	affect_remove(i, af);
+	    affect_remove(i, *af);
+	}
       }
     }
+  }
 }
 
 
@@ -506,7 +506,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
 
   for (i = 0; i < MAX_SPELL_AFFECTS; i++)
     if (af[i].bitvector || (af[i].location != APPLY_NONE))
-      affect_join(victim, af+i, accum_duration, FALSE, accum_affect, FALSE);
+      affect_join(victim, af[i], accum_duration, false, accum_affect, false);
 
   if (to_vict != NULL)
     act(to_vict, FALSE, victim, 0, ch, CommTarget::TO_CHAR);

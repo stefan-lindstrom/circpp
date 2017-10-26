@@ -1322,8 +1322,8 @@ void nanny(struct descriptor_data *d, char *arg)
 	  clear_char(d->character);
 	  CREATE(d->character->player_specials, struct player_special_data, 1);
 	  d->character->desc = d;
-	  CREATE(d->character->player.name, char, strlen(tmp_name) + 1);
-	  strcpy(d->character->player.name, CAP(tmp_name));	/* strcpy: OK (size checked above) */
+	  d->character->player.name = std::string(CAP(tmp_name));
+
 	  GET_PFILEPOS(d->character) = player_i;
 	  write_to_output(d, "Did I get that right, %s (Y/N)? ", tmp_name);
 	  STATE(d) = CON_NAME_CNFRM;
@@ -1345,8 +1345,8 @@ void nanny(struct descriptor_data *d, char *arg)
 	  write_to_output(d, "Invalid name, please try another.\r\nName: ");
 	  return;
 	}
-	CREATE(d->character->player.name, char, strlen(tmp_name) + 1);
-	strcpy(d->character->player.name, CAP(tmp_name));	/* strcpy: OK (size checked above) */
+
+	d->character->player.name = std::string(CAP(tmp_name));	
 
 	write_to_output(d, "Did I get that right, %s (Y/N)? ", tmp_name);
 	STATE(d) = CON_NAME_CNFRM;
@@ -1600,15 +1600,14 @@ void nanny(struct descriptor_data *d, char *arg)
       break;
 
     case '2':
-      if (d->character->player.description) {
-	write_to_output(d, "Old description:\r\n%s", d->character->player.description);
-	free(d->character->player.description);
-	d->character->player.description = NULL;
+      if (!d->character->player.description.empty()) {
+	write_to_output(d, "Old description:\r\n%s", d->character->player.description.c_str());
+	d->character->player.description = "";
       }
-      write_to_output(d, "Enter the new text you'd like others to see when they look at you.\r\n"
-		"Terminate with a '@' on a new line.\r\n");
-      d->str = &d->character->player.description;
-      d->max_str = EXDSCR_LENGTH;
+      write_to_output(d, "Enter the new text you'd like others to see when they look at you.\r\nTerminate with a '@' on a new line.\r\n");
+      // TODO: fix this shit
+      //      d->str = &d->character->player.description;
+      //d->max_str = EXDSCR_LENGTH;
       STATE(d) = CON_EXDESC;
       break;
 

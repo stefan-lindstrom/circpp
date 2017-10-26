@@ -216,7 +216,6 @@ void affect_modify(struct char_data *ch, byte loc, sbyte mod,
 /* restoring original abilities, and then affecting all again           */
 void affect_total(struct char_data *ch)
 {
-  struct affected_type *af;
   int i, j;
 
   for (i = 0; i < NUM_WEARS; i++) {
@@ -228,8 +227,9 @@ void affect_total(struct char_data *ch)
   }
 
 
-  for (af = ch->affected; af; af = af->next)
-    affect_modify(ch, af->location, af->modifier, af->bitvector, FALSE);
+  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](const affected_type &a) { 
+      affect_modify(ch,a.location, a.modifier, a.bitvector, false); 
+    });
 
   ch->aff_abils = ch->real_abils;
 
@@ -242,8 +242,9 @@ void affect_total(struct char_data *ch)
   }
 
 
-  for (af = ch->affected; af; af = af->next)
-    affect_modify(ch, af->location, af->modifier, af->bitvector, TRUE);
+  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](const affected_type af) {
+      affect_modify(ch, af.location, af.modifier, af.bitvector, true);
+    });
 
   /* Make certain values are between 0..25, not < 0 and not > 25! */
 
@@ -271,17 +272,14 @@ void affect_total(struct char_data *ch)
 
 /* Insert an affect_type in a char_data structure
    Automatically sets apropriate bits and apply's */
-void affect_to_char(struct char_data *ch, struct affected_type *af)
+void affect_to_char(struct char_data *ch, const affected_type &af)
 {
-  struct affected_type *affected_alloc;
+  struct affected_type afaf;
 
-  CREATE(affected_alloc, struct affected_type, 1);
+  afaf = af;
+  ch->affected.push_back(afaf);
 
-  *affected_alloc = *af;
-  affected_alloc->next = ch->affected;
-  ch->affected = affected_alloc;
-
-  affect_modify(ch, af->location, af->modifier, af->bitvector, TRUE);
+  affect_modify(ch, afaf.location, afaf.modifier, afaf.bitvector, true);
   affect_total(ch);
 }
 
@@ -292,18 +290,15 @@ void affect_to_char(struct char_data *ch, struct affected_type *af)
  * reaches zero). Pointer *af must never be NIL!  Frees mem and calls
  * affect_location_apply
  */
-void affect_remove(struct char_data *ch, struct affected_type *af)
+void affect_remove(struct char_data *ch, affected_type &af)
 {
-  struct affected_type *temp;
-
-  if (ch->affected == NULL) {
+  if (ch->affected.empty()) {
     core_dump();
     return;
   }
 
-  affect_modify(ch, af->location, af->modifier, af->bitvector, FALSE);
-  REMOVE_FROM_LIST(af, ch->affected, next);
-  free(af);
+  affect_modify(ch, af.location, af.modifier, af.bitvector, false);
+  ch->affected.remove_if([&af](affected_type &a) { return &a == &af; });
   affect_total(ch);
 }
 
@@ -312,12 +307,10 @@ void affect_remove(struct char_data *ch, struct affected_type *af)
 /* Call affect_remove with every spell of spelltype "skill" */
 void affect_from_char(struct char_data *ch, int type)
 {
-  struct affected_type *hjp, *next;
 
-  for (hjp = ch->affected; hjp; hjp = next) {
-    next = hjp->next;
-    if (hjp->type == type)
-      affect_remove(ch, hjp);
+  auto it = std::find_if(ch->affected.begin(), ch->affected.end(), [&type](affected_type &a) { return type == a.type; });
+  if (ch->affected.end() != it) {
+    affect_remove(ch, *it);
   }
 }
 
@@ -329,44 +322,30 @@ void affect_from_char(struct char_data *ch, int type)
  */
 bool affected_by_spell(struct char_data *ch, int type)
 {
-  struct affected_type *hjp;
-
-  for (hjp = ch->affected; hjp; hjp = hjp->next)
-    if (hjp->type == type)
-      return (TRUE);
-
-  return (FALSE);
+  return (ch->affected.end() != std::find_if(ch->affected.begin(), ch->affected.end(), [&type](affected_type &a) { return a.type == type; }));
 }
 
-
-
-void affect_join(struct char_data *ch, struct affected_type *af,
-		      bool add_dur, bool avg_dur, bool add_mod, bool avg_mod)
+void affect_join(struct char_data *ch, affected_type &af, bool add_dur, bool avg_dur, bool add_mod, bool avg_mod)
 {
-  struct affected_type *hjp, *next;
-  bool found = FALSE;
+  auto it = std::find_if(ch->affected.begin(), ch->affected.end(), [&af](const affected_type &a) { 
+      return a.type == af.type && a.location == af.location;
+    });
 
-  for (hjp = ch->affected; !found && hjp; hjp = next) {
-    next = hjp->next;
+  if (it != ch->affected.end()) {
+    if (add_dur) 
+      af.duration += it->duration;
+    if (avg_dur)
+      af.duration /= 2;
 
-    if ((hjp->type == af->type) && (hjp->location == af->location)) {
-      if (add_dur)
-	af->duration += hjp->duration;
-      if (avg_dur)
-	af->duration /= 2;
+    if (add_mod) 
+      af.modifier += it->modifier;
+    if (avg_mod)
+      af.modifier /= 2;
 
-      if (add_mod)
-	af->modifier += hjp->modifier;
-      if (avg_mod)
-	af->modifier /= 2;
-
-      affect_remove(ch, hjp);
-      affect_to_char(ch, af);
-      found = TRUE;
-    }
-  }
-  if (!found)
     affect_to_char(ch, af);
+  } else {
+    affect_to_char(ch, af);
+  }
 }
 
 
@@ -1042,7 +1021,7 @@ struct char_data *get_player_vis(struct char_data *ch, char *name, int *number, 
       continue;
     if (inroom == FIND_CHAR_ROOM && IN_ROOM(i) != IN_ROOM(ch))
       continue;
-    if (str_cmp(i->player.name, name)) /* If not same, continue */
+    if (str_cmp(i->player.name.c_str(), name)) /* If not same, continue */
       continue;
     if (!CAN_SEE(ch, i))
       continue;

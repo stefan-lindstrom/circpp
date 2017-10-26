@@ -794,27 +794,31 @@ struct time_info_data {
 
 /* These data contain information about a players time data */
 struct time_data {
-   time_t birth;    /* This represents the characters age                */
-   time_t logon;    /* Time of the last logon (used to calculate played) */
-   int	played;     /* This is the total accumulated time played in secs */
+  time_t birth;    /* This represents the characters age                */
+  time_t logon;    /* Time of the last logon (used to calculate played) */
+  int	played;     /* This is the total accumulated time played in secs */
+  
+  time_data() : birth(0), logon(0), played(0) {}
 };
 
 
 /* general player-related info, usually PC's and NPC's */
 struct char_player_data {
-   char	passwd[MAX_PWD_LENGTH+1]; /* character's password      */
-   char	*name;	       /* PC / NPC s name (kill ...  )         */
-   char	*short_descr;  /* for NPC 'actions'                    */
-   char	*long_descr;   /* for 'look'			       */
-   char	*description;  /* Extra descriptions                   */
-   char	*title;        /* PC / NPC's title                     */
-   byte sex;           /* PC / NPC's sex                       */
-   byte chclass;       /* PC / NPC's class		       */
-   byte level;         /* PC / NPC's level                     */
-   sh_int hometown;    /* PC s Hometown (zone)                 */
-   struct time_data time;  /* PC's AGE in days                 */
-   ubyte weight;       /* PC / NPC's weight                    */
-   ubyte height;       /* PC / NPC's height                    */
+  char	passwd[MAX_PWD_LENGTH+1]; /* character's password                 */
+  std::string name;   	          /* PC / NPC s name (kill ...  )         */
+  std::string short_descr;        /* for NPC 'actions'                    */
+  std::string long_descr;         /* for 'look'			          */
+  std::string description;        /* Extra descriptions                   */
+  std::string title;              /* PC / NPC's title                     */
+  byte sex;                       /* PC / NPC's sex                       */
+  byte chclass;                   /* PC / NPC's class		          */
+  byte level;                     /* PC / NPC's level                     */
+  sh_int hometown;                /* PC s Hometown (zone)                 */
+  struct time_data time;          /* PC's AGE in days                     */
+  ubyte weight;                   /* PC / NPC's weight                    */
+  ubyte height;                   /* PC / NPC's height                    */
+
+  char_player_data() : name(""), short_descr(""), long_descr(""), description(""), title(""), sex(0), chclass(0), level(0), hometown(0), weight(0), height(0) {}
 };
 
 
@@ -827,6 +831,8 @@ struct char_ability_data {
    sbyte dex;
    sbyte con;
    sbyte cha;
+
+   char_ability_data() : str(0), str_add(0), intel(0), wis(0), dex(0), con(0), cha(0) {}
 };
 
 
@@ -846,6 +852,9 @@ struct char_point_data {
 
    sbyte hitroll;       /* Any bonus or penalty to the hit roll    */
    sbyte damroll;       /* Any bonus or penalty to the damage roll */
+
+   char_point_data() : mana(0), max_mana(0), hit(0), max_hit(0), move(0), 
+     max_move(0), armor(0), gold(0), bank_gold(0), exp(0), hitroll(0), damroll(0) {}
 };
 
 
@@ -858,13 +867,15 @@ struct char_point_data {
  * in player_special_data.
  */
 struct char_special_data_saved {
-   int	alignment;		/* +-1000 for alignments                */
-   long	idnum;			/* player's idnum; -1 for mobiles	*/
-   long /*bitvector_t*/ act;	/* act flag for NPC's; player flag for PC's */
-
-   long /*bitvector_t*/	affected_by;
-				/* Bitvector for spells/skills affected by */
-   sh_int apply_saving_throw[5]; /* Saving throw (Bonuses)		*/
+  int	alignment;		/* +-1000 for alignments                */
+  long	idnum;			/* player's idnum; -1 for mobiles	*/
+  long /*bitvector_t*/ act;	/* act flag for NPC's; player flag for PC's */
+  
+  long /*bitvector_t*/	affected_by;
+  /* Bitvector for spells/skills affected by */
+  sh_int apply_saving_throw[5]; /* Saving throw (Bonuses)		*/
+  
+  char_special_data_saved() : alignment(0), idnum(0), act(0), affected_by(0), apply_saving_throw{0,0,0,0,0} {}
 };
 
 
@@ -880,6 +891,8 @@ struct char_special_data {
    int	timer;			/* Timer for update			*/
 
    struct char_special_data_saved saved; /* constants saved in plrfile	*/
+
+   char_special_data() : fighting(nullptr), hunting(nullptr), position(0), carry_weight(0), carry_items(0), timer(0) {}
 };
 
 
@@ -945,67 +958,78 @@ struct player_special_data {
    struct alias_data *aliases;	/* Character's aliases			*/
    long last_tell;		/* idnum of last tell from		*/
    void *last_olc_targ;		/* olc control				*/
-   OlcMode last_olc_mode;		/* olc control				*/
+   OlcMode last_olc_mode;	/* olc control				*/
+
+  player_special_data() : poofin(nullptr), poofout(nullptr), aliases(nullptr), last_tell(0), last_olc_targ(nullptr), last_olc_mode(OlcMode::OLC_SET) {}
 };
 
 
 /* Specials used by NPCs, not PCs */
 struct mob_special_data {
-   memory_rec *memory;	    /* List of attackers to remember	       */
-   byte	attack_type;        /* The Attack Type Bitvector for NPC's     */
-   byte default_pos;        /* Default position for NPC                */
-   byte damnodice;          /* The number of damage dice's	       */
-   byte damsizedice;        /* The size of the damage dice's           */
+  memory_rec *memory;	    /* List of attackers to remember	       */
+  byte	attack_type;        /* The Attack Type Bitvector for NPC's     */
+  byte default_pos;        /* Default position for NPC                */
+  byte damnodice;          /* The number of damage dice's	       */
+  byte damsizedice;        /* The size of the damage dice's           */
+
+  mob_special_data() : memory(nullptr), attack_type(0), default_pos(0), damnodice(0), damsizedice(0) {}
 };
 
 
 /* An affect structure.  Used in char_file_u *DO*NOT*CHANGE* */
 struct affected_type {
-   sh_int type;          /* The type of spell that caused this      */
-   sh_int duration;      /* For how long its effects will last      */
-   sbyte modifier;       /* This is added to apropriate ability     */
-   byte location;        /* Tells which ability to change(APPLY_XXX)*/
-   long /*bitvector_t*/	bitvector; /* Tells which bits to set (AFF_XXX) */
-
-   struct affected_type *next;
+  sh_int type;          /* The type of spell that caused this      */
+  sh_int duration;      /* For how long its effects will last      */
+  sbyte modifier;       /* This is added to apropriate ability     */
+  byte location;        /* Tells which ability to change(APPLY_XXX)*/
+  long /*bitvector_t*/	bitvector; /* Tells which bits to set (AFF_XXX) */
+  
+  affected_type() : type(0), duration(0), modifier(0), location(0) {}
 };
 
 
 /* Structure used for chars following other chars */
 struct follow_type {
-   struct char_data *follower;
-   struct follow_type *next;
+  struct char_data *follower;
+  struct follow_type *next;
+
+  follow_type() : follower(nullptr), next(nullptr)  {}
 };
 
 
 /* ================== Structure for player/non-player ===================== */
 struct char_data {
-   int pfilepos;			 /* playerfile pos		  */
-   mob_rnum nr;                          /* Mob's rnum			  */
-   room_rnum in_room;                    /* Location (real room number)	  */
-   room_rnum was_in_room;		 /* location for linkdead people  */
-   int wait;				 /* wait for how many loops	  */
+  int pfilepos;			 /* playerfile pos		  */
+  mob_rnum nr;                          /* Mob's rnum			  */
+  room_rnum in_room;                    /* Location (real room number)	  */
+  room_rnum was_in_room;		 /* location for linkdead people  */
+  int wait;				 /* wait for how many loops	  */
+  
+  struct char_player_data player;       /* Normal data                   */
+  struct char_ability_data real_abils;	 /* Abilities without modifiers   */
+  struct char_ability_data aff_abils;	 /* Abils with spells/stones/etc  */
+  struct char_point_data points;        /* Points                        */
+  struct char_special_data char_specials;	/* PC/NPC specials	  */
+  struct player_special_data *player_specials; /* PC specials		  */
+  struct mob_special_data mob_specials;	/* NPC specials		  */
+  
+  std::list<affected_type> affected;
+  //  struct affected_type *affected;       /* affected by what spells       */
+  struct obj_data *equipment[NUM_WEARS];/* Equipment array               */
 
-   struct char_player_data player;       /* Normal data                   */
-   struct char_ability_data real_abils;	 /* Abilities without modifiers   */
-   struct char_ability_data aff_abils;	 /* Abils with spells/stones/etc  */
-   struct char_point_data points;        /* Points                        */
-   struct char_special_data char_specials;	/* PC/NPC specials	  */
-   struct player_special_data *player_specials; /* PC specials		  */
-   struct mob_special_data mob_specials;	/* NPC specials		  */
+  struct obj_data *carrying;            /* Head of list                  */
+  struct descriptor_data *desc;         /* NULL for mobiles              */
 
-   struct affected_type *affected;       /* affected by what spells       */
-   struct obj_data *equipment[NUM_WEARS];/* Equipment array               */
+  struct char_data *next_in_room;     /* For room->people - list         */
+  struct char_data *next;             /* For either monster or ppl-list  */
+  struct char_data *next_fighting;    /* For fighting list               */
 
-   struct obj_data *carrying;            /* Head of list                  */
-   struct descriptor_data *desc;         /* NULL for mobiles              */
-
-   struct char_data *next_in_room;     /* For room->people - list         */
-   struct char_data *next;             /* For either monster or ppl-list  */
-   struct char_data *next_fighting;    /* For fighting list               */
-
-   struct follow_type *followers;        /* List of chars followers       */
-   struct char_data *master;             /* Who is char following?        */
+  struct follow_type *followers;        /* List of chars followers       */
+  struct char_data *master;             /* Who is char following?        */
+  
+  char_data() : pfilepos(0), nr(0), in_room(NOWHERE), was_in_room(NOWHERE), wait(0), player_specials(nullptr), 
+    equipment{nullptr}, carrying(nullptr), desc(nullptr), next_in_room(nullptr), next(nullptr), next_fighting(nullptr), 
+    followers(nullptr), master(nullptr) {}
 };
 /* ====================================================================== */
 

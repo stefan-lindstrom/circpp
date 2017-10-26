@@ -357,8 +357,7 @@ void raw_kill(struct char_data *ch)
   if (FIGHTING(ch))
     stop_fighting(ch);
 
-  while (ch->affected)
-    affect_remove(ch, ch->affected);
+  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
 
   death_cry(ch);
 

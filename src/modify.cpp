@@ -136,7 +136,7 @@ void string_add(struct descriptor_data *d, char *str)
       send_to_char(d->character, "String too long.  Last line skipped.\r\n");
       terminator = 1;
     } else {
-      RECREATE(*d->str, char, strlen(*d->str) + strlen(str) + 3); /* \r\n\0 */
+      RECREATE(*d->str, char, strlen(*d->str) + strlen(str) + 3, strlen(*d->str)); /* \r\n\0 */
       strcat(*d->str, str);	/* strcat: OK (size precalculated) */
     }
   }

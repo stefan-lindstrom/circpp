@@ -163,16 +163,19 @@ void	update_pos(struct char_data *victim);
 
 /* memory utils **********************************************************/
 
-
 #define CREATE(result, type, number)  do {\
 	if ((number) * sizeof(type) <= 0)	\
-		basic_mud_log("SYSERR: Zero bytes or less requested at %s:%d.", __FILE__, __LINE__);	\
-	if (!((result) = (type *) calloc ((number), sizeof(type))))	\
-		{ perror("SYSERR: malloc failure"); abort(); } } while(0)
+	  basic_mud_log("SYSERR: Zero bytes or less requested at %s:%d.", __FILE__, __LINE__); \
+	else if ((number) == 1)					\
+	  (result) = new type;				\
+	else if (!((result) = new type[(number)]))            \
+	  { perror("SYSERR: malloc failure"); abort(); } } while(0)
 
-#define RECREATE(result,type,number) do {\
-  if (!((result) = (type *) realloc ((result), sizeof(type) * (number))))\
-		{ perror("SYSERR: realloc failure"); abort(); } } while(0)
+#define RECREATE(result,type,number, old) do {	\
+  type *tmp = new type[number];			\
+  std::copy((result), (result)+old, tmp);	\
+  if ((old) == 1) delete result;		\
+  else            delete [] result; } while(0)
 
 /*
  * the source previously used the same code in many places to remove an item
@@ -275,10 +278,11 @@ void	update_pos(struct char_data *victim);
 #define GET_WAS_IN(ch)	((ch)->was_in_room)
 #define GET_AGE(ch)     (age(ch)->year)
 
-#define GET_PC_NAME(ch)	((ch)->player.name)
+#define GET_PC_NAME(ch)	((ch)->player.name.c_str())
 #define GET_NAME(ch)    (IS_NPC(ch) ? \
-			 (ch)->player.short_descr : GET_PC_NAME(ch))
-#define GET_TITLE(ch)   ((ch)->player.title)
+			 (ch)->player.short_descr.c_str() : GET_PC_NAME(ch))
+#define GET_TITLE(ch)   ((ch)->player.title.c_str())
+#define GET_TITLE_S(ch) ((ch)->player.title)
 #define GET_LEVEL(ch)   ((ch)->player.level)
 #define GET_PASSWD(ch)	((ch)->player.passwd)
 #define GET_PFILEPOS(ch)((ch)->pfilepos)

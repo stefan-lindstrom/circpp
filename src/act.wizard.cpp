@@ -590,7 +590,6 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
   int i, i2, column, found = FALSE;
   struct obj_data *j;
   struct follow_type *fol;
-  struct affected_type *aff;
 
   sprinttype(GET_SEX(k), genders, buf, sizeof(buf));
   send_to_char(ch, "%s %s '%s'  IDNum: [%5ld], In room [%5d]\r\n",
@@ -598,11 +597,11 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
 	  GET_NAME(k), GET_IDNUM(k), GET_ROOM_VNUM(IN_ROOM(k)));
 
   if (IS_MOB(k))
-    send_to_char(ch, "Alias: %s, VNum: [%5d], RNum: [%5d]\r\n", k->player.name, GET_MOB_VNUM(k), GET_MOB_RNUM(k));
+    send_to_char(ch, "Alias: %s, VNum: [%5d], RNum: [%5d]\r\n", k->player.name.c_str(), GET_MOB_VNUM(k), GET_MOB_RNUM(k));
 
-  send_to_char(ch, "Title: %s\r\n", k->player.title ? k->player.title : "<None>");
+  send_to_char(ch, "Title: %s\r\n", !k->player.title.empty() ? k->player.title.c_str() : "<None>");
 
-  send_to_char(ch, "L-Des: %s", k->player.long_descr ? k->player.long_descr : "<None>\r\n");
+  send_to_char(ch, "L-Des: %s", !k->player.long_descr.empty() ? k->player.long_descr.c_str() : "<None>\r\n");
 
   sprinttype(k->player.chclass, IS_NPC(k) ? npc_class_types : pc_class_types, buf, sizeof(buf));
   send_to_char(ch, "%sClass: %s, Lev: [%s%2d%s], XP: [%s%7d%s], Align: [%4d]\r\n",
@@ -710,18 +709,18 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
   send_to_char(ch, "AFF: %s%s%s\r\n", CCYEL(ch, C_NRM), buf, CCNRM(ch, C_NRM));
 
   /* Routine to show what spells a char is affected by */
-  if (k->affected) {
-    for (aff = k->affected; aff; aff = aff->next) {
-      send_to_char(ch, "SPL: (%3dhr) %s%-21s%s ", aff->duration + 1, CCCYN(ch, C_NRM), skill_name(aff->type), CCNRM(ch, C_NRM));
+  if (!k->affected.empty()) {
+    for (auto it = k->affected.begin(); it != k->affected.end() ; ++it) {
+      send_to_char(ch, "SPL: (%3dhr) %s%-21s%s ", it->duration + 1, CCCYN(ch, C_NRM), skill_name(it->type), CCNRM(ch, C_NRM));
 
-      if (aff->modifier)
-	send_to_char(ch, "%+d to %s", aff->modifier, apply_types[(int) aff->location]);
+      if (it->modifier)
+	send_to_char(ch, "%+d to %s", it->modifier, apply_types[(int) it->location]);
 
-      if (aff->bitvector) {
-	if (aff->modifier)
+      if (it->bitvector) {
+	if (it->modifier)
 	  send_to_char(ch, ", ");
 
-	sprintbit(aff->bitvector, affected_bits, buf, sizeof(buf));
+	sprintbit(it->bitvector, affected_bits, buf, sizeof(buf));
         send_to_char(ch, "sets %s", buf);
       }
       send_to_char(ch, "\r\n");
@@ -1849,9 +1848,10 @@ ACMD(do_wizutil)
       act("A sudden fireball conjured from nowhere thaws $n!", FALSE, vict, 0, 0, CommTarget::TO_ROOM);
       break;
     case SCMD_UNAFFECT:
-      if (vict->affected) {
-	while (vict->affected)
-	  affect_remove(vict, vict->affected);
+      if (!vict->affected.empty()) {
+	std::for_each(vict->affected.begin(), vict->affected.end(),[&vict](affected_type &a) { affect_remove(vict, a); });
+	vict->affected.clear();
+
 	send_to_char(vict, "There is a brief flash of light!\r\nYou feel slightly different.\r\n");
 	send_to_char(ch, "All spells removed.\r\n");
       } else {

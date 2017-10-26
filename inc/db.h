@@ -104,7 +104,7 @@ enum class DBBoot : unsigned char  {
 /* public procedures in db.c */
 void	boot_db(void);
 void	destroy_db(void);
-int	create_entry(char *name);
+int	create_entry(const char *name);
 void	zone_update(void);
 char	*fread_string(FILE *fl, const char *error);
 long	get_id_by_name(const char *name);

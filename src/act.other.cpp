@@ -161,7 +161,7 @@ ACMD(do_sneak)
   af.modifier = 0;
   af.location = APPLY_NONE;
   af.bitvector = AFF_SNEAK;
-  affect_to_char(ch, &af);
+  affect_to_char(ch, af);
 }
 
 

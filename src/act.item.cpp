@@ -903,7 +903,7 @@ ACMD(do_drink)
     af.modifier = 0;
     af.location = APPLY_NONE;
     af.bitvector = AFF_POISON;
-    affect_join(ch, &af, FALSE, FALSE, FALSE, FALSE);
+    affect_join(ch, af, false, false, false, false);
   }
   /* empty the container, and no longer poison. */
   GET_OBJ_VAL(temp, 1) -= amount;
@@ -976,7 +976,7 @@ ACMD(do_eat)
     af.modifier = 0;
     af.location = APPLY_NONE;
     af.bitvector = AFF_POISON;
-    affect_join(ch, &af, FALSE, FALSE, FALSE, FALSE);
+    affect_join(ch, af,false, false, false, false);
   }
   if (subcmd == SCMD_EAT)
     extract_obj(food);

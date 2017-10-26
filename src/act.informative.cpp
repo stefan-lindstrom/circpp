@@ -205,8 +205,8 @@ void look_at_char(struct char_data *i, struct char_data *ch)
   if (!ch->desc)
     return;
 
-   if (i->player.description)
-    send_to_char(ch, "%s", i->player.description);
+  if (!i->player.description.empty())
+    send_to_char(ch, "%s", i->player.description.c_str());
   else
     act("You see nothing special about $m.", FALSE, i, 0, ch, CommTarget::TO_VICT);
 
@@ -256,7 +256,7 @@ void list_one_char(struct char_data *i, struct char_data *ch)
     " is standing here."
   };
 
-  if (IS_NPC(i) && i->player.long_descr && GET_POS(i) == GET_DEFAULT_POS(i)) {
+  if (IS_NPC(i) && !i->player.long_descr.empty() && GET_POS(i) == GET_DEFAULT_POS(i)) {
     if (AFF_FLAGGED(i, AFF_INVISIBLE))
       send_to_char(ch, "*");
 
@@ -266,7 +266,7 @@ void list_one_char(struct char_data *i, struct char_data *ch)
       else if (IS_GOOD(i))
 	send_to_char(ch, "(Blue Aura) ");
     }
-    send_to_char(ch, "%s", i->player.long_descr);
+    send_to_char(ch, "%s", i->player.long_descr.c_str());
 
     if (AFF_FLAGGED(i, AFF_SANCTUARY))
       act("...$e glows with a bright light!", FALSE, i, 0, ch, CommTarget::TO_VICT);
@@ -277,9 +277,9 @@ void list_one_char(struct char_data *i, struct char_data *ch)
   }
 
   if (IS_NPC(i))
-    send_to_char(ch, "%c%s", UPPER(*i->player.short_descr), i->player.short_descr + 1);
+    send_to_char(ch, "%c%s", UPPER(*i->player.short_descr.c_str()), i->player.short_descr.substr(1).c_str());
   else
-    send_to_char(ch, "%s %s", i->player.name, GET_TITLE(i));
+    send_to_char(ch, "%s %s", i->player.name.c_str(), GET_TITLE(i));
 
   if (AFF_FLAGGED(i, AFF_INVISIBLE))
     send_to_char(ch, " (invisible)");
@@ -1248,8 +1248,8 @@ ACMD(do_users)
       strcpy(idletime, "");
 
     sprintf(line, "%3d %-7s %-12s %-14s %-3s %-8s ", d->desc_num, classname,
-	d->original && d->original->player.name ? d->original->player.name :
-	d->character && d->character->player.name ? d->character->player.name :
+	    d->original && !d->original->player.name.empty() ? d->original->player.name.c_str() :
+	    d->character && !d->character->player.name.empty() ? d->character->player.name.c_str() :
 	"UNDEFINED",
 	state, idletime, timeptr);
 

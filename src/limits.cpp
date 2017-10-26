@@ -215,10 +215,8 @@ void set_title(struct char_data *ch, char *title)
   if (strlen(title) > MAX_TITLE_LENGTH)
     title[MAX_TITLE_LENGTH] = '\0';
 
-  if (GET_TITLE(ch) != NULL)
-    free(GET_TITLE(ch));
 
-  GET_TITLE(ch) = strdup(title);
+  GET_TITLE_S(ch) = title;
 }
 
 

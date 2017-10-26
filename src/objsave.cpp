@@ -215,7 +215,7 @@ void auto_equip(struct char_data *ch, struct obj_data *obj, int location)
 }
 
 
-int Crash_delete_file(char *name)
+int Crash_delete_file(const char *name)
 {
   char filename[50];
   FILE *fl;

@@ -1820,7 +1820,7 @@ int process_input(struct descriptor_data *t)
     } else {
       strcpy(t->last_input, tmp);	/* strcpy: OK (by mutual MAX_INPUT_LENGTH) */
       if (t->history[t->history_pos])
-	free(t->history[t->history_pos]);	/* Clear the old line. */
+      //	free(t->history[t->history_pos]);	/* Clear the old line. */
       t->history[t->history_pos] = strdup(tmp);	/* Save the new. */
       if (++t->history_pos >= HISTORY_SIZE)	/* Wrap to top. */
 	t->history_pos = 0;
@@ -1928,8 +1928,8 @@ void close_socket(struct descriptor_data *d)
     /* Plug memory leak, from Eric Green. */
     if (!IS_NPC(d->character) && PLR_FLAGGED(d->character, PLR_MAILING) && d->str) {
       if (*(d->str))
-        free(*(d->str));
-      free(d->str);
+        delete [] *(d->str);
+      delete [] (d->str);
     }
 
     if (STATE(d) == CON_PLAYING || STATE(d) == CON_DISCONNECT) {
@@ -1955,8 +1955,10 @@ void close_socket(struct descriptor_data *d)
     int cnt;
     for (cnt = 0; cnt < HISTORY_SIZE; cnt++)
       if (d->history[cnt])
-	free(d->history[cnt]);
-    free(d->history);
+	delete [] d->history[cnt];
+    delete [] d->history;
+    //    free(d->history[cnt]);
+    //    free(d->history);
   }
 
   if (d->showstr_head)

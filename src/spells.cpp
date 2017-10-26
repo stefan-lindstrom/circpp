@@ -234,7 +234,7 @@ ASPELL(spell_charm)
     af.modifier = 0;
     af.location = 0;
     af.bitvector = AFF_CHARM;
-    affect_to_char(victim, &af);
+    affect_to_char(victim, af);
 
     act("Isn't $n just such a nice fellow?", FALSE, ch, 0, victim, CommTarget::TO_VICT);
     if (IS_NPC(victim))

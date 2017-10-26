@@ -969,7 +969,7 @@ SPECIAL(shop_keeper)
     snprintf(argm, sizeof(argm), "$N shouts '%s'", MSG_NO_STEAL_HERE);
     act(argm, FALSE, ch, 0, keeper, CommTarget::TO_CHAR);
 
-    do_action(keeper, GET_NAME(ch), cmd_slap, 0);
+    do_action(keeper, const_cast<char *>(GET_NAME(ch)), cmd_slap, 0);
     return (TRUE);
   }
 
@@ -1008,7 +1008,7 @@ int ok_damage_shopkeeper(struct char_data *ch, struct char_data *victim)
       snprintf(buf, sizeof(buf), "%s %s", GET_NAME(ch), MSG_CANT_KILL_KEEPER);
       do_tell(victim, buf, cmd_tell, 0);
 
-      do_action(victim, GET_NAME(ch), cmd_slap, 0);
+      do_action(victim, const_cast<char *>(GET_NAME(ch)), cmd_slap, 0);
       return (FALSE);
     }
 

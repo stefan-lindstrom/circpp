@@ -731,8 +731,9 @@ static void index_boot(DBBoot mode)
    */
   switch (mode) {
   case DBBoot::DB_BOOT_MOB:
-    CREATE(mob_proto, struct char_data, rec_count);
-    CREATE(mob_index, struct index_data, rec_count);
+    mob_proto = new char_data[rec_count];
+    mob_index = new index_data[rec_count];
+
     size[0] = sizeof(struct index_data) * rec_count;
     size[1] = sizeof(struct char_data) * rec_count;
     basic_mud_log("   %d mobs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
@@ -1157,15 +1158,20 @@ void parse_mobile(FILE *mob_f, int nr)
   sprintf(buf2, "mob vnum %d", nr);	/* sprintf: OK (for 'buf2 >= 19') */
 
   /***** String data *****/
-  mob_proto[i].player.name = fread_string(mob_f, buf2);
-  tmpptr = mob_proto[i].player.short_descr = fread_string(mob_f, buf2);
+  char *tmpline = fread_string(mob_f, buf2);
+  mob_proto[i].player.name = (tmpline ? std::string(tmpline) : "");
+  mob_proto[i].player.short_descr = fread_string(mob_f, buf2);
+  tmpptr = const_cast<char *>(mob_proto[i].player.short_descr.c_str());
   if (tmpptr && *tmpptr)
     if (!str_cmp(fname(tmpptr), "a") || !str_cmp(fname(tmpptr), "an") ||
 	!str_cmp(fname(tmpptr), "the"))
       *tmpptr = LOWER(*tmpptr);
-  mob_proto[i].player.long_descr = fread_string(mob_f, buf2);
-  mob_proto[i].player.description = fread_string(mob_f, buf2);
-  GET_TITLE(mob_proto + i) = NULL;
+
+  char *tmp = fread_string(mob_f, buf2);
+  mob_proto[i].player.long_descr = (nullptr == tmp) ?  "" : tmp;
+
+  tmp = fread_string(mob_f, buf2);
+  mob_proto[i].player.description = (nullptr == tmp) ?  "" : tmp;
 
   /* *** Numeric data *** */
   if (!get_line(mob_f, line)) {
@@ -1339,7 +1345,7 @@ int vnum_mobile(char *searchname, struct char_data *ch)
 
   for (nr = 0; nr <= top_of_mobt; nr++)
     if (isname(searchname, mob_proto[nr].player.name))
-      send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, mob_index[nr].vnum, mob_proto[nr].player.short_descr);
+      send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, mob_index[nr].vnum, mob_proto[nr].player.short_descr.c_str());
 
   return (found);
 }
@@ -1791,8 +1797,8 @@ void store_to_char(struct char_file_u *st, struct char_data *ch)
   GET_CLASS(ch) = st->chclass;
   GET_LEVEL(ch) = st->level;
 
-  ch->player.short_descr = NULL;
-  ch->player.long_descr = NULL;
+  ch->player.short_descr = "";
+  ch->player.long_descr = "";
   ch->player.title = strdup(st->title);
   ch->player.description = strdup(st->description);
 
@@ -1822,15 +1828,13 @@ void store_to_char(struct char_file_u *st, struct char_data *ch)
   ch->points.hitroll = 0;
   ch->points.damroll = 0;
 
-  if (ch->player.name)
-    free(ch->player.name);
-  ch->player.name = strdup(st->name);
+  ch->player.name = std::string(st->name);
   strlcpy(ch->player.passwd, st->pwd, sizeof(ch->player.passwd));
 
   /* Add all spell effects */
   for (i = 0; i < MAX_AFFECT; i++) {
     if (st->affected[i].type)
-      affect_to_char(ch, &st->affected[i]);
+      affect_to_char(ch, st->affected[i]);
   }
 
   /*
@@ -1853,7 +1857,6 @@ void store_to_char(struct char_file_u *st, struct char_data *ch)
 void char_to_store(struct char_data *ch, struct char_file_u *st)
 {
   int i;
-  struct affected_type *af;
   struct obj_data *char_eq[NUM_WEARS];
 
   /* Unaffect everything a character can be affected by */
@@ -1865,31 +1868,25 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
       char_eq[i] = NULL;
   }
 
-  for (af = ch->affected, i = 0; i < MAX_AFFECT; i++) {
-    if (af) {
-      st->affected[i] = *af;
-      st->affected[i].next = 0;
-      af = af->next;
-    } else {
-      st->affected[i].type = 0;	/* Zero signifies not used */
-      st->affected[i].duration = 0;
-      st->affected[i].modifier = 0;
-      st->affected[i].location = 0;
-      st->affected[i].bitvector = 0;
-      st->affected[i].next = 0;
-    }
+  i = 0;
+  std::for_each(st->affected, st->affected+MAX_AFFECT, [](affected_type &a) { a = affected_type(); });
+  for (auto af = ch->affected.begin(); af != ch->affected.end() && (i < MAX_AFFECT); ++af, i++) {
+    st->affected[i] = *af;
   }
-
 
   /*
    * remove the affections so that the raw values are stored; otherwise the
    * effects are doubled when the char logs back in.
    */
 
-  while (ch->affected)
-    affect_remove(ch, ch->affected);
+  auto sz = ch->affected.size();
+  while (!ch->affected.empty()) {
+    auto &aff = ch->affected.front();
+    affect_remove(ch, aff);
+  }
+  //  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
 
-  if ((i >= MAX_AFFECT) && af && af->next)
+  if (sz > MAX_AFFECT)
     basic_mud_log("SYSERR: WARNING: OUT OF STORE ROOM FOR AFFECTED TYPES!!!");
 
   ch->aff_abils = ch->real_abils;
@@ -1922,15 +1919,15 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
   else
     *st->title = '\0';
 
-  if (ch->player.description) {
-    if (strlen(ch->player.description) >= sizeof(st->description)) {
+  if (!ch->player.description.empty()) {
+    if (ch->player.description.length() >= sizeof(st->description)) {
       basic_mud_log("SYSERR: char_to_store: %s's description length: %lu, max: %lu! "
-         "Truncated.", GET_PC_NAME(ch), strlen(ch->player.description),
-         sizeof(st->description));
-      ch->player.description[sizeof(st->description) - 3] = '\0';
-      strcat(ch->player.description, "\r\n");	/* strcat: OK (previous line makes room) */
+		    "Truncated.", GET_PC_NAME(ch), ch->player.description.length(),
+		    sizeof(st->description));
+      ch->player.description = ch->player.description.substr(0,sizeof(st->description)-3);      
+      ch->player.description += "\r\n";	/* strcat: OK (previous line makes room) */
     }
-    strcpy(st->description, ch->player.description);	/* strcpy: OK (checked above) */
+    strcpy(st->description, ch->player.description.c_str());	/* strcpy: OK (checked above) */
   } else
     *st->description = '\0';
 
@@ -1940,7 +1937,7 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
   /* add spell and eq affections back in now */
   for (i = 0; i < MAX_AFFECT; i++) {
     if (st->affected[i].type)
-      affect_to_char(ch, &st->affected[i]);
+      affect_to_char(ch, st->affected[i]);
   }
 
   for (i = 0; i < NUM_WEARS; i++) {
@@ -1964,7 +1961,7 @@ void save_etext(struct char_data *ch)
  * If the name already exists, by overwriting a deleted character, then
  * we re-use the old position.
  */
-int create_entry(char *name)
+int create_entry(const char *name)
 {
   int i, pos;
 
@@ -1974,7 +1971,7 @@ int create_entry(char *name)
   } else if ((pos = get_ptable_by_name(name)) == -1) {	/* new name */
     i = ++top_of_p_table + 1;
 
-    RECREATE(player_table, struct player_index_element, i);
+    RECREATE(player_table, struct player_index_element, i, top_of_p_table);
     pos = top_of_p_table;
   }
 
@@ -2039,7 +2036,6 @@ char *fread_string(FILE *fl, const char *error)
 /* release memory allocated for a char struct */
 void free_char(struct char_data *ch)
 {
-  int i;
   struct alias_data *a;
 
   if (ch->player_specials != NULL && ch->player_specials != &dummy_mob) {
@@ -2055,33 +2051,8 @@ void free_char(struct char_data *ch)
     if (IS_NPC(ch))
       basic_mud_log("SYSERR: Mob %s (#%d) had player_specials allocated!", GET_NAME(ch), GET_MOB_VNUM(ch));
   }
-  if (!IS_NPC(ch) || (IS_NPC(ch) && GET_MOB_RNUM(ch) == NOBODY)) {
-    /* if this is a player, or a non-prototyped non-player, free all */
-    if (GET_NAME(ch))
-      free(GET_NAME(ch));
-    if (ch->player.title)
-      free(ch->player.title);
-    if (ch->player.short_descr)
-      free(ch->player.short_descr);
-    if (ch->player.long_descr)
-      free(ch->player.long_descr);
-    if (ch->player.description)
-      free(ch->player.description);
-  } else if ((i = GET_MOB_RNUM(ch)) != NOBODY) {
-    /* otherwise, free strings only if the string is not pointing at proto */
-    if (ch->player.name && ch->player.name != mob_proto[i].player.name)
-      free(ch->player.name);
-    if (ch->player.title && ch->player.title != mob_proto[i].player.title)
-      free(ch->player.title);
-    if (ch->player.short_descr && ch->player.short_descr != mob_proto[i].player.short_descr)
-      free(ch->player.short_descr);
-    if (ch->player.long_descr && ch->player.long_descr != mob_proto[i].player.long_descr)
-      free(ch->player.long_descr);
-    if (ch->player.description && ch->player.description != mob_proto[i].player.description)
-      free(ch->player.description);
-  }
-  while (ch->affected)
-    affect_remove(ch, ch->affected);
+
+  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
 
   if (ch->desc)
     ch->desc->character = NULL;
@@ -2223,7 +2194,7 @@ void reset_char(struct char_data *ch)
 /* clear ALL the working variables of a char; do NOT free any space alloc'ed */
 void clear_char(struct char_data *ch)
 {
-  memset((char *) ch, 0, sizeof(struct char_data));
+  //  memset((char *) ch, 0, sizeof(struct char_data));
 
   IN_ROOM(ch) = NOWHERE;
   GET_PFILEPOS(ch) = -1;
@@ -2276,9 +2247,9 @@ void init_char(struct char_data *ch)
   }
 
   set_title(ch, NULL);
-  ch->player.short_descr = NULL;
-  ch->player.long_descr = NULL;
-  ch->player.description = NULL;
+  ch->player.short_descr = "";
+  ch->player.long_descr = "";
+  ch->player.description = "";
 
   ch->player.time.birth = time(0);
   ch->player.time.logon = time(0);
