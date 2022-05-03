@@ -10,6 +10,9 @@
 
 #define __DB_C__
 
+#include <type_traits>
+#include <string>
+
 #include "conf.h"
 #include "sysdep.h"
 
@@ -670,8 +673,6 @@ int count_hash_records(FILE *fl)
   return (count);
 }
 
-
-
 static void index_boot(DBBoot mode)
 {
   const char *index_filename, *prefix = NULL;	/* NULL or egcs 1.1 complains */
@@ -699,7 +700,7 @@ static void index_boot(DBBoot mode)
     prefix = HLP_PREFIX;
     break;
   default:
-    log("SYSERR: Unknown subcommand %d to index_boot!", mode);
+    log("SYSERR: Unknown subcommand %d to index_boot!", e2ut(mode));
     exit(1);
   }
 
@@ -717,8 +718,10 @@ static void index_boot(DBBoot mode)
   /* first, count the number of records in the file so we can malloc */
   fscanf(db_index, "%s\n", buf1);
   while (*buf1 != '$') {
-    snprintf(buf2, sizeof(buf2), "%s%s", prefix, buf1);
-    if (!(db_file = fopen(buf2, "r"))) {
+	std::string tmp = prefix;
+	tmp.append(buf1);
+
+    if (!(db_file = fopen(tmp.c_str(), "r"))) {
       log("SYSERR: File '%s' listed in '%s/%s': %s", buf2, prefix,
 	  index_filename, strerror(errno));
       fscanf(db_index, "%s\n", buf1);
@@ -786,9 +789,11 @@ static void index_boot(DBBoot mode)
 
   rewind(db_index);
   fscanf(db_index, "%s\n", buf1);
-  while (*buf1 != '$') {
-    snprintf(buf2, sizeof(buf2), "%s%s", prefix, buf1);
-    if (!(db_file = fopen(buf2, "r"))) {
+   while (*buf1 != '$') {
+	std::string tmp = prefix;
+	tmp.append(buf1);
+
+    if (!(db_file = fopen(tmp.c_str(), "r"))) {
       log("SYSERR: %s: %s", buf2, strerror(errno));
       exit(1);
     }
