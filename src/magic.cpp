@@ -73,18 +73,22 @@ void affect_update(void)
 
   for (i = character_list; i; i = i->next) {
     for (auto af = i->affected.begin(); af != i->affected.end(); ++af) {      
-      if (af->duration >= 1)
-	af->duration--;
-      else if (af->duration == -1)	/* No action */
-	af->duration = -1;	/* GODs only! unlimited */
+      if (af->duration >= 1) {
+        af->duration--;
+      }
+      else if (af->duration == -1)	{ /* No action */
+        af->duration = -1;	/* GODs only! unlimited */
+      }
       else {
-	if ((af->type > 0) && (af->type <= MAX_SPELLS)) {
-	  auto next = std::next(af, 1);
-	  if ((next == i->affected.end() || (next->type != af->type) || (next->duration > 0)))
-	    if (spell_info[af->type].wear_off_msg) 
-	      send_to_char(i, "%s\r\n", spell_info[af->type].wear_off_msg);
-	    affect_remove(i, *af);
-	}
+	    if ((af->type > 0) && (af->type <= MAX_SPELLS)) {
+          auto next = std::next(af, 1);
+	      if ((next == i->affected.end() || (next->type != af->type) || (next->duration > 0))) {
+	        if (spell_info[af->type].wear_off_msg) {
+	          send_to_char(i, "%s\r\n", spell_info[af->type].wear_off_msg);
+	        }
+	        affect_remove(i, *af);
+	      }
+        }
       }
     }
   }

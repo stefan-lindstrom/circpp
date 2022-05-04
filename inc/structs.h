@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <tuple>
+#include <string>
 
 #include "sysdep.h"
 #include "olc.h"

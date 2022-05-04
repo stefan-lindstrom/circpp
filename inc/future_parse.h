@@ -6,6 +6,7 @@
 #include <thread>
 #include <fstream>
 #include <algorithm>
+#include <functional>
 
 #include "db.h"
 

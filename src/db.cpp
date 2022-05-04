@@ -683,11 +683,7 @@ static void index_boot(DBBoot mode)
     prefix = HLP_PREFIX;
     break;
   default:
-<<<<<<< HEAD
-    basic_mud_log("SYSERR: Unknown subcommand %d to index_boot!", mode);
-=======
-    log("SYSERR: Unknown subcommand %d to index_boot!", e2ut(mode));
->>>>>>> master
+	basic_mud_log("SYSERR: Unknown subcommand %d to index_boot!", e2ut(mode));
     exit(1);
   }
 
@@ -705,17 +701,11 @@ static void index_boot(DBBoot mode)
   /* first, count the number of records in the file so we can malloc */
   fscanf(db_index, "%s\n", buf1);
   while (*buf1 != '$') {
-<<<<<<< HEAD
-    snprintf(buf2, sizeof(buf2), "%s%s", prefix, buf1);
-    if (!(db_file = fopen(buf2, "r"))) {
-      basic_mud_log("SYSERR: File '%s' listed in '%s/%s': %s", buf2, prefix,
-=======
 	std::string tmp = prefix;
 	tmp.append(buf1);
 
     if (!(db_file = fopen(tmp.c_str(), "r"))) {
-      log("SYSERR: File '%s' listed in '%s/%s': %s", buf2, prefix,
->>>>>>> master
+      basic_mud_log("SYSERR: File '%s' listed in '%s/%s': %s", buf2, prefix,
 	  index_filename, strerror(errno));
       fscanf(db_index, "%s\n", buf1);
       continue;
@@ -765,19 +755,12 @@ static void index_boot(DBBoot mode)
 
   rewind(db_index);
   fscanf(db_index, "%s\n", buf1);
-<<<<<<< HEAD
-  while (*buf1 != '$') {
-    snprintf(buf2, sizeof(buf2), "%s%s", prefix, buf1);
-    if (!(db_file = fopen(buf2, "r"))) {
-      basic_mud_log("SYSERR: %s: %s", buf2, strerror(errno));
-=======
    while (*buf1 != '$') {
 	std::string tmp = prefix;
 	tmp.append(buf1);
 
     if (!(db_file = fopen(tmp.c_str(), "r"))) {
-      log("SYSERR: %s: %s", buf2, strerror(errno));
->>>>>>> master
+      basic_mud_log("SYSERR: %s: %s", buf2, strerror(errno));
       exit(1);
     }
     switch (mode) {

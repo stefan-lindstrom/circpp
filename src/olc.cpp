@@ -197,11 +197,7 @@ void olc_interpreter(void *targ, OlcMode mode, char *arg)
     //    olc_obj = (struct obj_data *) targ;
     break;
   default:
-<<<<<<< HEAD
-    basic_mud_log("SYSERR: Invalid OLC mode %d passed to interp.", mode);
-=======
-    log("SYSERR: Invalid OLC mode %d passed to interp.", e2ut(mode));
->>>>>>> master
+    basic_mud_log("SYSERR: Invalid OLC mode %d passed to interp.", e2ut(mode));
     return;
   }
 
