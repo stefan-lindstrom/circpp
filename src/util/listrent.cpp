@@ -6,6 +6,8 @@
 *  Copyright (C) 1993 The Trustees of The Johns Hopkins University        *
 ************************************************************************* */
 
+#include <string>
+
 #include "conf.h"
 #include "sysdep.h"
 
@@ -27,34 +29,36 @@ int main(int argc, char **argv)
 void Crash_listrent(char *fname)
 {
   FILE *fl;
-  char buf[MAX_STRING_LENGTH];
+//  char buf[MAX_STRING_LENGTH];
   struct obj_file_elem object;
   struct rent_info rent;
+  std::string buf;
 
   if (!(fl = fopen(fname, "rb"))) {
-    sprintf(buf, "%s has no rent file.\r\n", fname);
-    printf("%s", buf);
+    printf("%s has no rent file.\r\n", fname);
     return;
   }
-  sprintf(buf, "%s\r\n", fname);
+
+  (buf = fname).append("\r\n");
+
   if (!feof(fl))
     fread(&rent, sizeof(struct rent_info), 1, fl);
   switch (rent.rentcode) {
   case RENT_RENTED:
-    strcat(buf, "Rent\r\n");
+	buf.append("Rent\r\n");
     break;
   case RENT_CRASH:
-    strcat(buf, "Crash\r\n");
+	buf.append("Crash\r\n");
     break;
   case RENT_CRYO:
-    strcat(buf, "Cryo\r\n");
+	  buf.append("Cryo\r\n");
     break;
   case RENT_TIMEDOUT:
   case RENT_FORCED:
-    strcat(buf, "TimedOut\r\n");
+	buf.append("TimedOut\r\n");
     break;
   default:
-    strcat(buf, "Undef\r\n");
+	buf.append("Undef\r\n");
     break;
   }
   while (!feof(fl)) {
@@ -63,9 +67,10 @@ void Crash_listrent(char *fname)
       fclose(fl);
       return;
     }
-    if (!feof(fl))
-      sprintf(buf, "%s[%5d] %s\n", buf, object.item_number, fname);
+    if (!feof(fl)) {
+      buf.append(std::to_string(object.item_number)).append(fname).append("\n");
+    }
   }
-  printf("%s", buf);
+  printf(buf.c_str());
   fclose(fl);
 }

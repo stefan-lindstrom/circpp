@@ -2,22 +2,22 @@
 #define __CONF_H
 
 /* Define if you don't have vprintf but do have _doprnt.  */
-#cmakedefine HAVE_DOPRNT 1
+/* #undef HAVE_DOPRNT */
 
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
-#cmakedefine HAVE_SYS_WAIT_H 1
+#define HAVE_SYS_WAIT_H 1
 
 /* Define if you have the vprintf function.  */
-#cmakedefine HAVE_VPRINTF 1
+#define HAVE_VPRINTF 1
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
-#cmakedefine pid_t int
+/* #undef pid_t */
 
 /* C89 and later, safe to assume void return type */
 #define RETSIGTYPE void
 
 /* Define to `unsigned' if <sys/types.h> doesn't define.  */
-#cmakedefine size_t unsigned
+/* #undef size_t */
 
 /* Define if you have the ANSI C header files. If __ANSI__ is defined, C89 (and C90) compliant compiler */
 #ifndef STDC_HEADERS
@@ -28,306 +28,306 @@
 #define TIME_WITH_SYS_TIME 
 
 /* Define if we're compiling CircleMUD under any type of UNIX system.  */
-#cmakedefine CIRCLE_UNIX 1
+#define CIRCLE_UNIX 1
 
 /* Define if the system is capable of using crypt() to encrypt.  */
-#cmakedefine CIRCLE_CRYPT 1
+#define CIRCLE_CRYPT 1
 
 /* TODO: efine if we don't have proper support for the system's crypt().  */
 #undef HAVE_UNSAFE_CRYPT
 
 /* Define if the system has struct in_addr.  */
-#cmakedefine HAVE_STRUCT_IN_ADDR 1
+#define HAVE_STRUCT_IN_ADDR 1
 
 /* Define to `int' if <sys/socket.h> doesn't define.  */
-#cmakedefine socklen_t int
+/* #undef socklen_t */
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
-#cmakedefine ssize_t int
+/* #undef ssize_t */
 
 /* Define if you have the gettimeofday function.  */
-#cmakedefine HAVE_GETTIMEOFDAY 1
+#define HAVE_GETTIMEOFDAY 1
 
 /* Define if you have the inet_addr function.  */
-#cmakedefine HAVE_INET_ADDR 1
+#define HAVE_INET_ADDR 1
 
 /* Define if you have the inet_aton function.  */
-#cmakedefine HAVE_INET_ATON 1
+#define HAVE_INET_ATON 1
 
 /* Define if you have the select function.  */
-#cmakedefine HAVE_SELECT 1
+#define HAVE_SELECT 1
 
 /* Define if you have the snprintf function.  */
-#cmakedefine HAVE_SNPRINTF 1
+#define HAVE_SNPRINTF 1
 
 /* Define if you have the strcasecmp function.  */
-#cmakedefine HAVE_STRCASECMP 1
+#define HAVE_STRCASECMP 1
 
 /* Define if you have the strdup function.  */
-#cmakedefine HAVE_STRDUP 1
+#define HAVE_STRDUP 1
 
 /* Define if you have the strerror function.  */
-#cmakedefine HAVE_STRERROR 1
+#define HAVE_STRERROR 1
 
 /* Define if you have the stricmp function.  */
-#cmakedefine HAVE_STRICMP 1
+/* #undef HAVE_STRICMP */
 
 /* Define if you have the strlcpy function.  */
-#cmakedefine HAVE_STRLCPY 1
+/* #undef HAVE_STRLCPY */
 
 /* Define if you have the strncasecmp function.  */
-#cmakedefine HAVE_STRNCASECMP 1
+#define HAVE_STRNCASECMP 1
 
 /* Define if you have the strnicmp function.  */
-#cmakedefine HAVE_STRNICMP 1
+/* #undef HAVE_STRNICMP */
 
 /* Define if you have the strstr function.  */
-#cmakedefine HAVE_STRSTR 1
+#define HAVE_STRSTR 1
 
 /* Define if you have the vsnprintf function.  */
-#cmakedefine HAVE_VSNPRINTF 1
+#define HAVE_VSNPRINTF 1
 
 /* Define if you have the <arpa/inet.h> header file.  */
-#cmakedefine HAVE_ARPA_INET_H 1
+#define HAVE_ARPA_INET_H 1
 
 /* Define if you have the <arpa/telnet.h> header file.  */
-#cmakedefine HAVE_ARPA_TELNET_H 1
+#define HAVE_ARPA_TELNET_H 1
 
 /* Define if you have the <assert.h> header file.  */
-#cmakedefine HAVE_ASSERT_H 1
+#define HAVE_ASSERT_H 1
 
 /* Define if you have the <crypt.h> header file.  */
-#cmakedefine HAVE_CRYPT_H 1
+#define HAVE_CRYPT_H 1
 
 /* Define if you have the <errno.h> header file.  */
-#cmakedefine HAVE_ERRNO_H 1
+#define HAVE_ERRNO_H 1
 
 /* Define if you have the <fcntl.h> header file.  */
-#cmakedefine HAVE_FCNTL_H 1
+#define HAVE_FCNTL_H 1
 
 /* Define if you have the <limits.h> header file.  */
-#cmakedefine HAVE_LIMITS_H 1
+#define HAVE_LIMITS_H 1
 
 /* Define if you have the <mcheck.h> header file.  */
-#cmakedefine HAVE_MCHECK_H 1
+#define HAVE_MCHECK_H 1
 
 /* Define if you have the <memory.h> header file.  */
-#cmakedefine HAVE_MEMORY_H 1
+#define HAVE_MEMORY_H 1
 
 /* Define if you have the <net/errno.h> header file.  */
-#cmakedefine HAVE_NET_ERRNO_H 1
+/* #undef HAVE_NET_ERRNO_H */
 
 /* Define if you have the <netdb.h> header file.  */
-#cmakedefine HAVE_NETDB_H 1
+#define HAVE_NETDB_H 1
 
 /* Define if you have the <netinet/in.h> header file.  */
-#cmakedefine HAVE_NETINET_IN_H 1
+#define HAVE_NETINET_IN_H 1
 
 /* Define if you have the <signal.h> header file.  */
-#cmakedefine HAVE_SIGNAL_H 1
+#define HAVE_SIGNAL_H 1
 
 /* Define if you have the <string.h> header file.  */
-#cmakedefine HAVE_STRING_H 1
+#define HAVE_STRING_H 1
 
 /* Define if you have the <strings.h> header file.  */
-#cmakedefine HAVE_STRINGS_H 1
+#define HAVE_STRINGS_H 1
 
 /* Define if you have the <sys/fcntl.h> header file.  */
-#cmakedefine HAVE_SYS_FCNTL_H 1
+#define HAVE_SYS_FCNTL_H 1
 
 /* Define if you have the <sys/resource.h> header file.  */
-#cmakedefine HAVE_SYS_RESOURCE_H 1
+#define HAVE_SYS_RESOURCE_H 1
 
 /* Define if you have the <sys/select.h> header file.  */
-#cmakedefine HAVE_SYS_SELECT_H 1
+#define HAVE_SYS_SELECT_H 1
 
 /* Define if you have the <sys/socket.h> header file.  */
-#cmakedefine HAVE_SYS_SOCKET_H 1
+#define HAVE_SYS_SOCKET_H 1
 
 /* Define if you have the <sys/stat.h> header file.  */
-#cmakedefine HAVE_SYS_STAT_H 1
+#define HAVE_SYS_STAT_H 1
 
 /* Define if you have the <sys/time.h> header file.  */
-#cmakedefine HAVE_SYS_TIME_H 1
+#define HAVE_SYS_TIME_H 1
 
 /* Define if you have the <sys/types.h> header file.  */
-#cmakedefine HAVE_SYS_TYPES_H 1
+#define HAVE_SYS_TYPES_H 1
 
 /* Define if you have the <sys/uio.h> header file.  */
-#cmakedefine HAVE_SYS_UIO_H 1
+#define HAVE_SYS_UIO_H 1
 
 /* Define if you have the <unistd.h> header file.  */
-#cmakedefine HAVE_UNISTD_H 1
+#define HAVE_UNISTD_H 1
 
 /* Define if you have the malloc library (-lmalloc).  */
-#cmakedefine HAVE_LIBMALLOC 1
+/* #undef HAVE_LIBMALLOC */
 
 /* Check for a prototype to accept. */
-#cmakedefine NEED_ACCEPT_PROTO
+/* #undef NEED_ACCEPT_PROTO */
 
 /* Check for a prototype to atoi. */
-#cmakedefine NEED_ATOI_PROTO
+/* #undef NEED_ATOI_PROTO */
 
 /* Check for a prototype to atol. */
-#cmakedefine NEED_ATOL_PROTO
+/* #undef NEED_ATOL_PROTO */
 
 /* Check for a prototype to bind. */
-#cmakedefine NEED_BIND_PROTO
+/* #undef NEED_BIND_PROTO */
 
 /* Check for a prototype to bzero. */
-#cmakedefine NEED_BZERO_PROTO
+/* #undef NEED_BZERO_PROTO */
 
 /* Check for a prototype to chdir. */
-#cmakedefine NEED_CHDIR_PROTO
+/* #undef NEED_CHDIR_PROTO */
 
 /* Check for a prototype to close. */
-#cmakedefine NEED_CLOSE_PROTO
+/* #undef NEED_CLOSE_PROTO */
 
 /* Check for a prototype to crypt. */
-#cmakedefine NEED_CRYPT_PROTO
+/* #undef NEED_CRYPT_PROTO */
 
 /* Check for a prototype to fclose. */
-#cmakedefine NEED_FCLOSE_PROTO
+/* #undef NEED_FCLOSE_PROTO */
 
 /* Check for a prototype to fcntl. */
-#cmakedefine NEED_FCNTL_PROTO
+/* #undef NEED_FCNTL_PROTO */
 
 /* Check for a prototype to fflush. */
-#cmakedefine NEED_FFLUSH_PROTO
+/* #undef NEED_FFLUSH_PROTO */
 
 /* Check for a prototype to fprintf. */
-#cmakedefine NEED_FPRINTF_PROTO
+/* #undef NEED_FPRINTF_PROTO */
 
 /* Check for a prototype to fputc. */
-#cmakedefine NEED_FPUTC_PROTO
+/* #undef NEED_FPUTC_PROTO */
 
 /* Check for a prototype to fputs. */
-#cmakedefine NEED_FPUTS_PROTO
+/* #undef NEED_FPUTS_PROTO */
 
 /* Check for a prototype to fread. */
-#cmakedefine NEED_FREAD_PROTO
+/* #undef NEED_FREAD_PROTO */
 
 /* Check for a prototype to fscanf. */
-#cmakedefine NEED_FSCANF_PROTO
+/* #undef NEED_FSCANF_PROTO */
 
 /* Check for a prototype to fseek. */
-#cmakedefine NEED_FSEEK_PROTO
+/* #undef NEED_FSEEK_PROTO */
 
 /* Check for a prototype to fwrite. */
-#cmakedefine NEED_FWRITE_PROTO
+/* #undef NEED_FWRITE_PROTO */
 
 /* Check for a prototype to getpeername. */
-#cmakedefine NEED_GETPEERNAME_PROTO
+/* #undef NEED_GETPEERNAME_PROTO */
 
 /* Check for a prototype to getpid. */
-#cmakedefine NEED_GETPID_PROTO
+/* #undef NEED_GETPID_PROTO */
 
 /* Check for a prototype to getrlimit. */
-#cmakedefine NEED_GETRLIMIT_PROTO
+/* #undef NEED_GETRLIMIT_PROTO */
 
 /* Check for a prototype to getsockname. */
-#cmakedefine NEED_GETSOCKNAME_PROTO
+/* #undef NEED_GETSOCKNAME_PROTO */
 
 /* Check for a prototype to gettimeofday. */
-#cmakedefine NEED_GETTIMEOFDAY_PROTO
+/* #undef NEED_GETTIMEOFDAY_PROTO */
 
 /* Check for a prototype to htonl. */
-#cmakedefine NEED_HTONL_PROTO
+/* #undef NEED_HTONL_PROTO */
 
 /* Check for a prototype to htons. */
-#cmakedefine NEED_HTONS_PROTO
+/* #undef NEED_HTONS_PROTO */
 
 /* Check for a prototype to inet_addr. */
-#cmakedefine NEED_INET_ADDR_PROTO
+/* #undef NEED_INET_ADDR_PROTO */
 
 /* Check for a prototype to inet_aton. */
-#cmakedefine NEED_INET_ATON_PROTO
+/* #undef NEED_INET_ATON_PROTO */
 
 /* Check for a prototype to inet_ntoa. */
-#cmakedefine NEED_INET_NTOA_PROTO
+/* #undef NEED_INET_NTOA_PROTO */
 
 /* Check for a prototype to listen. */
-#cmakedefine NEED_LISTEN_PROTO
+/* #undef NEED_LISTEN_PROTO */
 
 /* Check for a prototype to ntohl. */
-#cmakedefine NEED_NTOHL_PROTO
+/* #undef NEED_NTOHL_PROTO */
 
 /* Check for a prototype to perror. */
-#cmakedefine NEED_PERROR_PROTO
+/* #undef NEED_PERROR_PROTO */
 
 /* Check for a prototype to printf. */
-#cmakedefine NEED_PRINTF_PROTO
+/* #undef NEED_PRINTF_PROTO */
 
 /* Check for a prototype to qsort. */
-#cmakedefine NEED_QSORT_PROTO
+/* #undef NEED_QSORT_PROTO */
 
 /* Check for a prototype to read. */
-#cmakedefine NEED_READ_PROTO
+/* #undef NEED_READ_PROTO */
 
 /* Check for a prototype to remove. */
-#cmakedefine NEED_REMOVE_PROTO
+/* #undef NEED_REMOVE_PROTO */
 
 /* Check for a prototype to rewind. */
-#cmakedefine NEED_REWIND_PROTO
+/* #undef NEED_REWIND_PROTO */
 
 /* Check for a prototype to select. */
-#cmakedefine NEED_SELECT_PROTO
+/* #undef NEED_SELECT_PROTO */
 
 /* Check for a prototype to setitimer. */
-#cmakedefine NEED_SETITIMER_PROTO
+/* #undef NEED_SETITIMER_PROTO */
 
 /* Check for a prototype to setrlimit. */
-#cmakedefine NEED_SETRLIMIT_PROTO
+/* #undef NEED_SETRLIMIT_PROTO */
 
 /* Check for a prototype to setsockopt. */
-#cmakedefine NEED_SETSOCKOPT_PROTO
+/* #undef NEED_SETSOCKOPT_PROTO */
 
 /* Check for a prototype to snprintf. */
-#cmakedefine NEED_SNPRINTF_PROTO
+/* #undef NEED_SNPRINTF_PROTO */
 
 /* Check for a prototype to socket. */
-#cmakedefine NEED_SOCKET_PROTO
+/* #undef NEED_SOCKET_PROTO */
 
 /* Check for a prototype to sprintf. */
-#cmakedefine NEED_SPRINTF_PROTO
+/* #undef NEED_SPRINTF_PROTO */
 
 /* Check for a prototype to sscanf. */
-#cmakedefine NEED_SSCANF_PROTO
+/* #undef NEED_SSCANF_PROTO */
 
 /* Check for a prototype to strcasecmp. */
-#cmakedefine NEED_STRCASECMP_PROTO
+/* #undef NEED_STRCASECMP_PROTO */
 
 /* Check for a prototype to strdup. */
-#cmakedefine NEED_STRDUP_PROTO
+/* #undef NEED_STRDUP_PROTO */
 
 /* Check for a prototype to strerror. */
-#cmakedefine NEED_STRERROR_PROTO
+/* #undef NEED_STRERROR_PROTO */
 
 /* Check for a prototype to stricmp. */
-#cmakedefine NEED_STRICMP_PROTO
+#define NEED_STRICMP_PROTO
 
 /* Check for a prototype to strlcpy. */
-#cmakedefine NEED_STRLCPY_PROTO
+#define NEED_STRLCPY_PROTO
 
 /* Check for a prototype to strncasecmp. */
-#cmakedefine NEED_STRNCASECMP_PROTO
+/* #undef NEED_STRNCASECMP_PROTO */
 
 /* Check for a prototype to strnicmp. */
-#cmakedefine NEED_STRNICMP_PROTO
+#define NEED_STRNICMP_PROTO
 
 /* Check for a prototype to system. */
-#cmakedefine NEED_SYSTEM_PROTO
+/* #undef NEED_SYSTEM_PROTO */
 
 /* Check for a prototype to time. */
-#cmakedefine NEED_TIME_PROTO
+/* #undef NEED_TIME_PROTO */
 
 /* Check for a prototype to unlink. */
-#cmakedefine NEED_UNLINK_PROTO
+/* #undef NEED_UNLINK_PROTO */
 
 /* Check for a prototype to vsnprintf. */
-#cmakedefine NEED_VSNPRINTF_PROTO
+/* #undef NEED_VSNPRINTF_PROTO */
 
 /* Check for a prototype to write. */
-#cmakedefine NEED_WRITE_PROTO
+/* #undef NEED_WRITE_PROTO */
 
 #endif

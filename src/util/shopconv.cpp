@@ -1,5 +1,7 @@
 /* code to convert 2.20 shop files to 3.0 shop files - written by Jeff Fink */
 
+#include <string>
+
 #include "conf.h"
 #include "sysdep.h"
 
@@ -150,7 +152,7 @@ int boot_the_shops(FILE * shop_f, FILE * newshop_f, char *filename)
 int main(int argc, char *argv[])
 {
   FILE *sfp, *nsfp;
-  char fn[256], part[256];
+  char fn[256];
   int result, index;
 
   if (argc < 2) {
@@ -158,30 +160,34 @@ int main(int argc, char *argv[])
     exit(1);
   }
   for (index = 1; index < argc; index++) {
-    sprintf(fn, "%s", argv[index]);
-    sprintf(part, "mv %s %s.tmp", fn, fn);
-    system(part);
-    sprintf(part, "%s.tmp", fn);
-    sfp = fopen(part, "r");
+	std::string tmp = argv[index];
+    tmp.append("mv").append(fn).append(" ").append(fn).append(".tmp");
+    system(tmp.c_str());
+
+    tmp = "";
+    tmp.append(fn).append(".tmp");
+    sfp = fopen(tmp.c_str(), "r");
     if (sfp == NULL) {
       strcat(fn, " could not be opened");
       perror(fn);
     } else {
       if ((nsfp = fopen(fn, "w")) == NULL) {
-	printf("Error writing to %s.\n", fn);
-	continue;
+	    printf("Error writing to %s.\n", fn);
+        continue;
       }
       printf("%s:\n", fn);
       result = boot_the_shops(sfp, nsfp, fn);
       fclose(nsfp);
       fclose(sfp);
       if (result) {
-	sprintf(part, "mv %s.tmp %s", fn, fn);
-	system(part);
+    	tmp = "mv ";
+    	tmp.append(fn).append(" ").append(fn).append(".tmp");
+	    system(tmp.c_str());
       } else {
-	sprintf(part, "mv %s.tmp %s.bak", fn, fn);
-	system(part);
-	printf("Done!\n");
+      	tmp = "mv ";
+    	tmp.append(fn).append(".tmp ").append(fn).append(".bak");
+	    system(tmp.c_str());
+        printf("Done!\n");
       }
     }
   }
