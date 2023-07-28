@@ -71,6 +71,6 @@ void Crash_listrent(char *fname)
       buf.append(std::to_string(object.item_number)).append(fname).append("\n");
     }
   }
-  printf(buf.c_str());
+  printf("%s", buf.c_str());
   fclose(fl);
 }

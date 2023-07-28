@@ -64,7 +64,7 @@ int mail_recip_ok(const char *name)
       ret = TRUE;
     extract_char_final(victim);
   } else 
-    free(victim);
+    delete victim;
   return ret;
 }
 

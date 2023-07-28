@@ -766,22 +766,24 @@ ACMD(do_stat)
     if (!*buf2)
       send_to_char(ch, "Stats on which player?\r\n");
     else if ((victim = get_player_vis(ch, buf2, NULL, FIND_CHAR_WORLD)) != NULL)
-	do_stat_character(ch, victim);
+      do_stat_character(ch, victim);
     else {
       CREATE(victim, struct char_data, 1);
       clear_char(victim);
+      
       if (load_char(buf2, &tmp_store) >= 0) {
-	store_to_char(&tmp_store, victim);
-	victim->player.time.logon = tmp_store.last_logon;
-	char_to_room(victim, 0);
-	if (GET_LEVEL(victim) > GET_LEVEL(ch))
-	  send_to_char(ch, "Sorry, you can't do that.\r\n");
-	else
-	  do_stat_character(ch, victim);
-	extract_char_final(victim);
-      } else {
-	send_to_char(ch, "There is no such player.\r\n");
-	free(victim);
+	      store_to_char(&tmp_store, victim);
+	     victim->player.time.logon = tmp_store.last_logon;
+	     char_to_room(victim, 0);
+	
+       if (GET_LEVEL(victim) > GET_LEVEL(ch))
+	       send_to_char(ch, "Sorry, you can't do that.\r\n");
+	     else
+	       do_stat_character(ch, victim);
+	     extract_char_final(victim);
+    } else {
+	    send_to_char(ch, "There is no such player.\r\n");
+	     delete victim;
       }
     }
   } else if (is_abbrev(buf1, "object")) {
@@ -2549,13 +2551,13 @@ ACMD(do_set)
   if (!is_file) {
     if (is_player) {
       if (!(vict = get_player_vis(ch, name, NULL, FIND_CHAR_WORLD))) {
-	send_to_char(ch, "There is no such player.\r\n");
-	return;
+       	send_to_char(ch, "There is no such player.\r\n");
+	      return;
       }
     } else { /* is_mob */
       if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_WORLD))) {
-	send_to_char(ch, "There is no such creature.\r\n");
-	return;
+	      send_to_char(ch, "There is no such creature.\r\n");
+	      return;
       }
     }
   } else if (is_file) {
@@ -2564,14 +2566,15 @@ ACMD(do_set)
     clear_char(cbuf);
     if ((player_i = load_char(name, &tmp_store)) > -1) {
       store_to_char(&tmp_store, cbuf);
+
       if (GET_LEVEL(cbuf) >= GET_LEVEL(ch)) {
-	free_char(cbuf);
-	send_to_char(ch, "Sorry, you can't do that.\r\n");
-	return;
+      	delete cbuf;
+	      send_to_char(ch, "Sorry, you can't do that.\r\n");
+	      return;
       }
       vict = cbuf;
     } else {
-      free(cbuf);
+      delete cbuf;
       send_to_char(ch, "There is no such player.\r\n");
       return;
     }

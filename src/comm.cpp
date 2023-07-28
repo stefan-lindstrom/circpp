@@ -1339,7 +1339,7 @@ int new_descriptor(socket_t s)
   if (isbanned(newd->host) == BAN_ALL) {
     CLOSE_SOCKET(desc);
     mudlog(CMP, LVL_GOD, TRUE, "Connection attempt denied from [%s]", newd->host);
-    free(newd);
+    delete newd;
     return (0);
   }
 #if 0
