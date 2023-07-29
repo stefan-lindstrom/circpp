@@ -17,7 +17,7 @@ class zone_future final : public future_parse<zone_data> {
 private:
   void parse_single_idx(const std::string &idx, std::vector<zone_data> &zones) noexcept final;
 public:
-  zone_future(bool mini = false) : future_parse(mini, OBJ_PREFIX) {}
+  zone_future(bool mini = false) : future_parse(mini, ZON_PREFIX) {}
 
   zone_future(const zone_future &f) = delete;
   zone_future(zone_future &&f) = delete;

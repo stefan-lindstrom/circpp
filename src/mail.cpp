@@ -55,7 +55,7 @@ int mail_recip_ok(const char *name)
   struct char_data *victim;
   int ret = FALSE;
 
-  CREATE(victim, struct char_data, 1);
+  victim = new char_data;
   clear_char(victim);
   if (load_char(name, &tmp_store) >= 0) {
     store_to_char(&tmp_store, victim);
@@ -80,7 +80,7 @@ void push_free_list(long pos)
 {
   position_list_type *new_pos;
 
-  CREATE(new_pos, position_list_type, 1);
+  new_pos = new position_list_type;
   new_pos->position = pos;
   new_pos->next = free_list;
   free_list = new_pos;
@@ -218,7 +218,7 @@ void index_mail(long id_to_index, long pos)
   }
   if (!(new_index = find_char_in_index(id_to_index))) {
     /* name not already in index.. add it */
-    CREATE(new_index, mail_index_type, 1);
+    new_index = new mail_index_type;
     new_index->recipient = id_to_index;
     new_index->list_start = NULL;
 
@@ -227,7 +227,7 @@ void index_mail(long id_to_index, long pos)
     mail_index = new_index;
   }
   /* now, add this position to front of position list */
-  CREATE(new_position, position_list_type, 1);
+  new_position = new position_list_type;
   new_position->position = pos;
   new_position->next = new_index->list_start;
   new_index->list_start = new_position;
@@ -561,7 +561,7 @@ void postmaster_send_mail(struct char_data *ch, struct char_data *mailman, int c
   SET_BIT(PLR_FLAGS(ch), PLR_MAILING);	/* string_write() sets writing. */
 
   /* Start writing! */
-  CREATE(mailwrite, char *, 1);
+  mailwrite = new char *;
   string_write(ch->desc, mailwrite, MAX_MAIL_SIZE, recipient, NULL);
 }
 

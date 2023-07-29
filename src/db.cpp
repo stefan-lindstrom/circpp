@@ -132,7 +132,6 @@ long get_ptable_by_name(const char *name);
 /* external functions */
 void paginate_string(char *str, struct descriptor_data *d);
 struct time_info_data *mud_time_passed(time_t t2, time_t t1);
-void free_alias(struct alias_data *a);
 void load_messages(void);
 void weather_and_time(int mode);
 void mag_assign_spells(void);
@@ -582,7 +581,7 @@ void build_player_index(void)
   recs = size / sizeof(struct char_file_u);
   if (recs) {
     basic_mud_log("   %ld players in database.", recs);
-    CREATE(player_table, struct player_index_element, recs);
+    player_table = new player_index_element[recs];
   } else {
     player_table = NULL;
     top_of_p_table = -1;
@@ -596,7 +595,7 @@ void build_player_index(void)
 
     /* new record */
     nr++;
-    CREATE(player_table[nr].name, char, strlen(dummy.name) + 1);
+    player_table[nr].name = new char[strlen(dummy.name) + 1];
     for (i = 0; (*(player_table[nr].name + i) = LOWER(*(dummy.name + i))); i++)
       ;
     player_table[nr].id = dummy.char_specials_saved.idnum;
@@ -743,7 +742,7 @@ static void index_boot(DBBoot mode)
     break;
 
   case DBBoot::DB_BOOT_HLP:
-    CREATE(help_table, struct help_index_element, rec_count);
+    help_table = new help_index_element[rec_count];
     size[0] = sizeof(struct help_index_element) * rec_count;
     basic_mud_log("   %d entries, %d bytes.", rec_count, size[0]);
     break;
@@ -1374,7 +1373,7 @@ struct char_data *create_char(void)
 {
   struct char_data *ch;
 
-  CREATE(ch, struct char_data, 1);
+  ch = new char_data;
   clear_char(ch);
   ch->next = character_list;
   character_list = ch;
@@ -1397,7 +1396,7 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
   } else
     i = nr;
 
-  CREATE(mob, struct char_data, 1);
+  mob = new char_data;
   clear_char(mob);
   *mob = mob_proto[i];
   mob->next = character_list;
@@ -1495,7 +1494,7 @@ void zone_update(void)
 	  zone_table[i].age < ZO_DEAD && zone_table[i].reset_mode) {
 	/* enqueue zone */
 
-	CREATE(update_u, struct reset_q_element, 1);
+  update_u = new reset_q_element;
 
 	update_u->zone_to_reset = i;
 	update_u->next = 0;
@@ -1796,7 +1795,7 @@ void store_to_char(struct char_file_u *st, struct char_data *ch)
 
   /* to save memory, only PC's -- not MOB's -- have player_specials */
   if (ch->player_specials == NULL)
-    CREATE(ch->player_specials, struct player_special_data, 1);
+    ch->player_specials = new player_special_data;
 
   GET_SEX(ch) = st->sex;
   GET_CLASS(ch) = st->chclass;
@@ -1971,7 +1970,7 @@ int create_entry(const char *name)
   int i, pos;
 
   if (top_of_p_table == -1) {	/* no table */
-    CREATE(player_table, struct player_index_element, 1);
+    player_table = new player_index_element;
     pos = top_of_p_table = 0;
   } else if ((pos = get_ptable_by_name(name)) == -1) {	/* new name */
     i = ++top_of_p_table + 1;
@@ -1980,7 +1979,7 @@ int create_entry(const char *name)
     pos = top_of_p_table;
   }
 
-  CREATE(player_table[pos].name, char, strlen(name) + 1);
+  player_table[pos].name = new char[strlen(name) + 1];
 
   /* copy lowercase equivalent of name to table field */
   for (i = 0; (player_table[pos].name[i] = LOWER(name[i])); i++)
@@ -2041,13 +2040,9 @@ char *fread_string(FILE *fl, const char *error)
 /* release memory allocated for a char struct */
 void free_char(struct char_data *ch)
 {
-  struct alias_data *a;
-
   if (ch->player_specials != NULL && ch->player_specials != &dummy_mob) {
-    while ((a = GET_ALIASES(ch)) != NULL) {
-      GET_ALIASES(ch) = (GET_ALIASES(ch))->next;
-      free_alias(a);
-    }
+    GET_ALIASES(ch).clear();
+
     if (ch->player_specials->poofin)
       free(ch->player_specials->poofin);
     if (ch->player_specials->poofout)
@@ -2064,9 +2059,6 @@ void free_char(struct char_data *ch)
 
   free(ch);
 }
-
-
-
 
 /* release memory allocated for an obj struct */
 // TODO: will be deprectaed once completely switched to std::
@@ -2192,6 +2184,7 @@ void reset_char(struct char_data *ch)
     GET_MANA(ch) = 1;
 
   GET_LAST_TELL(ch) = NOBODY;
+  GET_ALIASES(ch).clear();
 }
 
 
@@ -2235,7 +2228,7 @@ void init_char(struct char_data *ch)
 
   /* create a player_special structure */
   if (ch->player_specials == NULL)
-    CREATE(ch->player_specials, struct player_special_data, 1);
+    ch->player_specials = new player_special_data;
 
   /* *** if this is our first player --- he be God *** */
   if (top_of_p_table == 0) {

@@ -112,9 +112,7 @@ size_t strlcpy(char *dest, const char *source, size_t totalsize)
 /* Create a duplicate of a string */
 char *strdup(const char *source)
 {
-  char *new_z;
-
-  CREATE(new_z, char, strlen(source) + 1);
+  char *new_z = new char[strlen(source) + 1];
   return (strcpy(new_z, source)); /* strcpy: OK */
 }
 #endif
@@ -498,7 +496,7 @@ void add_follower(struct char_data *ch, struct char_data *leader)
 
   ch->master = leader;
 
-  CREATE(k, struct follow_type, 1);
+  k = new follow_type;
 
   k->follower = ch;
   k->next = leader->followers;

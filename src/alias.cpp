@@ -24,12 +24,11 @@ void write_aliases(struct char_data *ch)
 {
   FILE *file;
   char fn[MAX_STRING_LENGTH];
-  struct alias_data *temp;
 
   get_filename(fn, sizeof(fn), ALIAS_FILE, GET_NAME(ch));
   remove(fn);
 
-  if (GET_ALIASES(ch) == NULL)
+  if (GET_ALIASES(ch).empty())
     return;
 
   if ((file = fopen(fn, "w")) == NULL) {
@@ -38,15 +37,15 @@ void write_aliases(struct char_data *ch)
     return;
   }
 
-  for (temp = GET_ALIASES(ch); temp; temp = temp->next) {
-    int aliaslen = strlen(temp->alias);
-    int repllen = strlen(temp->replacement) - 1;
+  for (auto temp = GET_ALIASES(ch).begin(); temp != GET_ALIASES(ch).end(); ++temp) {
+    int aliaslen = temp->alias.length();
+    int repllen = temp->replacement.length();
 
     fprintf(file, "%d\n%s\n"	/* Alias */
 		  "%d\n%s\n"	/* Replacement */
 		  "%d\n",	/* Type */
-		aliaslen, temp->alias,
-		repllen, temp->replacement + 1,
+		aliaslen, temp->alias.c_str(),
+		repllen, temp->replacement.c_str() + 1,
 		temp->type);
   }
   
@@ -57,7 +56,6 @@ void read_aliases(struct char_data *ch)
 {   
   FILE *file;
   char xbuf[MAX_STRING_LENGTH];
-  struct alias_data *t2, *prev = NULL;
   int length;
 
   get_filename(xbuf, sizeof(xbuf), ALIAS_FILE, GET_NAME(ch));
@@ -70,16 +68,14 @@ void read_aliases(struct char_data *ch)
     return;
   }
  
-  CREATE(GET_ALIASES(ch), struct alias_data, 1);
-  t2 = GET_ALIASES(ch); 
-
   for (;;) {
+    alias_data t2;
     /* Read the aliased command. */
     if (fscanf(file, "%d\n", &length) != 1)
       goto read_alias_error;
 
     fgets(xbuf, length + 1, file);
-    t2->alias = strdup(xbuf);
+    t2.alias = std::string(xbuf);
 
     /* Build the replacement. */
     if (fscanf(file, "%d\n", &length) != 1)
@@ -87,31 +83,26 @@ void read_aliases(struct char_data *ch)
 
     *xbuf = ' ';		/* Doesn't need terminated, fgets() will. */
     fgets(xbuf + 1, length + 1, file);
-    t2->replacement = strdup(xbuf); 
+    t2.replacement = std::string(xbuf);
+    t2.replacement.pop_back();
 
     /* Figure out the alias type. */
     if (fscanf(file, "%d\n", &length) != 1)
       goto read_alias_error;
 
-    t2->type = length; 
+    t2.type = length; 
+
+    GET_ALIASES(ch).push_back(t2);
 
     if (feof(file))
       break;
-
-    CREATE(t2->next, struct alias_data, 1);
-    prev = t2;
-    t2 = t2->next;
   }; 
   
   fclose(file);
   return;
 
 read_alias_error:
-  if (t2->alias)
-    free(t2->alias);
-  free(t2);
-  if (prev)
-    prev->next = NULL;
+  GET_ALIASES(ch).clear();
   fclose(file);
 } 
 

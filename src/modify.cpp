@@ -124,11 +124,11 @@ void string_add(struct descriptor_data *d, char *str)
     if (strlen(str) + 3 > d->max_str) { /* \r\n\0 */
       send_to_char(d->character, "String too long - Truncated.\r\n");
       strcpy(&str[d->max_str - 3], "\r\n");	/* strcpy: OK (size checked) */
-      CREATE(*d->str, char, d->max_str);
+      *d->str = new char[d->max_str];
       strcpy(*d->str, str);	/* strcpy: OK (size checked) */
       terminator = 1;
     } else {
-      CREATE(*d->str, char, strlen(str) + 3);
+      *d->str = new char[strlen(str) + 3];
       strcpy(*d->str, str);	/* strcpy: OK (size checked) */
     }
   } else {
@@ -359,7 +359,7 @@ void page_string(struct descriptor_data *d, char *str, int keep_internal)
     return;
 
   d->showstr_count = count_pages(str);
-  CREATE(d->showstr_vector, char *, d->showstr_count);
+  d->showstr_vector = new char*[d->showstr_count];
 
   if (keep_internal) {
     d->showstr_head = strdup(str);

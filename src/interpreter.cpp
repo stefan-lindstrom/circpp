@@ -54,9 +54,6 @@ void delete_aliases(const char *charname);
 
 /* local functions */
 int perform_dupe_check(struct descriptor_data *d);
-struct alias_data *find_alias(struct alias_data *alias_list, char *str);
-void free_alias(struct alias_data *a);
-void perform_complex_alias(struct txt_q *input_q, char *orig, struct alias_data *a);
 int perform_alias(struct descriptor_data *d, char *orig, size_t maxlen);
 int reserved_word(char *argument);
 int _parse_name(char *arg, char *name);
@@ -644,29 +641,17 @@ void command_interpreter(struct char_data *ch, char *argument)
   **************************************************************************/
 
 
-struct alias_data *find_alias(struct alias_data *alias_list, char *str)
+static std::list<alias_data>::const_iterator find_alias(const std::list<alias_data> &alias_list, char *str)
 {
-  while (alias_list != NULL) {
-    if (*str == *alias_list->alias)	/* hey, every little bit counts :-) */
-      if (!strcmp(str, alias_list->alias))
-	return (alias_list);
 
-    alias_list = alias_list->next;
+  for (auto it = alias_list.begin(); it != alias_list.end(); ++it) {
+    if (!strcmp(str, it->alias.c_str())) {
+       return it;
+    }
   }
 
-  return (NULL);
+  return alias_list.end();
 }
-
-
-void free_alias(struct alias_data *a)
-{
-  if (a->alias)
-    free(a->alias);
-  if (a->replacement)
-    free(a->replacement);
-  free(a);
-}
-
 
 /* The interface to the outside world: do_alias */
 ACMD(do_alias)
@@ -674,7 +659,6 @@ ACMD(do_alias)
   TEMP_ARG_FIX;
   char arg[MAX_INPUT_LENGTH];
   char *repl;
-  struct alias_data *a, *temp;
 
   if (IS_NPC(ch))
     return;
@@ -683,41 +667,44 @@ ACMD(do_alias)
 
   if (!*arg) {			/* no argument specified -- list currently defined aliases */
     send_to_char(ch, "Currently defined aliases:\r\n");
-    if ((a = GET_ALIASES(ch)) == NULL)
+
+    if (GET_ALIASES(ch).empty()) {
       send_to_char(ch, " None.\r\n");
+    }
     else {
-      while (a != NULL) {
-	send_to_char(ch, "%-15s %s\r\n", a->alias, a->replacement);
-	a = a->next;
+      for (auto it = GET_ALIASES(ch).begin(); it != GET_ALIASES(ch).end(); ++it) {
+        send_to_char(ch, "%-15s %s\r\n", it->alias.c_str(), it->replacement.c_str());
       }
     }
   } else {			/* otherwise, add or remove aliases */
-    /* is this an alias we've already defined? */
-    if ((a = find_alias(GET_ALIASES(ch), arg)) != NULL) {
-      REMOVE_FROM_LIST(a, GET_ALIASES(ch), next);
-      free_alias(a);
+    auto find_it = find_alias(GET_ALIASES(ch), arg);
+
+    if (find_it != GET_ALIASES(ch).end()) {
+      GET_ALIASES(ch).erase(std::remove(GET_ALIASES(ch).begin(), GET_ALIASES(ch).end(), *find_it), GET_ALIASES(ch).end());
     }
     /* if no replacement string is specified, assume we want to delete */
     if (!*repl) {
-      if (a == NULL)
-	send_to_char(ch, "No such alias.\r\n");
+      if (find_it == GET_ALIASES(ch).end())
+       	send_to_char(ch, "No such alias.\r\n");
       else
-	send_to_char(ch, "Alias deleted.\r\n");
+	     send_to_char(ch, "Alias deleted.\r\n");
     } else {			/* otherwise, either add or redefine an alias */
       if (!str_cmp(arg, "alias")) {
-	send_to_char(ch, "You can't alias 'alias'.\r\n");
-	return;
+	      send_to_char(ch, "You can't alias 'alias'.\r\n");
+	      return;
       }
-      CREATE(a, struct alias_data, 1);
-      a->alias = strdup(arg);
+
+      alias_data new_alias;
+      new_alias.alias = std::string(arg);
       delete_doubledollar(repl);
-      a->replacement = strdup(repl);
+
+      new_alias.replacement = std::string(repl);
       if (strchr(repl, ALIAS_SEP_CHAR) || strchr(repl, ALIAS_VAR_CHAR))
-	a->type = ALIAS_COMPLEX;
+   	     new_alias.type = ALIAS_COMPLEX;
       else
-	a->type = ALIAS_SIMPLE;
-      a->next = GET_ALIASES(ch);
-      GET_ALIASES(ch) = a;
+	       new_alias.type = ALIAS_SIMPLE;
+
+      GET_ALIASES(ch).push_back(new_alias);
       send_to_char(ch, "Alias added.\r\n");
     }
   }
@@ -731,7 +718,7 @@ ACMD(do_alias)
  */
 #define NUM_TOKENS       9
 
-void perform_complex_alias(struct txt_q *input_q, char *orig, struct alias_data *a)
+static void perform_complex_alias(struct txt_q *input_q, char *orig, const alias_data &a)
 {
   struct txt_q temp_queue;
   char *tokens[NUM_TOKENS], *temp, *write_point;
@@ -751,24 +738,27 @@ void perform_complex_alias(struct txt_q *input_q, char *orig, struct alias_data 
   temp_queue.head = temp_queue.tail = NULL;
 
   /* now parse the alias */
-  for (temp = a->replacement; *temp; temp++) {
-    if (*temp == ALIAS_SEP_CHAR) {
+  auto start = a.replacement.begin();
+  for (; start != a.replacement.end(); start++) {
+    if (*start == ALIAS_SEP_CHAR) {
       *write_point = '\0';
       buf[MAX_INPUT_LENGTH - 1] = '\0';
       write_to_q(buf, &temp_queue, 1);
       write_point = buf;
-    } else if (*temp == ALIAS_VAR_CHAR) {
-      temp++;
-      if ((num = *temp - '1') < num_of_tokens && num >= 0) {
-	strcpy(write_point, tokens[num]);	/* strcpy: OK */
-	write_point += strlen(tokens[num]);
+    } else if (*start == ALIAS_VAR_CHAR) {
+      start++;
+      if ((num = *start - '1') < num_of_tokens && num >= 0) {
+        strcpy(write_point, tokens[num]);	/* strcpy: OK */
+        write_point += strlen(tokens[num]);
       } else if (*temp == ALIAS_GLOB_CHAR) {
-	strcpy(write_point, orig);		/* strcpy: OK */
-	write_point += strlen(orig);
-      } else if ((*(write_point++) = *temp) == '$')	/* redouble $ for act safety */
-	*(write_point++) = '$';
-    } else
-      *(write_point++) = *temp;
+        strcpy(write_point, orig);		/* strcpy: OK */
+        write_point += strlen(orig);
+      } else if ((*(write_point++) = *start) == '$')	{ /* redouble $ for act safety */
+	      *(write_point++) = '$';
+      }
+    } else {
+      *(write_point++) = *start;
+    }
   }
 
   *write_point = '\0';
@@ -796,33 +786,34 @@ void perform_complex_alias(struct txt_q *input_q, char *orig, struct alias_data 
 int perform_alias(struct descriptor_data *d, char *orig, size_t maxlen)
 {
   char first_arg[MAX_INPUT_LENGTH], *ptr;
-  struct alias_data *a, *tmp;
 
   /* Mobs don't have alaises. */
   if (IS_NPC(d->character))
-    return (0);
+    return 0;
 
   /* bail out immediately if the guy doesn't have any aliases */
-  if ((tmp = GET_ALIASES(d->character)) == NULL)
-    return (0);
+  if (GET_ALIASES(d->character).empty()) {
+    return 0;
+  }
 
   /* find the alias we're supposed to match */
   ptr = any_one_arg(orig, first_arg);
 
   /* bail out if it's null */
   if (!*first_arg)
-    return (0);
+    return 0;
 
   /* if the first arg is not an alias, return without doing anything */
-  if ((a = find_alias(tmp, first_arg)) == NULL)
-    return (0);
+  auto find_it = find_alias(GET_ALIASES(d->character), first_arg);
+  if (find_it == GET_ALIASES(d->character).end())
+    return 0;
 
-  if (a->type == ALIAS_SIMPLE) {
-    strlcpy(orig, a->replacement, maxlen);
-    return (0);
+  if (find_it->type == ALIAS_SIMPLE) {
+    strlcpy(orig, find_it->replacement.c_str(), maxlen);
+    return 0;
   } else {
-    perform_complex_alias(&d->input, ptr, a);
-    return (1);
+    perform_complex_alias(&d->input, ptr, *find_it);
+    return 1;
   }
 }
 
@@ -1288,9 +1279,9 @@ void nanny(struct descriptor_data *d, char *arg)
   switch (STATE(d)) {
   case CON_GET_NAME:		/* wait for input of name */
     if (d->character == NULL) {
-      CREATE(d->character, struct char_data, 1);
+      d->character = new char_data;
       clear_char(d->character);
-      CREATE(d->character->player_specials, struct player_special_data, 1);
+      d->character->player_specials = new player_special_data;
       d->character->desc = d;
     }
     if (!*arg)
@@ -1318,9 +1309,9 @@ void nanny(struct descriptor_data *d, char *arg)
 	    write_to_output(d, "Invalid name, please try another.\r\nName: ");
 	    return;
 	  }
-	  CREATE(d->character, struct char_data, 1);
+	  d->character = new char_data;
 	  clear_char(d->character);
-	  CREATE(d->character->player_specials, struct player_special_data, 1);
+	  d->character->player_specials = new player_special_data;
 	  d->character->desc = d;
 	  d->character->player.name = std::string(CAP(tmp_name));
 
@@ -1551,25 +1542,26 @@ void nanny(struct descriptor_data *d, char *arg)
       read_aliases(d->character);
 
       if (PLR_FLAGGED(d->character, PLR_INVSTART))
-	GET_INVIS_LEV(d->character) = GET_LEVEL(d->character);
+        GET_INVIS_LEV(d->character) = GET_LEVEL(d->character);
 
       /*
        * We have to place the character in a room before equipping them
        * or equip_char() will gripe about the person in NOWHERE.
        */
-      if ((load_room = GET_LOADROOM(d->character)) != NOWHERE)
-	load_room = real_room(load_room);
+       if ((load_room = GET_LOADROOM(d->character)) != NOWHERE)
+         load_room = real_room(load_room);
 
       /* If char was saved with NOWHERE, or real_room above failed... */
       if (load_room == NOWHERE) {
-	if (GET_LEVEL(d->character) >= LVL_IMMORT)
-	  load_room = r_immort_start_room;
-	else
-	  load_room = r_mortal_start_room;
+        if (GET_LEVEL(d->character) >= LVL_IMMORT) {
+          load_room = r_immort_start_room;
+        } else {
+          load_room = r_mortal_start_room;
+        }
       }
 
       if (PLR_FLAGGED(d->character, PLR_FROZEN))
-	load_room = r_frozen_start_room;
+        load_room = r_frozen_start_room;
 
       send_to_char(d->character, "%s", WELC_MESSG);
       d->character->next = character_list;

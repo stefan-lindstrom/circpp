@@ -46,7 +46,7 @@ char *fread_string(FILE * fl, const char *error)
   /* do the allocate boogie  */
 
   if (strlen(buf) > 0) {
-    CREATE(rslt, char, strlen(buf) + 1);
+    rslt = new char[strlen(buf) + 1];
     strcpy(rslt, buf);
   } else
     rslt = NULL;

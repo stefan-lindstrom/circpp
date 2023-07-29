@@ -65,7 +65,7 @@ void bfs_enqueue(room_rnum room, int dir)
 {
   struct bfs_queue_struct *curr;
 
-  CREATE(curr, struct bfs_queue_struct, 1);
+  curr = new bfs_queue_struct;
   curr->room = room;
   curr->dir = dir;
   curr->next = 0;

@@ -229,7 +229,7 @@ void boot_social_messages(void)
     if (cmd_info[nr].command_pointer == do_action)
       list_top++;
 
-  CREATE(soc_mess_list, struct social_messg, list_top + 1);
+  soc_mess_list = new social_messg[list_top + 1];
 
   /* now read 'em */
   for (;;) {

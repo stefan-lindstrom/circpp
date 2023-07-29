@@ -395,8 +395,7 @@ ACMD(do_get)
 }
 
 
-void perform_drop_gold(struct char_data *ch, int amount,
-		            byte mode, room_rnum RDR)
+void perform_drop_gold(struct char_data *ch, int amount, byte mode, room_rnum RDR)
 {
   struct obj_data *obj;
 
@@ -407,7 +406,8 @@ void perform_drop_gold(struct char_data *ch, int amount,
   else {
     if (mode != SCMD_JUNK) {
       WAIT_STATE(ch, PULSE_VIOLENCE);	/* to prevent coin-bombing */
-      obj = create_money(amount);
+      obj = 
+      create_money(amount);
       if (mode == SCMD_DONATE) {
 	send_to_char(ch, "You throw some gold into the air where it disappears in a puff of smoke!\r\n");
 	act("$n throws some gold into the air where it disappears in a puff of smoke!",
@@ -766,7 +766,7 @@ void name_from_drinkcon(struct obj_data *obj)
   }
 
   liqlen = strlen(liqname);
-  CREATE(new_name, char, obj->name.length() - strlen(liqname)); /* +1 for NUL, -1 for space */
+  new_name = new char[obj->name.length() - liqlen];
 
   char *m;
   for (m = cur_name = strdup(obj->name.c_str()); cur_name; cur_name = next) {
@@ -788,6 +788,7 @@ void name_from_drinkcon(struct obj_data *obj)
   free(m);
 
   obj->name = std::string(new_name);
+  delete [] new_name;
 }
 
 
@@ -799,10 +800,11 @@ void name_to_drinkcon(struct obj_data *obj, int type)
   if (!obj || (GET_OBJ_TYPE(obj) != ITEM_DRINKCON && GET_OBJ_TYPE(obj) != ITEM_FOUNTAIN))
     return;
 
-  CREATE(new_name, char, obj->name.length() + strlen(drinknames[type]) + 2);
+  new_name = new char[obj->name.length() + strlen(drinknames[type]) + 2];
   sprintf(new_name, "%s %s", obj->name.c_str(), drinknames[type]);	/* sprintf: OK */
 
   obj->name = std::string(new_name);
+  delete [] new_name;
 }
 
 

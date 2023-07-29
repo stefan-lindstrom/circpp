@@ -161,7 +161,7 @@ void load_messages(void)
       basic_mud_log("SYSERR: Too many combat messages.  Increase MAX_MESSAGES and recompile.");
       exit(1);
     }
-    CREATE(messages, struct message_type, 1);
+    messages = new message_type;
     fight_messages[i].number_of_attacks++;
     fight_messages[i].a_type = type;
     messages->next = fight_messages[i].msg;

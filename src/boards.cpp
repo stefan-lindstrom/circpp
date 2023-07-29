@@ -496,7 +496,7 @@ void Board_load_board(int board_type)
       Board_reset_board(board_type);
       return;
     }
-    CREATE(tmp1, char, len1);
+    tmp1 = new char[len1];
     fread(tmp1, sizeof(char), len1, fl);
     MSG_HEADING(board_type, i) = tmp1;
 
@@ -506,7 +506,8 @@ void Board_load_board(int board_type)
       return;
     }
     if ((len2 = msg_index[board_type][i].message_len) > 0) {
-      CREATE(tmp2, char, len2);
+      tmp2 = new char[len2];
+
       fread(tmp2, sizeof(char), len2, fl);
       msg_storage[MSG_SLOTNUM(board_type, i)] = tmp2;
     } else

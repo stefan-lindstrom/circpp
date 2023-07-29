@@ -768,7 +768,7 @@ ACMD(do_stat)
     else if ((victim = get_player_vis(ch, buf2, NULL, FIND_CHAR_WORLD)) != NULL)
       do_stat_character(ch, victim);
     else {
-      CREATE(victim, struct char_data, 1);
+      victim = new char_data;
       clear_char(victim);
       
       if (load_char(buf2, &tmp_store) >= 0) {
@@ -782,7 +782,7 @@ ACMD(do_stat)
 	       do_stat_character(ch, victim);
 	     extract_char_final(victim);
     } else {
-	    send_to_char(ch, "There is no such player.\r\n");
+	     send_to_char(ch, "There is no such player.\r\n");
 	     delete victim;
       }
     }
@@ -2562,7 +2562,8 @@ ACMD(do_set)
     }
   } else if (is_file) {
     /* try to load the player off disk */
-    CREATE(cbuf, struct char_data, 1);
+    cbuf = new char_data;
+
     clear_char(cbuf);
     if ((player_i = load_char(name, &tmp_store)) > -1) {
       store_to_char(&tmp_store, cbuf);

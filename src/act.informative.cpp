@@ -1682,7 +1682,8 @@ void sort_commands(void)
     num_of_cmds++;
   num_of_cmds++;	/* \n */
 
-  CREATE(cmd_sort_info, int, num_of_cmds);
+  cmd_sort_info = new int[num_of_cmds];
+
 
   for (a = 0; a < num_of_cmds; a++)
     cmd_sort_info[a] = a;

@@ -163,14 +163,6 @@ void	update_pos(struct char_data *victim);
 
 /* memory utils **********************************************************/
 
-#define CREATE(result, type, number)  do {\
-	if ((number) * sizeof(type) <= 0)	\
-	  basic_mud_log("SYSERR: Zero bytes or less requested at %s:%d.", __FILE__, __LINE__); \
-	else if ((number) == 1)					\
-	  (result) = new type;				\
-	else if (!((result) = new type[(number)]))            \
-	  { perror("SYSERR: malloc failure"); abort(); } } while(0)
-
 #define RECREATE(result,type,number, old) do {	\
   type *tmp = new type[number];			\
   std::copy((result), (result)+old, tmp);	\

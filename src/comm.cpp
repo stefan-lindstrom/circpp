@@ -1043,7 +1043,7 @@ void write_to_q(const char *txt, struct txt_q *queue, int aliased)
 {
   struct txt_block *newt;
 
-  CREATE(newt, struct txt_block, 1);
+  newt = new txt_block;
   newt->text = strdup(txt);
   newt->aliased = aliased;
 
@@ -1159,8 +1159,9 @@ size_t vwrite_to_output(struct descriptor_data *t, const char *format, va_list a
     t->large_outbuf = bufpool;
     bufpool = bufpool->next;
   } else {			/* else create a new one */
-    CREATE(t->large_outbuf, struct txt_block, 1);
-    CREATE(t->large_outbuf->text, char, LARGE_BUFSIZE);
+
+    t->large_outbuf = new txt_block,
+    t->large_outbuf->text = new char[LARGE_BUFSIZE];
     buf_largecount++;
   }
 
@@ -1317,7 +1318,7 @@ int new_descriptor(socket_t s)
     return (0);
   }
   /* create a new descriptor */
-  CREATE(newd, struct descriptor_data, 1);
+  newd = new descriptor_data;
 
   /* find the sitename */
   if (nameserver_is_slow || !(from = gethostbyaddr((char *) &peer.sin_addr,
@@ -1367,7 +1368,7 @@ int new_descriptor(socket_t s)
    * Do we embed the history in descriptor_data or keep it dynamically
    * allocated and allow a user defined history size?
    */
-  CREATE(newd->history, char *, HISTORY_SIZE);
+  newd->history = new char*[HISTORY_SIZE];
 
   if (++last_desc == 1000)
     last_desc = 1;

@@ -61,7 +61,8 @@ void load_banned(void)
     return;
   }
   while (fscanf(fl, " %s %s %d %s ", ban_type, site_name, &date, name) == 4) {
-    CREATE(next_node, struct ban_list_element, 1);
+    next_node = new ban_list_element;
+
     strncpy(next_node->site, site_name, BANNED_SITE_LENGTH);	/* strncpy: OK (n_n->site:BANNED_SITE_LENGTH+1) */
     next_node->site[BANNED_SITE_LENGTH] = '\0';
     strncpy(next_node->name, name, MAX_NAME_LENGTH);	/* strncpy: OK (n_n->name:MAX_NAME_LENGTH+1) */
@@ -70,7 +71,7 @@ void load_banned(void)
 
     for (i = BAN_NOT; i <= BAN_ALL; i++)
       if (!strcmp(ban_type, ban_types[i]))
-	next_node->type = i;
+        next_node->type = i;
 
     next_node->next = ban_list;
     ban_list = next_node;
@@ -179,7 +180,8 @@ ACMD(do_ban)
     }
   }
 
-  CREATE(ban_node, struct ban_list_element, 1);
+  ban_node = new ban_list_element;
+
   strncpy(ban_node->site, site, BANNED_SITE_LENGTH);	/* strncpy: OK (b_n->site:BANNED_SITE_LENGTH+1) */
   for (nextchar = ban_node->site; *nextchar; nextchar++)
     *nextchar = LOWER(*nextchar);

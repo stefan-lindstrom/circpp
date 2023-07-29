@@ -194,7 +194,7 @@ void remember(struct char_data *ch, struct char_data *victim)
       present = TRUE;
 
   if (!present) {
-    CREATE(tmp, memory_rec, 1);
+    tmp = new memory_rec;
     tmp->next = MEMORY(ch);
     tmp->id = GET_IDNUM(victim);
     MEMORY(ch) = tmp;

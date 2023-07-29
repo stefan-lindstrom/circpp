@@ -945,6 +945,21 @@ struct player_special_data_saved {
 };
 
 /*
+ * Alert! Changed from 'struct alias' to 'struct alias_data' in bpl15
+ * because a Windows 95 compiler gives a warning about it having similiar
+ * named member.
+ */
+struct alias_data {
+  std::string alias;
+  std::string replacement;
+  int type;
+
+  bool operator==(const alias_data &other) const {
+    return alias == other.alias;
+  }
+};
+
+/*
  * Specials needed only by PCs, not NPCs.  Space for this structure is
  * not allocated in memory for NPCs, but it is for PCs and the portion
  * of it labelled 'saved' is saved in the playerfile.  This structure can
@@ -954,14 +969,14 @@ struct player_special_data_saved {
 struct player_special_data {
    struct player_special_data_saved saved;
 
-   char	*poofin;		/* Description on arrival of a god.     */
-   char	*poofout;		/* Description upon a god's exit.       */
-   struct alias_data *aliases;	/* Character's aliases			*/
-   long last_tell;		/* idnum of last tell from		*/
-   void *last_olc_targ;		/* olc control				*/
-   OlcMode last_olc_mode;	/* olc control				*/
+   char	*poofin;		               /* Description on arrival of a god.     */
+   char	*poofout;		            /* Description upon a god's exit.       */
+   std::list<alias_data> aliases;	/* Character's aliases			*/
+   long last_tell;	            	/* idnum of last tell from		*/
+   void *last_olc_targ;		         /* olc control				*/
+   OlcMode last_olc_mode;	         /* olc control				*/
 
-  player_special_data() : poofin(nullptr), poofout(nullptr), aliases(nullptr), last_tell(0), last_olc_targ(nullptr), last_olc_mode(OlcMode::OLC_SET) {}
+  player_special_data() : poofin(nullptr), poofout(nullptr), last_tell(0), last_olc_targ(nullptr), last_olc_mode(OlcMode::OLC_SET) {}
 };
 
 
