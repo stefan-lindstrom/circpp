@@ -247,8 +247,8 @@ extern struct descriptor_data *descriptor_list;
 extern struct char_data *character_list;
 extern struct player_special_data dummy_mob;
 
-extern struct index_data *mob_index;
-extern struct char_data *mob_proto;
+extern std::vector<index_data> mob_index;
+extern std::vector<char_data> mob_proto;
 extern mob_rnum top_of_mobt;
 
 extern std::vector<index_data> obj_index;

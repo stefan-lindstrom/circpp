@@ -38,8 +38,8 @@ void room_future::parse_single_idx(const std::string &idx, std::vector<room_data
     } // else, _future.set_exception(some_exception), will throw when doing promise.get()
 
     auto it = std::find_if(zone_table.begin(), zone_table.end(), [&vnum](const zone_data &z) {
-	return (vnum >= z.bot) && (vnum <= z.top); 
-      });
+      return (vnum >= z.bot) && (vnum <= z.top); 
+    });
 
     if (zone_table.end() == it) {
       basic_mud_log("SYSERR: Room %d is outside of any zone.", vnum);

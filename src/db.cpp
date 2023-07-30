@@ -32,6 +32,7 @@
 #include "room_future.h"
 #include "object_future.h"
 #include "zone_future.h"
+#include "mob_future.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -42,8 +43,9 @@ room_rnum top_of_world = 0;	/* ref to top element of world	 */
 
 struct char_data *character_list = NULL;	/* global linked list of
 						 * chars	 */
-struct index_data *mob_index;	/* index table for mobile file	 */
-struct char_data *mob_proto;	/* prototypes for mobs		 */
+
+std::vector<index_data> mob_index;
+std::vector<char_data> mob_proto;
 mob_rnum top_of_mobt = 0;	/* top of mobile index table	 */
 
 struct obj_data *object_list = NULL;	/* global linked list of objs	 */
@@ -99,7 +101,6 @@ int check_object_level(struct obj_data *obj, int val);
 static void index_boot(DBBoot mode);
 static void discrete_load(FILE *fl, DBBoot mode, char *filename);
 int check_object(struct obj_data *);
-void parse_mobile(FILE *mob_f, int nr);
 void load_zones(FILE *fl, char *zonename);
 void load_help(FILE *fl);
 void assign_mobiles(void);
@@ -116,10 +117,6 @@ ACMD(do_reboot);
 void boot_world(void);
 int count_alias_records(FILE *fl);
 int count_hash_records(FILE *fl);
-void parse_simple_mob(FILE *mob_f, int i, int nr);
-void interpret_espec(const char *keyword, const char *value, int i, int nr);
-void parse_espec(char *buf, int i, int nr);
-void parse_enhanced_mob(FILE *mob_f, int i, int nr);
 void get_one_line(FILE *fl, char *buf);
 void save_etext(struct char_data *ch);
 void check_start_rooms(void);
@@ -302,8 +299,23 @@ void boot_world(void)
   check_start_rooms();
 
   // can wait for all other fuqture based parses to complete. 
-  basic_mud_log("Loading mobs and generating index.");
-  index_boot(DBBoot::DB_BOOT_MOB);
+  basic_mud_log("Startinf future parsing of mobs and generating index.");
+  mob_future mobs(mini_mud);
+  mobs.parse();
+
+  basic_mud_log("Waiting for completion of mob loading...");
+  mob_proto = mobs.items();
+  top_of_mobt = mob_proto.size() + 1;
+
+  std::for_each(mob_proto.begin(), mob_proto.end(), [](const char_data &m) {
+      index_data mi;
+      mi.vnum = m.vnr;
+      mi.number = 0;
+      mi.func = nullptr;
+      mob_index.push_back(mi);
+    });
+
+  basic_mud_log("   %d mobiles, %lu bytes.", top_of_mobt, top_of_mobt * sizeof(char_data));
 
 
   basic_mud_log("Renumbering zone table.");
@@ -710,9 +722,9 @@ static void index_boot(DBBoot mode)
       continue;
     } else {
       if (mode == DBBoot::DB_BOOT_HLP)
-	rec_count += count_alias_records(db_file);
+        rec_count += count_alias_records(db_file);
       else
-	rec_count += count_hash_records(db_file);
+        rec_count += count_hash_records(db_file);
     }
 
     fclose(db_file);
@@ -723,8 +735,7 @@ static void index_boot(DBBoot mode)
   if (!rec_count) {
     if (mode == DBBoot::DB_BOOT_SHP)
       return;
-    basic_mud_log("SYSERR: boot error - 0 records counted in %s/%s.", prefix,
-	index_filename);
+    basic_mud_log("SYSERR: boot error - 0 records counted in %s/%s.", prefix, index_filename);
     exit(1);
   }
 
@@ -732,15 +743,6 @@ static void index_boot(DBBoot mode)
    * NOTE: "bytes" does _not_ include strings or other later malloc'd things.
    */
   switch (mode) {
-  case DBBoot::DB_BOOT_MOB:
-    mob_proto = new char_data[rec_count];
-    mob_index = new index_data[rec_count];
-
-    size[0] = sizeof(struct index_data) * rec_count;
-    size[1] = sizeof(struct char_data) * rec_count;
-    basic_mud_log("   %d mobs, %d bytes in index, %d bytes in prototypes.", rec_count, size[0], size[1]);
-    break;
-
   case DBBoot::DB_BOOT_HLP:
     help_table = new help_index_element[rec_count];
     size[0] = sizeof(struct help_index_element) * rec_count;
@@ -754,7 +756,7 @@ static void index_boot(DBBoot mode)
 
   rewind(db_index);
   fscanf(db_index, "%s\n", buf1);
-   while (*buf1 != '$') {
+  while (*buf1 != '$') {
 	std::string tmp = prefix;
 	tmp.append(buf1);
 
@@ -823,9 +825,6 @@ static void discrete_load(FILE *fl, DBBoot mode, char *filename)
 	return;
       else
 	switch (mode) {
-	case DBBoot::DB_BOOT_MOB:
-	  parse_mobile(fl, nr);
-	  break;
 	case DBBoot::DB_BOOT_SHP:
 	case DBBoot::DB_BOOT_HLP:
 	default:
@@ -937,303 +936,6 @@ void renum_zone_table(void)
 	ZCMD.command = '*';
       }
     }
-}
-
-
-
-void parse_simple_mob(FILE *mob_f, int i, int nr)
-{
-  int j, t[10];
-  char line[READ_SIZE];
-
-  mob_proto[i].real_abils.str = 11;
-  mob_proto[i].real_abils.intel = 11;
-  mob_proto[i].real_abils.wis = 11;
-  mob_proto[i].real_abils.dex = 11;
-  mob_proto[i].real_abils.con = 11;
-  mob_proto[i].real_abils.cha = 11;
-
-  if (!get_line(mob_f, line)) {
-    basic_mud_log("SYSERR: Format error in mob #%d, file ended after S flag!", nr);
-    exit(1);
-  }
-
-  if (sscanf(line, " %d %d %d %dd%d+%d %dd%d+%d ",
-	  t, t + 1, t + 2, t + 3, t + 4, t + 5, t + 6, t + 7, t + 8) != 9) {
-    basic_mud_log("SYSERR: Format error in mob #%d, first line after S flag\n"
-	"...expecting line of form '# # # #d#+# #d#+#'", nr);
-    exit(1);
-  }
-
-  GET_LEVEL(mob_proto + i) = t[0];
-  GET_HITROLL(mob_proto + i) = 20 - t[1];
-  GET_AC(mob_proto + i) = 10 * t[2];
-
-  /* max hit = 0 is a flag that H, M, V is xdy+z */
-  GET_MAX_HIT(mob_proto + i) = 0;
-  GET_HIT(mob_proto + i) = t[3];
-  GET_MANA(mob_proto + i) = t[4];
-  GET_MOVE(mob_proto + i) = t[5];
-
-  GET_MAX_MANA(mob_proto + i) = 10;
-  GET_MAX_MOVE(mob_proto + i) = 50;
-
-  mob_proto[i].mob_specials.damnodice = t[6];
-  mob_proto[i].mob_specials.damsizedice = t[7];
-  GET_DAMROLL(mob_proto + i) = t[8];
-
-  if (!get_line(mob_f, line)) {
-      basic_mud_log("SYSERR: Format error in mob #%d, second line after S flag\n"
-	  "...expecting line of form '# #', but file ended!", nr);
-      exit(1);
-    }
-
-  if (sscanf(line, " %d %d ", t, t + 1) != 2) {
-    basic_mud_log("SYSERR: Format error in mob #%d, second line after S flag\n"
-	"...expecting line of form '# #'", nr);
-    exit(1);
-  }
-
-  GET_GOLD(mob_proto + i) = t[0];
-  GET_EXP(mob_proto + i) = t[1];
-
-  if (!get_line(mob_f, line)) {
-    basic_mud_log("SYSERR: Format error in last line of mob #%d\n"
-	"...expecting line of form '# # #', but file ended!", nr);
-    exit(1);
-  }
-
-  if (sscanf(line, " %d %d %d ", t, t + 1, t + 2) != 3) {
-    basic_mud_log("SYSERR: Format error in last line of mob #%d\n"
-	"...expecting line of form '# # #'", nr);
-    exit(1);
-  }
-
-  GET_POS(mob_proto + i) = t[0];
-  GET_DEFAULT_POS(mob_proto + i) = t[1];
-  GET_SEX(mob_proto + i) = t[2];
-
-  GET_CLASS(mob_proto + i) = 0;
-  GET_WEIGHT(mob_proto + i) = 200;
-  GET_HEIGHT(mob_proto + i) = 198;
-
-  /*
-   * these are now save applies; base save numbers for MOBs are now from
-   * the warrior save table.
-   */
-  for (j = 0; j < 5; j++)
-    GET_SAVE(mob_proto + i, j) = 0;
-}
-
-
-/*
- * interpret_espec is the function that takes espec keywords and values
- * and assigns the correct value to the mob as appropriate.  Adding new
- * e-specs is absurdly easy -- just add a new CASE statement to this
- * function!  No other changes need to be made anywhere in the code.
- *
- * CASE		: Requires a parameter through 'value'.
- * BOOL_CASE	: Being specified at all is its value.
- */
-
-#define CASE(test)	\
-	if (value && !matched && !str_cmp(keyword, test) && (matched = TRUE))
-
-#define BOOL_CASE(test)	\
-	if (!value && !matched && !str_cmp(keyword, test) && (matched = TRUE))
-
-#define RANGE(low, high)	\
-	(num_arg = MAX((low), MIN((high), (num_arg))))
-
-void interpret_espec(const char *keyword, const char *value, int i, int nr)
-{
-  int num_arg = 0, matched = FALSE;
-
-  /*
-   * If there isn't a colon, there is no value.  While Boolean options are
-   * possible, we don't actually have any.  Feel free to make some.
-  */
-  if (value)
-    num_arg = atoi(value);
-
-  CASE("BareHandAttack") {
-    RANGE(0, 99);
-    mob_proto[i].mob_specials.attack_type = num_arg;
-  }
-
-  CASE("Str") {
-    RANGE(3, 25);
-    mob_proto[i].real_abils.str = num_arg;
-  }
-
-  CASE("StrAdd") {
-    RANGE(0, 100);
-    mob_proto[i].real_abils.str_add = num_arg;    
-  }
-
-  CASE("Int") {
-    RANGE(3, 25);
-    mob_proto[i].real_abils.intel = num_arg;
-  }
-
-  CASE("Wis") {
-    RANGE(3, 25);
-    mob_proto[i].real_abils.wis = num_arg;
-  }
-
-  CASE("Dex") {
-    RANGE(3, 25);
-    mob_proto[i].real_abils.dex = num_arg;
-  }
-
-  CASE("Con") {
-    RANGE(3, 25);
-    mob_proto[i].real_abils.con = num_arg;
-  }
-
-  CASE("Cha") {
-    RANGE(3, 25);
-    mob_proto[i].real_abils.cha = num_arg;
-  }
-
-  if (!matched) {
-    basic_mud_log("SYSERR: Warning: unrecognized espec keyword %s in mob #%d",
-	    keyword, nr);
-  }    
-}
-
-#undef CASE
-#undef BOOL_CASE
-#undef RANGE
-
-void parse_espec(char *buf, int i, int nr)
-{
-  char *ptr;
-
-  if ((ptr = strchr(buf, ':')) != NULL) {
-    *(ptr++) = '\0';
-    while (isspace(*ptr))
-      ptr++;
-  }
-  interpret_espec(buf, ptr, i, nr);
-}
-
-
-void parse_enhanced_mob(FILE *mob_f, int i, int nr)
-{
-  char line[READ_SIZE];
-
-  parse_simple_mob(mob_f, i, nr);
-
-  while (get_line(mob_f, line)) {
-    if (!strcmp(line, "E"))	/* end of the enhanced section */
-      return;
-    else if (*line == '#') {	/* we've hit the next mob, maybe? */
-      basic_mud_log("SYSERR: Unterminated E section in mob #%d", nr);
-      exit(1);
-    } else
-      parse_espec(line, i, nr);
-  }
-
-  basic_mud_log("SYSERR: Unexpected end of file reached after mob #%d", nr);
-  exit(1);
-}
-
-
-void parse_mobile(FILE *mob_f, int nr)
-{
-  static int i = 0;
-  int j, t[10];
-  char line[READ_SIZE], *tmpptr, letter;
-  char f1[128], f2[128], buf2[128];
-
-  mob_index[i].vnum = nr;
-  mob_index[i].number = 0;
-  mob_index[i].func = NULL;
-
-  clear_char(mob_proto + i);
-
-  /*
-   * Mobiles should NEVER use anything in the 'player_specials' structure.
-   * The only reason we have every mob in the game share this copy of the
-   * structure is to save newbie coders from themselves. -gg 2/25/98
-   */
-  mob_proto[i].player_specials = &dummy_mob;
-  sprintf(buf2, "mob vnum %d", nr);	/* sprintf: OK (for 'buf2 >= 19') */
-
-  /***** String data *****/
-  char *tmpline = fread_string(mob_f, buf2);
-  mob_proto[i].player.name = (tmpline ? std::string(tmpline) : "");
-  mob_proto[i].player.short_descr = fread_string(mob_f, buf2);
-  tmpptr = const_cast<char *>(mob_proto[i].player.short_descr.c_str());
-  if (tmpptr && *tmpptr)
-    if (!str_cmp(fname(tmpptr), "a") || !str_cmp(fname(tmpptr), "an") ||
-	!str_cmp(fname(tmpptr), "the"))
-      *tmpptr = LOWER(*tmpptr);
-
-  char *tmp = fread_string(mob_f, buf2);
-  mob_proto[i].player.long_descr = (nullptr == tmp) ?  "" : tmp;
-
-  tmp = fread_string(mob_f, buf2);
-  mob_proto[i].player.description = (nullptr == tmp) ?  "" : tmp;
-
-  /* *** Numeric data *** */
-  if (!get_line(mob_f, line)) {
-    basic_mud_log("SYSERR: Format error after string section of mob #%d\n"
-	"...expecting line of form '# # # {S | E}', but file ended!", nr);
-    exit(1);
-  }
-
-#ifdef CIRCLE_ACORN	/* Ugh. */
-  if (sscanf(line, "%s %s %d %s", f1, f2, t + 2, &letter) != 4) {
-#else
-  if (sscanf(line, "%s %s %d %c", f1, f2, t + 2, &letter) != 4) {
-#endif
-    basic_mud_log("SYSERR: Format error after string section of mob #%d\n"
-	"...expecting line of form '# # # {S | E}'", nr);
-    exit(1);
-  }
-
-  MOB_FLAGS(mob_proto + i) = asciiflag_conv(f1);
-  SET_BIT(MOB_FLAGS(mob_proto + i), MOB_ISNPC);
-  if (MOB_FLAGGED(mob_proto + i, MOB_NOTDEADYET)) {
-    /* Rather bad to load mobiles with this bit already set. */
-    basic_mud_log("SYSERR: Mob #%d has reserved bit MOB_NOTDEADYET set.", nr);
-    REMOVE_BIT(MOB_FLAGS(mob_proto + i), MOB_NOTDEADYET);
-  }
-  check_bitvector_names(MOB_FLAGS(mob_proto + i), action_bits_count, buf2, "mobile");
-
-  AFF_FLAGS(mob_proto + i) = asciiflag_conv(f2);
-  check_bitvector_names(AFF_FLAGS(mob_proto + i), affected_bits_count, buf2, "mobile affect");
-
-  GET_ALIGNMENT(mob_proto + i) = t[2];
-
-  /* AGGR_CommTarget::TO_ALIGN is ignored if the mob is AGGRESSIVE. */
-  if (MOB_FLAGGED(mob_proto + i, MOB_AGGRESSIVE) && MOB_FLAGGED(mob_proto + i, MOB_AGGR_GOOD | MOB_AGGR_EVIL | MOB_AGGR_NEUTRAL))
-    basic_mud_log("SYSERR: Mob #%d both Aggressive and Aggressive_to_Alignment.", nr);
-
-  switch (UPPER(letter)) {
-  case 'S':	/* Simple monsters */
-    parse_simple_mob(mob_f, i, nr);
-    break;
-  case 'E':	/* Circle3 Enhanced monsters */
-    parse_enhanced_mob(mob_f, i, nr);
-    break;
-  /* add new mob types here.. */
-  default:
-    basic_mud_log("SYSERR: Unsupported mob type '%c' in mob #%d", letter, nr);
-    exit(1);
-  }
-
-  mob_proto[i].aff_abils = mob_proto[i].real_abils;
-
-  for (j = 0; j < NUM_WEARS; j++)
-    mob_proto[i].equipment[j] = NULL;
-
-  mob_proto[i].nr = i;
-  mob_proto[i].desc = NULL;
-
-  top_of_mobt = i++;
 }
 
 void get_one_line(FILE *fl, char *buf)
@@ -2319,24 +2021,11 @@ room_rnum real_room(room_vnum vnum)
 /* returns the real number of the monster with given virtual number */
 mob_rnum real_mobile(mob_vnum vnum)
 {
-  mob_rnum bot, top, mid;
-
-  bot = 0;
-  top = top_of_mobt;
-
-  /* perform binary search on mob-table */
-  for (;;) {
-    mid = (bot + top) / 2;
-
-    if ((mob_index + mid)->vnum == vnum)
-      return (mid);
-    if (bot >= top)
-      return (NOBODY);
-    if ((mob_index + mid)->vnum > vnum)
-      top = mid - 1;
-    else
-      bot = mid + 1;
+  auto found = std::find_if(mob_index.begin(), mob_index.end(), [=](index_data idx) { return idx.vnum == vnum; });
+  if (found == mob_index.end()) {
+    return NOBODY;
   }
+  return std::distance(mob_index.begin(), found);
 }
 
 
