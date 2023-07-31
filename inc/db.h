@@ -14,13 +14,6 @@
 
 #include <vector>
 
-/* arbitrary constants used by index_boot() (must be unique) */
-enum class DBBoot : unsigned char  {
-  DB_BOOT_MOB = 0,
-  DB_BOOT_SHP,
-  DB_BOOT_HLP,
-};
-
 #if defined(CIRCLE_MACINTOSH)
 #define LIB_WORLD	":world:"
 #define LIB_TEXT	":text:"

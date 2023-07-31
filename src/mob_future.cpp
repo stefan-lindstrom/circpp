@@ -14,7 +14,7 @@ void mob_future::parse_single_idx(const std::string &idx, std::vector<char_data>
   std::string line;
   std::getline(mobidx, line);
 
-  basic_mud_log("Read first line: %s", line.c_str());
+  basic_mud_log("Parsing mob file %s", mobfile.c_str());
 
   do {
     if ('$' == line[0]) {
@@ -96,9 +96,12 @@ void mob_future::parse_single_idx(const std::string &idx, std::vector<char_data>
     reading.desc = nullptr;
     mobs.push_back(reading);
 
+    std::getline(mobidx, line);
+
     if ('#' == line.front()) {
       continue; // new object
-    } else {
+    } 
+    else {
      break;
     }
   } while('$' != line.front());

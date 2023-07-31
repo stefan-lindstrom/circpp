@@ -33,6 +33,8 @@
 #include "object_future.h"
 #include "zone_future.h"
 #include "mob_future.h"
+#include "shop.h"
+#include "shop_future.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -98,15 +100,13 @@ struct reset_q_type reset_q;	/* queue of zones to be reset	 */
 int check_bitvector_names(bitvector_t bits, size_t namecount, const char *whatami, const char *whatbits);
 int check_object_spell_number(struct obj_data *obj, int val);
 int check_object_level(struct obj_data *obj, int val);
-static void index_boot(DBBoot mode);
-static void discrete_load(FILE *fl, DBBoot mode, char *filename);
+static void help_boot();
 int check_object(struct obj_data *);
 void load_zones(FILE *fl, char *zonename);
 void load_help(FILE *fl);
 void assign_mobiles(void);
 void assign_objects(void);
 void assign_rooms(void);
-void assign_the_shopkeepers(void);
 void build_player_index(void);
 int is_empty(zone_rnum zone_nr);
 void reset_zone(zone_rnum zone);
@@ -138,7 +138,6 @@ void sort_commands(void);
 void sort_spells(void);
 void load_banned(void);
 void Read_Invalid_List(void);
-void boot_the_shops(FILE *shop_f, char *filename, int rec_count);
 int hsort(const void *a, const void *b);
 void prune_crlf(char *txt);
 void destroy_shops(void);
@@ -237,7 +236,7 @@ ACMD(do_reboot)
   } else if (!str_cmp(arg, "xhelp")) {
     if (help_table)
       free_help();
-    index_boot(DBBoot::DB_BOOT_HLP);
+    help_boot();
   } else {
     send_to_char(ch, "Unknown reload option.\r\n");
     return;
@@ -323,65 +322,19 @@ void boot_world(void)
 
   if (!no_specials) {
     basic_mud_log("Loading shops.");
-    index_boot(DBBoot::DB_BOOT_SHP);
+    shop_future s(mini_mud);
+    s.parse();
+    shop_index = s.items();
+    top_shop = shop_index.size();
   }
 }
 
 /* Free the world, in a memory allocation sense. */
 void destroy_db(void)
 {
-#if 0 // for now, re-enable (perhaps) once all switching to proper containers and stuff is done. (constructors, destructors, whatever) 
-  ssize_t cnt, itr;
-  struct char_data *chtmp;
-  struct obj_data *objtmp;
-
-  /* Active Mobiles & Players */
-  while (character_list) {
-    chtmp = character_list;
-    character_list = character_list->next;
-    free_char(chtmp);
-  }
-
-  /* Active Objects */
-  while (object_list) {
-    objtmp = object_list;
-    object_list = object_list->next;
-    free_obj(objtmp);
-  }
-
-
-  delete [] world;
-
-  /* Mobiles */
-  for (cnt = 0; cnt <= top_of_mobt; cnt++) {
-    if (mob_proto[cnt].player.name)
-      free(mob_proto[cnt].player.name);
-    if (mob_proto[cnt].player.title)
-      free(mob_proto[cnt].player.title);
-    if (mob_proto[cnt].player.short_descr)
-      free(mob_proto[cnt].player.short_descr);
-    if (mob_proto[cnt].player.long_descr)
-      free(mob_proto[cnt].player.long_descr);
-    if (mob_proto[cnt].player.description)
-      free(mob_proto[cnt].player.description);
-
-    while (mob_proto[cnt].affected)
-      affect_remove(&mob_proto[cnt], mob_proto[cnt].affected);
-  }
-  free(mob_proto);
-  free(mob_index);
-
+ #if 0
   /* Shops */
   destroy_shops();
-
-  /* Zones */
-  for (cnt = 0; cnt <= top_of_zone_table; cnt++) {
-    if (zone_table[cnt].name)
-      free(zone_table[cnt].name);
-    if (zone_table[cnt].cmd)
-      free(zone_table[cnt].cmd);
-  }
-  free(zone_table);
 #endif
 }
 
@@ -417,7 +370,7 @@ void boot_db(void)
   boot_world();
 
   basic_mud_log("Loading help entries.");
-  index_boot(DBBoot::DB_BOOT_HLP);
+  help_boot();
 
   basic_mud_log("Generating player index.");
   build_player_index();
@@ -675,28 +628,15 @@ int count_hash_records(FILE *fl)
   return (count);
 }
 
-static void index_boot(DBBoot mode)
+// Only handles help files now
+static void help_boot()
 {
   const char *index_filename, *prefix = NULL;	/* NULL or egcs 1.1 complains */
   FILE *db_index, *db_file;
   int rec_count = 0, size[2];
   char buf2[PATH_MAX], buf1[MAX_STRING_LENGTH];
 
-  switch (mode) {
-  case DBBoot::DB_BOOT_MOB:
-    prefix = MOB_PREFIX;
-    break;
-
-  case DBBoot::DB_BOOT_SHP:
-    prefix = SHP_PREFIX;
-    break;
-  case DBBoot::DB_BOOT_HLP:
-    prefix = HLP_PREFIX;
-    break;
-  default:
-	basic_mud_log("SYSERR: Unknown subcommand %d to index_boot!", e2ut(mode));
-    exit(1);
-  }
+  prefix = HLP_PREFIX;
 
   if (mini_mud)
     index_filename = MINDEX_FILE;
@@ -721,20 +661,14 @@ static void index_boot(DBBoot mode)
       fscanf(db_index, "%s\n", buf1);
       continue;
     } else {
-      if (mode == DBBoot::DB_BOOT_HLP)
-        rec_count += count_alias_records(db_file);
-      else
-        rec_count += count_hash_records(db_file);
+      rec_count += count_alias_records(db_file);
     }
 
     fclose(db_file);
     fscanf(db_index, "%s\n", buf1);
   }
 
-  /* Exit if 0 records, unless this is shops */
   if (!rec_count) {
-    if (mode == DBBoot::DB_BOOT_SHP)
-      return;
     basic_mud_log("SYSERR: boot error - 0 records counted in %s/%s.", prefix, index_filename);
     exit(1);
   }
@@ -742,17 +676,9 @@ static void index_boot(DBBoot mode)
   /*
    * NOTE: "bytes" does _not_ include strings or other later malloc'd things.
    */
-  switch (mode) {
-  case DBBoot::DB_BOOT_HLP:
-    help_table = new help_index_element[rec_count];
-    size[0] = sizeof(struct help_index_element) * rec_count;
-    basic_mud_log("   %d entries, %d bytes.", rec_count, size[0]);
-    break;
-  case DBBoot::DB_BOOT_SHP:
-  default:
-    basic_mud_log("Wrong mode %d sent to index_boot()!", static_cast<int>(mode));
-    break;
-  }
+  help_table = new help_index_element[rec_count];
+  size[0] = sizeof(struct help_index_element) * rec_count;
+  basic_mud_log("   %d entries, %d bytes.", rec_count, size[0]);
 
   rewind(db_index);
   fscanf(db_index, "%s\n", buf1);
@@ -764,79 +690,14 @@ static void index_boot(DBBoot mode)
       basic_mud_log("SYSERR: %s: %s", buf2, strerror(errno));
       exit(1);
     }
-    switch (mode) {
-    case DBBoot::DB_BOOT_MOB:
-      discrete_load(db_file, mode, buf2);
-      break;
-    case DBBoot::DB_BOOT_HLP:
-      /*
-       * If you think about it, we have a race here.  Although, this is the
-       * "point-the-gun-at-your-own-foot" type of race.
-       */
-      load_help(db_file);
-      break;
-    case DBBoot::DB_BOOT_SHP:
-      boot_the_shops(db_file, buf2, rec_count);
-      break;
-    }
-
+    load_help(db_file);
     fclose(db_file);
     fscanf(db_index, "%s\n", buf1);
   }
   fclose(db_index);
 
-  /* sort the help index */
-  if (mode == DBBoot::DB_BOOT_HLP) {
-    qsort(help_table, top_of_helpt, sizeof(struct help_index_element), hsort);
-    top_of_helpt--;
-  }
-}
-
-
-static void discrete_load(FILE *fl, DBBoot mode, char *filename)
-{
-  int nr = -1, last;
-  char line[READ_SIZE];
-
-  const char *modes[] = {"world", "mob", "obj"};
-
-  for (;;) {
-    if (!get_line(fl, line)) {
-      if (nr == -1) {
-	basic_mud_log("SYSERR: %s file %s is empty!", modes[static_cast<int>(mode)], filename);
-      } else {
-	basic_mud_log("SYSERR: Format error in %s after %s #%d\n"
-		      "...expecting a new %s, but file ended!\n"
-		      "(maybe the file is not terminated with '$'?)", filename,
-		      modes[static_cast<int>(mode)], nr, modes[static_cast<int>(mode)]);
-      }
-      exit(1);
-    }
-    if (*line == '$')
-      return;
-
-    if (*line == '#') {
-      last = nr;
-      if (sscanf(line, "#%d", &nr) != 1) {
-	basic_mud_log("SYSERR: Format error after %s #%d", modes[static_cast<int>(mode)], last);
-	exit(1);
-      }
-      if (nr >= 99999)
-	return;
-      else
-	switch (mode) {
-	case DBBoot::DB_BOOT_SHP:
-	case DBBoot::DB_BOOT_HLP:
-	default:
-	  break;
-	}
-    } else {
-      basic_mud_log("SYSERR: Format error in %s file %s near %s #%d", modes[static_cast<int>(mode)],
-	  filename, modes[static_cast<int>(mode)], nr);
-      basic_mud_log("SYSERR: ... offending line: '%s'", line);
-      exit(1);
-    }
-  }
+  qsort(help_table, top_of_helpt, sizeof(struct help_index_element), hsort);
+  top_of_helpt--;
 }
 
 /* make sure the start rooms exist & resolve their vnums to rnums */
@@ -1652,14 +1513,6 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
   }
 /*   affect_total(ch); unnecessary, I think !?! */
 }				/* Char to store */
-
-
-
-void save_etext(struct char_data *ch)
-{
-  (void)ch;
-/* this will be really cool soon */
-}
 
 
 /*

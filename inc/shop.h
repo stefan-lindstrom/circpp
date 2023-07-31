@@ -11,6 +11,8 @@
 #ifndef __SHOP_H__
 #define __SHOP_H__
 
+#include <list>
+
 struct shop_buy_data {
    int type;
    char *keywords;
@@ -21,22 +23,29 @@ struct shop_buy_data {
 
 struct shop_data {
    room_vnum vnum;		/* Virtual number of this shop		*/
-   obj_vnum *producing;		/* Which item to produce (virtual)	*/
+
+   std::list<obj_vnum> producing;
+
    float profit_buy;		/* Factor to multiply cost with		*/
    float profit_sell;		/* Factor to multiply cost with		*/
-   struct shop_buy_data *type;	/* Which items to trade			*/
-   char	*no_such_item1;		/* Message if keeper hasn't got an item	*/
-   char	*no_such_item2;		/* Message if player hasn't got an item	*/
-   char	*missing_cash1;		/* Message if keeper hasn't got cash	*/
-   char	*missing_cash2;		/* Message if player hasn't got cash	*/
-   char	*do_not_buy;		/* If keeper dosn't buy such things	*/
-   char	*message_buy;		/* Message when player buys item	*/
-   char	*message_sell;		/* Message when player sells item	*/
+   
+   std::list<shop_buy_data> type;
+
+   std::string no_such_item1;		/* Message if keeper hasn't got an item	*/
+   std::string no_such_item2;		/* Message if player hasn't got an item	*/
+   std::string missing_cash1;		/* Message if keeper hasn't got cash	*/
+   std::string missing_cash2;		/* Message if player hasn't got cash	*/
+   std::string do_not_buy;		/* If keeper dosn't buy such things	*/
+   std::string message_buy;		/* Message when player buys item	*/
+   std::string message_sell;		/* Message when player sells item	*/
+
    int	 temper1;		/* How does keeper react if no money	*/
    bitvector_t	 bitvector;	/* Can attack? Use bank? Cast here?	*/
    mob_rnum	 keeper;	/* The mobile who owns the shop (rnum)	*/
    int	 with_who;		/* Who does the shop trade with?	*/
-   room_vnum *in_room;		/* Where is the shop?			*/
+   
+   std::list<room_vnum> in_room;
+
    int	 open1, open2;		/* When does the shop open?		*/
    int	 close1, close2;	/* When does the shop close?		*/
    int	 bankAccount;		/* Store all gold over 15000 (disabled)	*/
@@ -145,5 +154,12 @@ struct stack_data {
 #define MSG_NO_SELL_CLASS	"We don't serve your kind here!"
 #define MSG_NO_USED_WANDSTAFF	"I don't buy used up wands or staves!"
 #define MSG_CANT_KILL_KEEPER	"Get out of here before I call the guards!"
+
+// exported functions
+extern void assign_the_shopkeepers(void);
+
+// exported data
+extern std::vector<shop_data> shop_index;
+extern int top_shop;
 
 #endif
