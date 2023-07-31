@@ -299,7 +299,7 @@ extern int mini_mud;
 /* for chars */
 extern const char *pc_class_types[];
 
-extern struct message_list fight_messages[MAX_MESSAGES];
+extern std::vector<message_list> fight_messages;
 extern int pk_allowed;          /* see config.c */
 extern int max_exp_gain;        /* see config.c */
 extern int max_exp_loss;        /* see config.c */

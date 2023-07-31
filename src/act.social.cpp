@@ -173,7 +173,6 @@ ACMD(do_insult)
     send_to_char(ch, "I'm sure you don't want to insult *everybody*...\r\n");
 }
 
-
 char *fread_action(FILE *fl, int nr)
 {
   char buf[MAX_STRING_LENGTH];

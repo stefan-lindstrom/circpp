@@ -159,7 +159,6 @@ int isbanned(char *hostname);
 void weather_and_time(int mode);
 int perform_alias(struct descriptor_data *d, char *orig, size_t maxlen);
 void clear_free_list(void);
-void free_messages(void);
 void Board_clear_all(void);
 void free_social_messages(void);
 void Free_Invalid_List(void);
@@ -328,7 +327,6 @@ int main(int argc, char **argv)
   if (!scheck) {
     basic_mud_log("Clearing other memory.");
     free_player_index();	/* db.c */
-    free_messages();		/* fight.c */
     clear_free_list();		/* mail.c */
     free_text_files();		/* db.c */
     Board_clear_all();		/* boards.c */

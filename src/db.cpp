@@ -59,7 +59,7 @@ obj_rnum top_of_objt = 0;	/* top of object index table	 */
 std::vector<zone_data> zone_table;
 zone_rnum top_of_zone_table = 0;/* top element of zone tab	 */
 
-struct message_list fight_messages[MAX_MESSAGES];	/* fighting messages	 */
+std::vector<message_list> fight_messages;	/* fighting messages	 */
 
 struct player_index_element *player_table = NULL;	/* index to plr file	 */
 FILE *player_fl = NULL;		/* file desc of player file	 */
