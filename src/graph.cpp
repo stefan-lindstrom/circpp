@@ -46,12 +46,12 @@ static struct bfs_queue_struct *queue_head = 0, *queue_tail = 0;
 #define MARK(room)	(SET_BIT(ROOM_FLAGS(room), ROOM_BFS_MARK))
 #define UNMARK(room)	(REMOVE_BIT(ROOM_FLAGS(room), ROOM_BFS_MARK))
 #define IS_MARKED(room)	(ROOM_FLAGGED(room, ROOM_BFS_MARK))
-#define TOROOM(x, y)	(world[(x)].dir_option[(y)]->to_room)
-#define IS_CLOSED(x, y)	(EXIT_FLAGGED(world[(x)].dir_option[(y)], EX_CLOSED))
+#define TOROOM(x, y)	(std::get<0>(world[(x)].dir_option[(y)]).to_room)
+#define IS_CLOSED(x, y)	(EXIT_FLAGGED(std::get<0>(world[(x)].dir_option[(y)]), EX_CLOSED))
 
 int VALID_EDGE(room_rnum x, int y)
 {
-  if (world[x].dir_option[y] == NULL || TOROOM(x, y) == NOWHERE)
+  if (std::get<1>(world[x].dir_option[y]) || TOROOM(x, y) == NOWHERE)
     return 0;
   if (track_through_doors == FALSE && IS_CLOSED(x, y))
     return 0;
@@ -65,7 +65,7 @@ void bfs_enqueue(room_rnum room, int dir)
 {
   struct bfs_queue_struct *curr;
 
-  CREATE(curr, struct bfs_queue_struct, 1);
+  curr = new bfs_queue_struct;
   curr->room = room;
   curr->dir = dir;
   curr->next = 0;
@@ -110,7 +110,7 @@ int find_first_step(room_rnum src, room_rnum target)
   room_rnum curr_room;
 
   if (src == NOWHERE || target == NOWHERE || src > top_of_world || target > top_of_world) {
-    log("SYSERR: Illegal value %d or %d passed to find_first_step. (%s)", src, target, __FILE__);
+    basic_mud_log("SYSERR: Illegal value %d or %d passed to find_first_step. (%s)", src, target, __FILE__);
     return (BFS_ERROR);
   }
   if (src == target)

@@ -1,3 +1,4 @@
+
 /* ************************************************************************
 *   File: handler.h                                     Part of CircleMUD *
 *  Usage: header file: prototypes of handling and utility functions       *
@@ -11,20 +12,23 @@
 #ifndef __HANDLER_H__
 #define __HANDLER_H__
 
+#include <string>
+
+#include "structs.h"
+
 /* handling the affected-structures */
 void	affect_total(struct char_data *ch);
 void	affect_modify(struct char_data *ch, byte loc, sbyte mod, bitvector_t bitv, bool add);
-void	affect_to_char(struct char_data *ch, struct affected_type *af);
-void	affect_remove(struct char_data *ch, struct affected_type *af);
+void	affect_to_char(struct char_data *ch, const affected_type &af);
+void	affect_remove(struct char_data *ch, affected_type &af);
 void	affect_from_char(struct char_data *ch, int type);
 bool	affected_by_spell(struct char_data *ch, int type);
-void	affect_join(struct char_data *ch, struct affected_type *af,
-bool add_dur, bool avg_dur, bool add_mod, bool avg_mod);
-
+void	affect_join(struct char_data *ch, affected_type &af, bool add_dur, bool avg_dur, bool add_mod, bool avg_mod);
 
 /* utility */
 const char *money_desc(int amount);
 struct obj_data *create_money(int amount);
+bool    isname(const std::string &str, const std::string &list) noexcept;
 int	isname(const char *str, const char *namelist);
 char	*fname(const char *namelist);
 int	get_number(char **name);
@@ -95,7 +99,7 @@ int	generic_find(char *arg, bitvector_t bitvector, struct char_data *ch,
 
 /* prototypes from crash save system */
 
-int	Crash_delete_file(char *name);
+int	Crash_delete_file(const char *name);
 int	Crash_delete_crashfile(struct char_data *ch);
 int	Crash_clean_file(char *name);
 void	Crash_listrent(struct char_data *ch, char *name);

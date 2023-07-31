@@ -85,7 +85,7 @@ void castle_mob_spec(mob_vnum mobnum, SPECIAL(*specproc))
 
   if (rmr == NOBODY) {
     if (!mini_mud)
-      log("SYSERR: assign_kings_castle(): can't find mob #%d.", vmv);
+      basic_mud_log("SYSERR: assign_kings_castle(): can't find mob #%d.", vmv);
   } else
     mob_index[rmr].func = specproc;
 }
@@ -220,7 +220,7 @@ struct char_data *find_npc_by_name(struct char_data *chAtChar,
   struct char_data *ch;
 
   for (ch = world[IN_ROOM(chAtChar)].people; ch; ch = ch->next_in_room)
-    if (IS_NPC(ch) && !strncmp(pszName, ch->player.short_descr, iLen))
+    if (IS_NPC(ch) && !strncmp(pszName, ch->player.short_descr.c_str(), iLen))
       return (ch);
 
   return (NULL);
@@ -351,7 +351,7 @@ int block_way(struct char_data *ch, int cmd, char *arg, room_vnum iIn_room, int 
   if (cmd != ++iProhibited_direction)
     return (FALSE);
 
-  if (ch->player.short_descr && !strncmp(ch->player.short_descr, "King Welmar", 11))
+  if (!ch->player.short_descr.empty() && !strncmp(ch->player.short_descr.c_str(), "King Welmar", 11))
     return (FALSE);
 
   if (IN_ROOM(ch) != real_room(iIn_room))

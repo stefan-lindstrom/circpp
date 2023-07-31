@@ -115,7 +115,7 @@ void say_spell(struct char_data *ch, int spellnum, struct char_data *tch,
     }
     /* i.e., we didn't find a match in syls[] */
     if (!*syls[j].org) {
-      log("No entry in syllable table for substring of '%s'", lbuf);
+      basic_mud_log("No entry in syllable table for substring of '%s'", lbuf);
       ofs++;
     }
   }
@@ -316,8 +316,8 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
   switch (GET_OBJ_TYPE(obj)) {
   case ITEM_STAFF:
     act("You tap $p three times on the ground.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    if (obj->action_description)
-      act(obj->action_description, FALSE, ch, obj, 0, CommTarget::TO_ROOM);
+    if (!obj->action_description.empty())
+      act(obj->action_description.c_str(), FALSE, ch, obj, 0, CommTarget::TO_ROOM);
     else
       act("$n taps $p three times on the ground.", FALSE, ch, obj, 0, CommTarget::TO_ROOM);
 
@@ -357,15 +357,15 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
 	act("$n points $p at $mself.", FALSE, ch, obj, 0, CommTarget::TO_ROOM);
       } else {
 	act("You point $p at $N.", FALSE, ch, obj, tch, CommTarget::TO_CHAR);
-	if (obj->action_description)
-	  act(obj->action_description, FALSE, ch, obj, tch, CommTarget::TO_ROOM);
+	if (!obj->action_description.empty())
+	  act(obj->action_description.c_str(), FALSE, ch, obj, tch, CommTarget::TO_ROOM);
 	else
 	  act("$n points $p at $N.", TRUE, ch, obj, tch, CommTarget::TO_ROOM);
       }
     } else if (tobj != NULL) {
       act("You point $p at $P.", FALSE, ch, obj, tobj, CommTarget::TO_CHAR);
-      if (obj->action_description)
-	act(obj->action_description, FALSE, ch, obj, tobj, CommTarget::TO_ROOM);
+      if (!obj->action_description.empty())
+	act(obj->action_description.c_str(), FALSE, ch, obj, tobj, CommTarget::TO_ROOM);
       else
 	act("$n points $p at $P.", TRUE, ch, obj, tobj, CommTarget::TO_ROOM);
     } else if (IS_SET(spell_info[GET_OBJ_VAL(obj, 3)].routines, MAG_AREAS | MAG_MASSES)) {
@@ -402,8 +402,8 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
       tch = ch;
 
     act("You recite $p which dissolves.", TRUE, ch, obj, 0, CommTarget::TO_CHAR);
-    if (obj->action_description)
-      act(obj->action_description, FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
+    if (!obj->action_description.empty())
+      act(obj->action_description.c_str(), FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
     else
       act("$n recites $p.", FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
 
@@ -419,8 +419,8 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
   case ITEM_POTION:
     tch = ch;
     act("You quaff $p.", FALSE, ch, obj, NULL, CommTarget::TO_CHAR);
-    if (obj->action_description)
-      act(obj->action_description, FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
+    if (!obj->action_description.empty())
+      act(obj->action_description.c_str(), FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
     else
       act("$n quaffs $p.", TRUE, ch, obj, NULL, CommTarget::TO_ROOM);
 
@@ -434,7 +434,7 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
       extract_obj(obj);
     break;
   default:
-    log("SYSERR: Unknown object_type %d in mag_objectmagic.",
+    basic_mud_log("SYSERR: Unknown object_type %d in mag_objectmagic.",
 	GET_OBJ_TYPE(obj));
     break;
   }
@@ -453,7 +453,7 @@ int cast_spell(struct char_data *ch, struct char_data *tch,
 	           struct obj_data *tobj, int spellnum)
 {
   if (spellnum < 0 || spellnum > TOP_SPELL_DEFINE) {
-    log("SYSERR: cast_spell trying to call spellnum %d/%d.", spellnum,
+    basic_mud_log("SYSERR: cast_spell trying to call spellnum %d/%d.", spellnum,
 	TOP_SPELL_DEFINE);
     return (0);
   }
@@ -572,7 +572,7 @@ ACMD(do_cast)
 
     if (!target && IS_SET(SINFO.targets, TAR_OBJ_EQUIP)) {
       for (i = 0; !target && i < NUM_WEARS; i++)
-	if (GET_EQ(ch, i) && isname(t, GET_EQ(ch, i)->name)) {
+	if (GET_EQ(ch, i) && isname(t, GET_EQ(ch, i)->name.c_str())) {
 	  tobj = GET_EQ(ch, i);
 	  target = TRUE;
 	}
@@ -648,18 +648,18 @@ void spell_level(int spell, int chclass, int level)
   int bad = 0;
 
   if (spell < 0 || spell > TOP_SPELL_DEFINE) {
-    log("SYSERR: attempting assign to illegal spellnum %d/%d", spell, TOP_SPELL_DEFINE);
+    basic_mud_log("SYSERR: attempting assign to illegal spellnum %d/%d", spell, TOP_SPELL_DEFINE);
     return;
   }
 
   if (chclass < 0 || chclass >= NUM_CLASSES) {
-    log("SYSERR: assigning '%s' to illegal class %d/%d.", skill_name(spell),
+    basic_mud_log("SYSERR: assigning '%s' to illegal class %d/%d.", skill_name(spell),
 		chclass, NUM_CLASSES - 1);
     bad = 1;
   }
 
   if (level < 1 || level > LVL_IMPL) {
-    log("SYSERR: assigning '%s' to illegal level %d/%d.", skill_name(spell),
+    basic_mud_log("SYSERR: assigning '%s' to illegal level %d/%d.", skill_name(spell),
 		level, LVL_IMPL);
     bad = 1;
   }

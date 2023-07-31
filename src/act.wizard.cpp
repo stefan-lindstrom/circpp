@@ -8,6 +8,8 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#include <algorithm>
+
 #include "conf.h"
 #include "sysdep.h"
 
@@ -360,13 +362,12 @@ ACMD(do_vnum)
 void do_stat_room(struct char_data *ch)
 {
   char buf2[MAX_STRING_LENGTH];
-  struct extra_descr_data *desc;
   struct room_data *rm = &world[IN_ROOM(ch)];
   int i, found, column;
   struct obj_data *j;
   struct char_data *k;
 
-  send_to_char(ch, "Room name: %s%s%s\r\n", CCCYN(ch, C_NRM), rm->name, CCNRM(ch, C_NRM));
+  send_to_char(ch, "Room name: %s%s%s\r\n", CCCYN(ch, C_NRM), rm->name.c_str(), CCNRM(ch, C_NRM));
 
   sprinttype(rm->sector_type, sector_types, buf2, sizeof(buf2));
   send_to_char(ch, "Zone: [%3d], VNum: [%s%5d%s], RNum: [%5d], Type: %s\r\n",
@@ -376,12 +377,11 @@ void do_stat_room(struct char_data *ch)
   sprintbit(rm->room_flags, room_bits, buf2, sizeof(buf2));
   send_to_char(ch, "SpecProc: %s, Flags: %s\r\n", rm->func == NULL ? "None" : "Exists", buf2);
 
-  send_to_char(ch, "Description:\r\n%s", rm->description ? rm->description : "  None.\r\n");
+  send_to_char(ch, "Description:\r\n%s", rm->description != "" ? rm->description.c_str() : "  None.\r\n");
 
-  if (rm->ex_description) {
+  if (!rm->ex_description.empty()) {
     send_to_char(ch, "Extra descs:%s", CCCYN(ch, C_NRM));
-    for (desc = rm->ex_description; desc; desc = desc->next)
-      send_to_char(ch, " %s", desc->keyword);
+    std::for_each(rm->ex_description.begin(), rm->ex_description.end(), [&ch](const extra_descr_data &e) { send_to_char(ch, " %s", e.keyword.c_str());});
     send_to_char(ch, "%s\r\n", CCNRM(ch, C_NRM));
   }
 
@@ -409,7 +409,7 @@ void do_stat_room(struct char_data *ch)
       if (!CAN_SEE_OBJ(ch, j))
 	continue;
 
-      column += send_to_char(ch, "%s %s", found++ ? "," : "", j->short_description);
+      column += send_to_char(ch, "%s %s", found++ ? "," : "", j->short_description.c_str());
       if (column >= 62) {
 	send_to_char(ch, "%s\r\n", j->next_content ? "," : "");
 	found = FALSE;
@@ -422,20 +422,20 @@ void do_stat_room(struct char_data *ch)
   for (i = 0; i < NUM_OF_DIRS; i++) {
     char buf1[128];
 
-    if (!rm->dir_option[i])
+    if (!std::get<1>(rm->dir_option[i]))
       continue;
 
-    if (rm->dir_option[i]->to_room == NOWHERE)
+    if (std::get<0>(rm->dir_option[i]).to_room == NOWHERE)
       snprintf(buf1, sizeof(buf1), " %sNONE%s", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
     else
-      snprintf(buf1, sizeof(buf1), "%s%5d%s", CCCYN(ch, C_NRM), GET_ROOM_VNUM(rm->dir_option[i]->to_room), CCNRM(ch, C_NRM));
+      snprintf(buf1, sizeof(buf1), "%s%5d%s", CCCYN(ch, C_NRM), GET_ROOM_VNUM(std::get<0>(rm->dir_option[i]).to_room), CCNRM(ch, C_NRM));
 
-    sprintbit(rm->dir_option[i]->exit_info, exit_bits, buf2, sizeof(buf2));
+    sprintbit(std::get<0>(rm->dir_option[i]).exit_info, exit_bits, buf2, sizeof(buf2));
 
     send_to_char(ch, "Exit %s%-5s%s:  To: [%s], Key: [%5d], Keywrd: %s, Type: %s\r\n%s",
-	CCCYN(ch, C_NRM), dirs[i], CCNRM(ch, C_NRM), buf1, rm->dir_option[i]->key,
-	rm->dir_option[i]->keyword ? rm->dir_option[i]->keyword : "None", buf2,
-	rm->dir_option[i]->general_description ? rm->dir_option[i]->general_description : "  No exit description.\r\n");
+		 CCCYN(ch, C_NRM), dirs[i], CCNRM(ch, C_NRM), buf1, std::get<0>(rm->dir_option[i]).key,
+		 !std::get<0>(rm->dir_option[i]).keyword.empty() ? std::get<0>(rm->dir_option[i]).keyword.c_str() : "None", buf2,
+		 !std::get<0>(rm->dir_option[i]).general_description.empty() ? std::get<0>(rm->dir_option[i]).general_description.c_str() : "  No exit description.\r\n");
   }
 }
 
@@ -446,23 +446,22 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
   int i, found;
   obj_vnum vnum;
   struct obj_data *j2;
-  struct extra_descr_data *desc;
   char buf[MAX_STRING_LENGTH];
 
   vnum = GET_OBJ_VNUM(j);
   send_to_char(ch, "Name: '%s%s%s', Aliases: %s\r\n", CCYEL(ch, C_NRM),
-	  j->short_description ? j->short_description : "<None>",
-	  CCNRM(ch, C_NRM), j->name);
+	       !j->short_description.empty() ? j->short_description.c_str() : "<None>",
+	       CCNRM(ch, C_NRM), j->name.c_str());
 
   sprinttype(GET_OBJ_TYPE(j), item_types, buf, sizeof(buf));
   send_to_char(ch, "VNum: [%s%5d%s], RNum: [%5d], Type: %s, SpecProc: %s\r\n",
 	CCGRN(ch, C_NRM), vnum, CCNRM(ch, C_NRM), GET_OBJ_RNUM(j), buf,
 	GET_OBJ_SPEC(j) ? "Exists" : "None");
 
-  if (j->ex_description) {
+  if (!j->ex_description.empty()) {
     send_to_char(ch, "Extra descs:%s", CCCYN(ch, C_NRM));
-    for (desc = j->ex_description; desc; desc = desc->next)
-      send_to_char(ch, " %s", desc->keyword);
+    std::for_each(j->ex_description.begin(), j->ex_description.end(),[&ch](const extra_descr_data &e){ send_to_char(ch, " %s", e.keyword.c_str()); });
+
     send_to_char(ch, "%s\r\n", CCNRM(ch, C_NRM));
   }
 
@@ -479,13 +478,13 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
      GET_OBJ_WEIGHT(j), GET_OBJ_COST(j), GET_OBJ_RENT(j), GET_OBJ_TIMER(j));
 
   send_to_char(ch, "In room: %d (%s), ", GET_ROOM_VNUM(IN_ROOM(j)),
-	IN_ROOM(j) == NOWHERE ? "Nowhere" : world[IN_ROOM(j)].name);
+	       IN_ROOM(j) == NOWHERE ? "Nowhere" : world[IN_ROOM(j)].name.c_str());
 
   /*
    * NOTE: In order to make it this far, we must already be able to see the
    *       character holding the object. Therefore, we do not need CAN_SEE().
    */
-  send_to_char(ch, "In object: %s, ", j->in_obj ? j->in_obj->short_description : "None");
+  send_to_char(ch, "In object: %s, ", j->in_obj ? j->in_obj->short_description.c_str() : "None");
   send_to_char(ch, "Carried by: %s, ", j->carried_by ? GET_NAME(j->carried_by) : "Nobody");
   send_to_char(ch, "Worn by: %s\r\n", j->worn_by ? GET_NAME(j->worn_by) : "Nobody");
 
@@ -561,7 +560,7 @@ void do_stat_object(struct char_data *ch, struct obj_data *j)
     column = 9;	/* ^^^ strlen ^^^ */
 
     for (found = 0, j2 = j->contains; j2; j2 = j2->next_content) {
-      column += send_to_char(ch, "%s %s", found++ ? "," : "", j2->short_description);
+      column += send_to_char(ch, "%s %s", found++ ? "," : "", j2->short_description.c_str());
       if (column >= 62) {
 	send_to_char(ch, "%s\r\n", j2->next_content ? "," : "");
 	found = FALSE;
@@ -591,7 +590,6 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
   int i, i2, column, found = FALSE;
   struct obj_data *j;
   struct follow_type *fol;
-  struct affected_type *aff;
 
   sprinttype(GET_SEX(k), genders, buf, sizeof(buf));
   send_to_char(ch, "%s %s '%s'  IDNum: [%5ld], In room [%5d]\r\n",
@@ -599,11 +597,11 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
 	  GET_NAME(k), GET_IDNUM(k), GET_ROOM_VNUM(IN_ROOM(k)));
 
   if (IS_MOB(k))
-    send_to_char(ch, "Alias: %s, VNum: [%5d], RNum: [%5d]\r\n", k->player.name, GET_MOB_VNUM(k), GET_MOB_RNUM(k));
+    send_to_char(ch, "Alias: %s, VNum: [%5d], RNum: [%5d]\r\n", k->player.name.c_str(), GET_MOB_VNUM(k), GET_MOB_RNUM(k));
 
-  send_to_char(ch, "Title: %s\r\n", k->player.title ? k->player.title : "<None>");
+  send_to_char(ch, "Title: %s\r\n", !k->player.title.empty() ? k->player.title.c_str() : "<None>");
 
-  send_to_char(ch, "L-Des: %s", k->player.long_descr ? k->player.long_descr : "<None>\r\n");
+  send_to_char(ch, "L-Des: %s", !k->player.long_descr.empty() ? k->player.long_descr.c_str() : "<None>\r\n");
 
   sprinttype(k->player.chclass, IS_NPC(k) ? npc_class_types : pc_class_types, buf, sizeof(buf));
   send_to_char(ch, "%sClass: %s, Lev: [%s%2d%s], XP: [%s%7d%s], Align: [%4d]\r\n",
@@ -711,18 +709,18 @@ void do_stat_character(struct char_data *ch, struct char_data *k)
   send_to_char(ch, "AFF: %s%s%s\r\n", CCYEL(ch, C_NRM), buf, CCNRM(ch, C_NRM));
 
   /* Routine to show what spells a char is affected by */
-  if (k->affected) {
-    for (aff = k->affected; aff; aff = aff->next) {
-      send_to_char(ch, "SPL: (%3dhr) %s%-21s%s ", aff->duration + 1, CCCYN(ch, C_NRM), skill_name(aff->type), CCNRM(ch, C_NRM));
+  if (!k->affected.empty()) {
+    for (auto it = k->affected.begin(); it != k->affected.end() ; ++it) {
+      send_to_char(ch, "SPL: (%3dhr) %s%-21s%s ", it->duration + 1, CCCYN(ch, C_NRM), skill_name(it->type), CCNRM(ch, C_NRM));
 
-      if (aff->modifier)
-	send_to_char(ch, "%+d to %s", aff->modifier, apply_types[(int) aff->location]);
+      if (it->modifier)
+	send_to_char(ch, "%+d to %s", it->modifier, apply_types[(int) it->location]);
 
-      if (aff->bitvector) {
-	if (aff->modifier)
+      if (it->bitvector) {
+	if (it->modifier)
 	  send_to_char(ch, ", ");
 
-	sprintbit(aff->bitvector, affected_bits, buf, sizeof(buf));
+	sprintbit(it->bitvector, affected_bits, buf, sizeof(buf));
         send_to_char(ch, "sets %s", buf);
       }
       send_to_char(ch, "\r\n");
@@ -768,22 +766,24 @@ ACMD(do_stat)
     if (!*buf2)
       send_to_char(ch, "Stats on which player?\r\n");
     else if ((victim = get_player_vis(ch, buf2, NULL, FIND_CHAR_WORLD)) != NULL)
-	do_stat_character(ch, victim);
+      do_stat_character(ch, victim);
     else {
-      CREATE(victim, struct char_data, 1);
+      victim = new char_data;
       clear_char(victim);
+      
       if (load_char(buf2, &tmp_store) >= 0) {
-	store_to_char(&tmp_store, victim);
-	victim->player.time.logon = tmp_store.last_logon;
-	char_to_room(victim, 0);
-	if (GET_LEVEL(victim) > GET_LEVEL(ch))
-	  send_to_char(ch, "Sorry, you can't do that.\r\n");
-	else
-	  do_stat_character(ch, victim);
-	extract_char_final(victim);
-      } else {
-	send_to_char(ch, "There is no such player.\r\n");
-	free(victim);
+	      store_to_char(&tmp_store, victim);
+	     victim->player.time.logon = tmp_store.last_logon;
+	     char_to_room(victim, 0);
+	
+       if (GET_LEVEL(victim) > GET_LEVEL(ch))
+	       send_to_char(ch, "Sorry, you can't do that.\r\n");
+	     else
+	       do_stat_character(ch, victim);
+	     extract_char_final(victim);
+    } else {
+	     send_to_char(ch, "There is no such player.\r\n");
+	     delete victim;
       }
     }
   } else if (is_abbrev(buf1, "object")) {
@@ -829,21 +829,21 @@ ACMD(do_shutdown)
   one_argument(argument, arg);
 
   if (!*arg) {
-    log("(GC) Shutdown by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Shutdown by %s.", GET_NAME(ch));
     send_to_all("Shutting down.\r\n");
     circle_shutdown = 1;
   } else if (!str_cmp(arg, "reboot")) {
-    log("(GC) Reboot by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Reboot by %s.", GET_NAME(ch));
     send_to_all("Rebooting.. come back in a minute or two.\r\n");
     touch(FASTBOOT_FILE);
     circle_shutdown = circle_reboot = 1;
   } else if (!str_cmp(arg, "die")) {
-    log("(GC) Shutdown by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Shutdown by %s.", GET_NAME(ch));
     send_to_all("Shutting down for maintenance.\r\n");
     touch(KILLSCRIPT_FILE);
     circle_shutdown = 1;
   } else if (!str_cmp(arg, "pause")) {
-    log("(GC) Shutdown by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Shutdown by %s.", GET_NAME(ch));
     send_to_all("Shutting down for maintenance.\r\n");
     touch(PAUSE_FILE);
     circle_shutdown = 1;
@@ -1262,10 +1262,10 @@ ACMD(do_advance)
   send_to_char(ch, "%s", OK);
 
   if (newlevel < oldlevel)
-    log("(GC) %s demoted %s from level %d to %d.",
+    basic_mud_log("(GC) %s demoted %s from level %d to %d.",
 		GET_NAME(ch), GET_NAME(victim), oldlevel, newlevel);
   else
-    log("(GC) %s has advanced %s to level %d (from %d)",
+    basic_mud_log("(GC) %s has advanced %s to level %d (from %d)",
 		GET_NAME(ch), GET_NAME(victim), newlevel, oldlevel);
 
   if (oldlevel >= LVL_IMMORT && newlevel < LVL_IMMORT) {
@@ -1490,7 +1490,7 @@ ACMD(do_dc)
       STATE(d) = CON_CLOSE;
 
     send_to_char(ch, "Connection #%d closed.\r\n", num_to_dc);
-    log("(GC) Connection closed by %s.", GET_NAME(ch));
+    basic_mud_log("(GC) Connection closed by %s.", GET_NAME(ch));
   }
 }
 
@@ -1758,8 +1758,8 @@ ACMD(do_zreset)
   }
   if (i <= top_of_zone_table) {
     reset_zone(i);
-    send_to_char(ch, "Reset zone %d (#%d): %s.\r\n", i, zone_table[i].number, zone_table[i].name);
-    mudlog(NRM, MAX(LVL_GRGOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s reset zone %d (%s)", GET_NAME(ch), i, zone_table[i].name);
+    send_to_char(ch, "Reset zone %d (#%d): %s.\r\n", i, zone_table[i].number, zone_table[i].name.c_str());
+    mudlog(NRM, MAX(LVL_GRGOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s reset zone %d (%s)", GET_NAME(ch), i, zone_table[i].name.c_str());
   } else
     send_to_char(ch, "Invalid zone number.\r\n");
 }
@@ -1790,7 +1790,7 @@ ACMD(do_wizutil)
     case SCMD_REROLL:
       send_to_char(ch, "Rerolled...\r\n");
       roll_real_abils(vict);
-      log("(GC) %s has rerolled %s.", GET_NAME(ch), GET_NAME(vict));
+      basic_mud_log("(GC) %s has rerolled %s.", GET_NAME(ch), GET_NAME(vict));
       send_to_char(ch, "New stats: Str %d/%d, Int %d, Wis %d, Dex %d, Con %d, Cha %d\r\n",
 	      GET_STR(vict), GET_ADD(vict), GET_INT(vict), GET_WIS(vict),
 	      GET_DEX(vict), GET_CON(vict), GET_CHA(vict));
@@ -1850,9 +1850,10 @@ ACMD(do_wizutil)
       act("A sudden fireball conjured from nowhere thaws $n!", FALSE, vict, 0, 0, CommTarget::TO_ROOM);
       break;
     case SCMD_UNAFFECT:
-      if (vict->affected) {
-	while (vict->affected)
-	  affect_remove(vict, vict->affected);
+      if (!vict->affected.empty()) {
+	std::for_each(vict->affected.begin(), vict->affected.end(),[&vict](affected_type &a) { affect_remove(vict, a); });
+	vict->affected.clear();
+
 	send_to_char(vict, "There is a brief flash of light!\r\nYou feel slightly different.\r\n");
 	send_to_char(ch, "All spells removed.\r\n");
       } else {
@@ -1861,7 +1862,7 @@ ACMD(do_wizutil)
       }
       break;
     default:
-      log("SYSERR: Unknown subcmd %d passed to do_wizutil (%s)", subcmd, __FILE__);
+      basic_mud_log("SYSERR: Unknown subcmd %d passed to do_wizutil (%s)", subcmd, __FILE__);
       break;
     }
     save_char(vict);
@@ -1877,10 +1878,10 @@ size_t print_zone_to_buf(char *bufptr, size_t left, zone_rnum zone)
 {
   return snprintf(bufptr, left,
 	"%3d %-30.30s Age: %3d; Reset: %3d (%1d); Range: %5d-%5d\r\n",
-	zone_table[zone].number, zone_table[zone].name,
-	zone_table[zone].age, zone_table[zone].lifespan,
-	zone_table[zone].reset_mode,
-	zone_table[zone].bot, zone_table[zone].top);
+		  zone_table[zone].number, zone_table[zone].name.c_str(),
+		  zone_table[zone].age, zone_table[zone].lifespan,
+		  zone_table[zone].reset_mode,
+		  zone_table[zone].bot, zone_table[zone].top);
 }
 
 
@@ -2038,8 +2039,8 @@ ACMD(do_show)
     len = strlcpy(buf, "Errant Rooms\r\n------------\r\n", sizeof(buf));
     for (i = 0, k = 0; i <= top_of_world; i++)
       for (j = 0; j < NUM_OF_DIRS; j++)
-	if (world[i].dir_option[j] && world[i].dir_option[j]->to_room == 0) {
-	  nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++k, GET_ROOM_VNUM(i), world[i].name);
+	if (std::get<1>(world[i].dir_option[j]) && std::get<0>(world[i].dir_option[j]).to_room == 0) {
+	  nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++k, GET_ROOM_VNUM(i), world[i].name.c_str());
           if (len + nlen >= sizeof(buf) || nlen < 0)
             break;
           len += nlen;
@@ -2052,7 +2053,7 @@ ACMD(do_show)
     len = strlcpy(buf, "Death Traps\r\n-----------\r\n", sizeof(buf));
     for (i = 0, j = 0; i <= top_of_world; i++)
       if (ROOM_FLAGGED(i, ROOM_DEATH)) {
-        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name);
+        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name.c_str());
         if (len + nlen >= sizeof(buf) || nlen < 0)
           break;
         len += nlen;
@@ -2065,7 +2066,7 @@ ACMD(do_show)
     len = strlcpy(buf, "Godrooms\r\n--------------------------\r\n", sizeof(buf));
     for (i = 0, j = 0; i <= top_of_world; i++)
       if (ROOM_FLAGGED(i, ROOM_GODROOM)) {
-        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name);
+        nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name.c_str());
         if (len + nlen >= sizeof(buf) || nlen < 0)
           break;
         len += nlen;
@@ -2550,29 +2551,31 @@ ACMD(do_set)
   if (!is_file) {
     if (is_player) {
       if (!(vict = get_player_vis(ch, name, NULL, FIND_CHAR_WORLD))) {
-	send_to_char(ch, "There is no such player.\r\n");
-	return;
+       	send_to_char(ch, "There is no such player.\r\n");
+	      return;
       }
     } else { /* is_mob */
       if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_WORLD))) {
-	send_to_char(ch, "There is no such creature.\r\n");
-	return;
+	      send_to_char(ch, "There is no such creature.\r\n");
+	      return;
       }
     }
   } else if (is_file) {
     /* try to load the player off disk */
-    CREATE(cbuf, struct char_data, 1);
+    cbuf = new char_data;
+
     clear_char(cbuf);
     if ((player_i = load_char(name, &tmp_store)) > -1) {
       store_to_char(&tmp_store, cbuf);
+
       if (GET_LEVEL(cbuf) >= GET_LEVEL(ch)) {
-	free_char(cbuf);
-	send_to_char(ch, "Sorry, you can't do that.\r\n");
-	return;
+      	delete cbuf;
+	      send_to_char(ch, "Sorry, you can't do that.\r\n");
+	      return;
       }
       vict = cbuf;
     } else {
-      free(cbuf);
+      delete cbuf;
       send_to_char(ch, "There is no such player.\r\n");
       return;
     }

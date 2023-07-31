@@ -8,9 +8,11 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#include <iterator>
+#include <list>
+
 #include "conf.h"
 #include "sysdep.h"
-
 
 #include "structs.h"
 #include "utils.h"
@@ -51,6 +53,13 @@ char *fname(const char *namelist)
   return (holder);
 }
 
+
+bool isname(const std::string &str, const std::string &namelist) noexcept 
+{
+  std::list<std::string> tokens;
+  split(namelist, ' ', std::back_inserter(tokens));
+  return tokens.end() != std::find(tokens.begin(), tokens.end(), str);
+}
 
 int isname(const char *str, const char *namelist)
 {
@@ -195,7 +204,7 @@ void affect_modify(struct char_data *ch, byte loc, sbyte mod,
     break;
 
   default:
-    log("SYSERR: Unknown apply adjust %d attempt (%s, affect_modify).", loc, __FILE__);
+    basic_mud_log("SYSERR: Unknown apply adjust %d attempt (%s, affect_modify).", loc, __FILE__);
     break;
 
   } /* switch */
@@ -207,7 +216,6 @@ void affect_modify(struct char_data *ch, byte loc, sbyte mod,
 /* restoring original abilities, and then affecting all again           */
 void affect_total(struct char_data *ch)
 {
-  struct affected_type *af;
   int i, j;
 
   for (i = 0; i < NUM_WEARS; i++) {
@@ -219,8 +227,9 @@ void affect_total(struct char_data *ch)
   }
 
 
-  for (af = ch->affected; af; af = af->next)
-    affect_modify(ch, af->location, af->modifier, af->bitvector, FALSE);
+  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](const affected_type &a) { 
+      affect_modify(ch,a.location, a.modifier, a.bitvector, false); 
+    });
 
   ch->aff_abils = ch->real_abils;
 
@@ -233,8 +242,9 @@ void affect_total(struct char_data *ch)
   }
 
 
-  for (af = ch->affected; af; af = af->next)
-    affect_modify(ch, af->location, af->modifier, af->bitvector, TRUE);
+  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](const affected_type af) {
+      affect_modify(ch, af.location, af.modifier, af.bitvector, true);
+    });
 
   /* Make certain values are between 0..25, not < 0 and not > 25! */
 
@@ -262,17 +272,14 @@ void affect_total(struct char_data *ch)
 
 /* Insert an affect_type in a char_data structure
    Automatically sets apropriate bits and apply's */
-void affect_to_char(struct char_data *ch, struct affected_type *af)
+void affect_to_char(struct char_data *ch, const affected_type &af)
 {
-  struct affected_type *affected_alloc;
+  struct affected_type afaf;
 
-  CREATE(affected_alloc, struct affected_type, 1);
+  afaf = af;
+  ch->affected.push_back(afaf);
 
-  *affected_alloc = *af;
-  affected_alloc->next = ch->affected;
-  ch->affected = affected_alloc;
-
-  affect_modify(ch, af->location, af->modifier, af->bitvector, TRUE);
+  affect_modify(ch, afaf.location, afaf.modifier, afaf.bitvector, true);
   affect_total(ch);
 }
 
@@ -283,18 +290,15 @@ void affect_to_char(struct char_data *ch, struct affected_type *af)
  * reaches zero). Pointer *af must never be NIL!  Frees mem and calls
  * affect_location_apply
  */
-void affect_remove(struct char_data *ch, struct affected_type *af)
+void affect_remove(struct char_data *ch, affected_type &af)
 {
-  struct affected_type *temp;
-
-  if (ch->affected == NULL) {
+  if (ch->affected.empty()) {
     core_dump();
     return;
   }
 
-  affect_modify(ch, af->location, af->modifier, af->bitvector, FALSE);
-  REMOVE_FROM_LIST(af, ch->affected, next);
-  free(af);
+  affect_modify(ch, af.location, af.modifier, af.bitvector, false);
+  ch->affected.remove_if([&af](affected_type &a) { return &a == &af; });
   affect_total(ch);
 }
 
@@ -303,12 +307,10 @@ void affect_remove(struct char_data *ch, struct affected_type *af)
 /* Call affect_remove with every spell of spelltype "skill" */
 void affect_from_char(struct char_data *ch, int type)
 {
-  struct affected_type *hjp, *next;
 
-  for (hjp = ch->affected; hjp; hjp = next) {
-    next = hjp->next;
-    if (hjp->type == type)
-      affect_remove(ch, hjp);
+  auto it = std::find_if(ch->affected.begin(), ch->affected.end(), [&type](affected_type &a) { return type == a.type; });
+  if (ch->affected.end() != it) {
+    affect_remove(ch, *it);
   }
 }
 
@@ -320,44 +322,30 @@ void affect_from_char(struct char_data *ch, int type)
  */
 bool affected_by_spell(struct char_data *ch, int type)
 {
-  struct affected_type *hjp;
-
-  for (hjp = ch->affected; hjp; hjp = hjp->next)
-    if (hjp->type == type)
-      return (TRUE);
-
-  return (FALSE);
+  return (ch->affected.end() != std::find_if(ch->affected.begin(), ch->affected.end(), [&type](affected_type &a) { return a.type == type; }));
 }
 
-
-
-void affect_join(struct char_data *ch, struct affected_type *af,
-		      bool add_dur, bool avg_dur, bool add_mod, bool avg_mod)
+void affect_join(struct char_data *ch, affected_type &af, bool add_dur, bool avg_dur, bool add_mod, bool avg_mod)
 {
-  struct affected_type *hjp, *next;
-  bool found = FALSE;
+  auto it = std::find_if(ch->affected.begin(), ch->affected.end(), [&af](const affected_type &a) { 
+      return a.type == af.type && a.location == af.location;
+    });
 
-  for (hjp = ch->affected; !found && hjp; hjp = next) {
-    next = hjp->next;
+  if (it != ch->affected.end()) {
+    if (add_dur) 
+      af.duration += it->duration;
+    if (avg_dur)
+      af.duration /= 2;
 
-    if ((hjp->type == af->type) && (hjp->location == af->location)) {
-      if (add_dur)
-	af->duration += hjp->duration;
-      if (avg_dur)
-	af->duration /= 2;
+    if (add_mod) 
+      af.modifier += it->modifier;
+    if (avg_mod)
+      af.modifier /= 2;
 
-      if (add_mod)
-	af->modifier += hjp->modifier;
-      if (avg_mod)
-	af->modifier /= 2;
-
-      affect_remove(ch, hjp);
-      affect_to_char(ch, af);
-      found = TRUE;
-    }
-  }
-  if (!found)
     affect_to_char(ch, af);
+  } else {
+    affect_to_char(ch, af);
+  }
 }
 
 
@@ -367,7 +355,7 @@ void char_from_room(struct char_data *ch)
   struct char_data *temp;
 
   if (ch == NULL || IN_ROOM(ch) == NOWHERE) {
-    log("SYSERR: NULL character or NOWHERE in %s, char_from_room", __FILE__);
+    basic_mud_log("SYSERR: NULL character or NOWHERE in %s, char_from_room", __FILE__);
     exit(1);
   }
 
@@ -389,7 +377,7 @@ void char_from_room(struct char_data *ch)
 void char_to_room(struct char_data *ch, room_rnum room)
 {
   if (ch == NULL || room == NOWHERE || room > top_of_world)
-    log("SYSERR: Illegal value(s) passed to char_to_room. (Room: %d/%d Ch: %p", room, top_of_world, reinterpret_cast<void *>(ch));
+    basic_mud_log("SYSERR: Illegal value(s) passed to char_to_room. (Room: %d/%d Ch: %p", room, top_of_world, reinterpret_cast<void *>(ch));
   else {
     ch->next_in_room = world[room].people;
     world[room].people = ch;
@@ -424,7 +412,7 @@ void obj_to_char(struct obj_data *object, struct char_data *ch)
     if (!IS_NPC(ch))
       SET_BIT(PLR_FLAGS(ch), PLR_CRASH);
   } else
-    log("SYSERR: NULL obj (%p) or char (%p) passed to obj_to_char.", reinterpret_cast<void *>(object), reinterpret_cast<void *>(ch));
+    basic_mud_log("SYSERR: NULL obj (%p) or char (%p) passed to obj_to_char.", reinterpret_cast<void *>(object), reinterpret_cast<void *>(ch));
 }
 
 
@@ -434,7 +422,7 @@ void obj_from_char(struct obj_data *object)
   struct obj_data *temp;
 
   if (object == NULL) {
-    log("SYSERR: NULL object passed to obj_from_char.");
+    basic_mud_log("SYSERR: NULL object passed to obj_from_char.");
     return;
   }
   REMOVE_FROM_LIST(object, object->carried_by->carrying, next_content);
@@ -504,16 +492,16 @@ void equip_char(struct char_data *ch, struct obj_data *obj, int pos)
   }
 
   if (GET_EQ(ch, pos)) {
-    log("SYSERR: Char is already equipped: %s, %s", GET_NAME(ch),
-	    obj->short_description);
+    basic_mud_log("SYSERR: Char is already equipped: %s, %s", GET_NAME(ch),
+		  obj->short_description.c_str());
     return;
   }
   if (obj->carried_by) {
-    log("SYSERR: EQUIP: Obj is carried_by when equip.");
+    basic_mud_log("SYSERR: EQUIP: Obj is carried_by when equip.");
     return;
   }
   if (IN_ROOM(obj) != NOWHERE) {
-    log("SYSERR: EQUIP: Obj is in_room when equip.");
+    basic_mud_log("SYSERR: EQUIP: Obj is in_room when equip.");
     return;
   }
   if (invalid_align(ch, obj) || invalid_class(ch, obj)) {
@@ -536,7 +524,7 @@ void equip_char(struct char_data *ch, struct obj_data *obj, int pos)
       if (GET_OBJ_VAL(obj, 2))	/* if light is ON */
 	world[IN_ROOM(ch)].light++;
   } else
-    log("SYSERR: IN_ROOM(ch) = NOWHERE when equipping char %s.", GET_NAME(ch));
+    basic_mud_log("SYSERR: IN_ROOM(ch) = NOWHERE when equipping char %s.", GET_NAME(ch));
 
   for (j = 0; j < MAX_OBJ_AFFECT; j++)
     affect_modify(ch, obj->affected[j].location,
@@ -570,7 +558,7 @@ struct obj_data *unequip_char(struct char_data *ch, int pos)
       if (GET_OBJ_VAL(obj, 2))	/* if light is ON */
 	world[IN_ROOM(ch)].light--;
   } else
-    log("SYSERR: IN_ROOM(ch) = NOWHERE when unequipping char %s.", GET_NAME(ch));
+    basic_mud_log("SYSERR: IN_ROOM(ch) = NOWHERE when unequipping char %s.", GET_NAME(ch));
 
   GET_EQ(ch, pos) = NULL;
 
@@ -679,7 +667,7 @@ struct char_data *get_char_num(mob_rnum nr)
 void obj_to_room(struct obj_data *object, room_rnum room)
 {
   if (!object || room == NOWHERE || room > top_of_world)
-    log("SYSERR: Illegal value(s) passed to obj_to_room. (Room #%d/%d, obj %p)", room, top_of_world, reinterpret_cast<void *>(object));
+    basic_mud_log("SYSERR: Illegal value(s) passed to obj_to_room. (Room #%d/%d, obj %p)", room, top_of_world, reinterpret_cast<void *>(object));
   else {
     object->next_content = world[room].contents;
     world[room].contents = object;
@@ -697,7 +685,7 @@ void obj_from_room(struct obj_data *object)
   struct obj_data *temp;
 
   if (!object || IN_ROOM(object) == NOWHERE) {
-    log("SYSERR: NULL object (%p) or obj not in a room (%d) passed to obj_from_room", reinterpret_cast<void *>(object), IN_ROOM(object));
+    basic_mud_log("SYSERR: NULL object (%p) or obj not in a room (%d) passed to obj_from_room", reinterpret_cast<void *>(object), IN_ROOM(object));
     return;
   }
 
@@ -716,7 +704,7 @@ void obj_to_obj(struct obj_data *obj, struct obj_data *obj_to)
   struct obj_data *tmp_obj;
 
   if (!obj || !obj_to || obj == obj_to) {
-    log("SYSERR: NULL object (%p) or same source (%p) and target (%p) obj passed to obj_to_obj.", 
+    basic_mud_log("SYSERR: NULL object (%p) or same source (%p) and target (%p) obj passed to obj_to_obj.", 
           reinterpret_cast<void *>(obj), reinterpret_cast<void *>(obj), reinterpret_cast<void *>(obj_to));
     return;
   }
@@ -741,7 +729,7 @@ void obj_from_obj(struct obj_data *obj)
   struct obj_data *temp, *obj_from;
 
   if (obj->in_obj == NULL) {
-    log("SYSERR: (%s): trying to illegally extract obj from obj.", __FILE__);
+    basic_mud_log("SYSERR: (%s): trying to illegally extract obj from obj.", __FILE__);
     return;
   }
   obj_from = obj->in_obj;
@@ -779,7 +767,7 @@ void extract_obj(struct obj_data *obj)
 
   if (obj->worn_by != NULL)
     if (unequip_char(obj->worn_by, obj->worn_on) != obj)
-      log("SYSERR: Inconsistent worn_by and worn_on pointers!!");
+      basic_mud_log("SYSERR: Inconsistent worn_by and worn_on pointers!!");
   if (IN_ROOM(obj) != NOWHERE)
     obj_from_room(obj);
   else if (obj->carried_by)
@@ -847,7 +835,7 @@ void extract_char_final(struct char_data *ch)
   int i;
 
   if (IN_ROOM(ch) == NOWHERE) {
-    log("SYSERR: NOWHERE extracting char %s. (%s, extract_char_final)",
+    basic_mud_log("SYSERR: NOWHERE extracting char %s. (%s, extract_char_final)",
         GET_NAME(ch), __FILE__);
     exit(1);
   }
@@ -981,7 +969,7 @@ void extract_pending_chars(void)
   struct char_data *vict, *next_vict, *prev_vict;
 
   if (extractions_pending < 0)
-    log("SYSERR: Negative (%d) extractions pending.", extractions_pending);
+    basic_mud_log("SYSERR: Negative (%d) extractions pending.", extractions_pending);
 
   for (vict = character_list, prev_vict = NULL; vict && extractions_pending; vict = next_vict) {
     next_vict = vict->next;
@@ -1006,7 +994,7 @@ void extract_pending_chars(void)
   }
 
   if (extractions_pending > 0)
-    log("SYSERR: Couldn't find %d extractions as counted.", extractions_pending);
+    basic_mud_log("SYSERR: Couldn't find %d extractions as counted.", extractions_pending);
 
   extractions_pending = 0;
 }
@@ -1033,7 +1021,7 @@ struct char_data *get_player_vis(struct char_data *ch, char *name, int *number, 
       continue;
     if (inroom == FIND_CHAR_ROOM && IN_ROOM(i) != IN_ROOM(ch))
       continue;
-    if (str_cmp(i->player.name, name)) /* If not same, continue */
+    if (str_cmp(i->player.name.c_str(), name)) /* If not same, continue */
       continue;
     if (!CAN_SEE(ch, i))
       continue;
@@ -1240,7 +1228,7 @@ const char *money_desc(int amount)
   };
 
   if (amount <= 0) {
-    log("SYSERR: Try to create negative or 0 money (%d).", amount);
+    basic_mud_log("SYSERR: Try to create negative or 0 money (%d).", amount);
     return (NULL);
   }
 
@@ -1255,29 +1243,28 @@ const char *money_desc(int amount)
 struct obj_data *create_money(int amount)
 {
   struct obj_data *obj;
-  struct extra_descr_data *new_descr;
+  struct extra_descr_data new_descr;
   char buf[200];
 
   if (amount <= 0) {
-    log("SYSERR: Try to create negative or 0 money. (%d)", amount);
+    basic_mud_log("SYSERR: Try to create negative or 0 money. (%d)", amount);
     return (NULL);
   }
   obj = create_obj();
-  CREATE(new_descr, struct extra_descr_data, 1);
-
+  
   if (amount == 1) {
     obj->name = strdup("coin gold");
     obj->short_description = strdup("a gold coin");
     obj->description = strdup("One miserable gold coin is lying here.");
-    new_descr->keyword = strdup("coin gold");
-    new_descr->description = strdup("It's just one miserable little gold coin.");
+    new_descr.keyword = strdup("coin gold");
+    new_descr.description = strdup("It's just one miserable little gold coin.");
   } else {
     obj->name = strdup("coins gold");
     obj->short_description = strdup(money_desc(amount));
     snprintf(buf, sizeof(buf), "%s is lying here.", money_desc(amount));
     obj->description = strdup(CAP(buf));
 
-    new_descr->keyword = strdup("coins gold");
+    new_descr.keyword = strdup("coins gold");
     if (amount < 10)
       snprintf(buf, sizeof(buf), "There are %d coins.", amount);
     else if (amount < 100)
@@ -1289,11 +1276,10 @@ struct obj_data *create_money(int amount)
 	      1000 * ((amount / 1000) + rand_number(0, (amount / 1000))));
     else
       strcpy(buf, "There are a LOT of coins.");	/* strcpy: OK (is < 200) */
-    new_descr->description = strdup(buf);
+    new_descr.description = strdup(buf);
   }
-
-  new_descr->next = NULL;
-  obj->ex_description = new_descr;
+  
+  obj->ex_description.push_back(new_descr);
 
   GET_OBJ_TYPE(obj) = ITEM_MONEY;
   GET_OBJ_WEAR(obj) = ITEM_WEAR_TAKE;

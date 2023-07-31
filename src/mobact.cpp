@@ -52,7 +52,7 @@ void mobile_activity(void)
     /* Examine call for special procedure */
     if (MOB_FLAGGED(ch, MOB_SPEC) && !no_specials) {
       if (mob_index[GET_MOB_RNUM(ch)].func == NULL) {
-	log("SYSERR: %s (#%d): Attempting to call non-existing mob function.",
+	basic_mud_log("SYSERR: %s (#%d): Attempting to call non-existing mob function.",
 		GET_NAME(ch), GET_MOB_VNUM(ch));
 	REMOVE_BIT(MOB_FLAGS(ch), MOB_SPEC);
       } else {
@@ -86,9 +86,9 @@ void mobile_activity(void)
     /* Mob Movement */
     if (!MOB_FLAGGED(ch, MOB_SENTINEL) && (GET_POS(ch) == POS_STANDING) &&
 	((door = rand_number(0, 18)) < NUM_OF_DIRS) && CAN_GO(ch, door) &&
-	!ROOM_FLAGGED(EXIT(ch, door)->to_room, ROOM_NOMOB | ROOM_DEATH) &&
+	!ROOM_FLAGGED(GET_EXIT(ch, door).to_room, ROOM_NOMOB | ROOM_DEATH) &&
 	(!MOB_FLAGGED(ch, MOB_STAY_ZONE) ||
-	 (world[EXIT(ch, door)->to_room].zone == world[IN_ROOM(ch)].zone))) {
+	 (world[GET_EXIT(ch, door).to_room].zone == world[IN_ROOM(ch)].zone))) {
       perform_move(ch, door, 1);
     }
 
@@ -194,7 +194,7 @@ void remember(struct char_data *ch, struct char_data *victim)
       present = TRUE;
 
   if (!present) {
-    CREATE(tmp, memory_rec, 1);
+    tmp = new memory_rec;
     tmp->next = MEMORY(ch);
     tmp->id = GET_IDNUM(victim);
     MEMORY(ch) = tmp;

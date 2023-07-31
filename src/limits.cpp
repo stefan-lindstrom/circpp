@@ -215,10 +215,8 @@ void set_title(struct char_data *ch, char *title)
   if (strlen(title) > MAX_TITLE_LENGTH)
     title[MAX_TITLE_LENGTH] = '\0';
 
-  if (GET_TITLE(ch) != NULL)
-    free(GET_TITLE(ch));
 
-  GET_TITLE(ch) = strdup(title);
+  GET_TITLE_S(ch) = title;
 }
 
 
@@ -243,7 +241,7 @@ void run_autowiz(void)
       system(buf);
       reboot_wizlists();
     } else
-      log("Cannot run autowiz: command-line doesn't fit in buffer.");
+      basic_mud_log("Cannot run autowiz: command-line doesn't fit in buffer.");
   }
 #endif /* CIRCLE_UNIX || CIRCLE_WINDOWS */
 }

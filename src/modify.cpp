@@ -124,11 +124,11 @@ void string_add(struct descriptor_data *d, char *str)
     if (strlen(str) + 3 > d->max_str) { /* \r\n\0 */
       send_to_char(d->character, "String too long - Truncated.\r\n");
       strcpy(&str[d->max_str - 3], "\r\n");	/* strcpy: OK (size checked) */
-      CREATE(*d->str, char, d->max_str);
+      *d->str = new char[d->max_str];
       strcpy(*d->str, str);	/* strcpy: OK (size checked) */
       terminator = 1;
     } else {
-      CREATE(*d->str, char, strlen(str) + 3);
+      *d->str = new char[strlen(str) + 3];
       strcpy(*d->str, str);	/* strcpy: OK (size checked) */
     }
   } else {
@@ -136,7 +136,7 @@ void string_add(struct descriptor_data *d, char *str)
       send_to_char(d->character, "String too long.  Last line skipped.\r\n");
       terminator = 1;
     } else {
-      RECREATE(*d->str, char, strlen(*d->str) + strlen(str) + 3); /* \r\n\0 */
+      RECREATE(*d->str, char, strlen(*d->str) + strlen(str) + 3, strlen(*d->str)); /* \r\n\0 */
       strcat(*d->str, str);	/* strcat: OK (size precalculated) */
     }
   }
@@ -340,6 +340,13 @@ void paginate_string(char *str, struct descriptor_data *d)
 }
 
 
+void page_string(descriptor_data *d, const std::string &s) noexcept
+{
+  // Safe to consty cast, sending keep_internal=1 will make a copy of string. 
+  page_string(d, const_cast<char *>(s.c_str()), 1); 
+}
+
+// TODO: Pager that handles std::string without needing to modify string. Ever. 
 /* The call that gets the paging ball rolling... */
 void page_string(struct descriptor_data *d, char *str, int keep_internal)
 {
@@ -352,7 +359,7 @@ void page_string(struct descriptor_data *d, char *str, int keep_internal)
     return;
 
   d->showstr_count = count_pages(str);
-  CREATE(d->showstr_vector, char *, d->showstr_count);
+  d->showstr_vector = new char*[d->showstr_count];
 
   if (keep_internal) {
     d->showstr_head = strdup(str);

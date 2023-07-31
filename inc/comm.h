@@ -47,6 +47,7 @@ void	string_write(struct descriptor_data *d, char **txt, size_t len, long mailto
 #define PAGE_LENGTH	22
 #define PAGE_WIDTH	80
 void	page_string(struct descriptor_data *d, char *str, int keep_internal);
+void    page_string(descriptor_data *d, const std::string &s) noexcept;
 
 typedef RETSIGTYPE sigfunc(int);
 

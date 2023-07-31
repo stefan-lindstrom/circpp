@@ -26,7 +26,6 @@ struct time_info_data *real_time_passed(time_t t2, time_t t1);
 struct time_info_data *mud_time_passed(time_t t2, time_t t1);
 void prune_crlf(char *txt);
 
-
 /* creates a random number in interval [from;to] */
 int rand_number(int from, int to)
 {
@@ -35,7 +34,7 @@ int rand_number(int from, int to)
     int tmp = from;
     from = to;
     to = tmp;
-    log("SYSERR: rand_number() should be called with lowest, then highest. (%d, %d), not (%d, %d).", from, to, to, from);
+    basic_mud_log("SYSERR: rand_number() should be called with lowest, then highest. (%d, %d), not (%d, %d).", from, to, to, from);
   }
 
   /*
@@ -113,9 +112,7 @@ size_t strlcpy(char *dest, const char *source, size_t totalsize)
 /* Create a duplicate of a string */
 char *strdup(const char *source)
 {
-  char *new_z;
-
-  CREATE(new_z, char, strlen(source) + 1);
+  char *new_z = new char[strlen(source) + 1];
   return (strcpy(new_z, source)); /* strcpy: OK */
 }
 #endif
@@ -145,7 +142,7 @@ int str_cmp(const char *arg1, const char *arg2)
   int chk, i;
 
   if (arg1 == NULL || arg2 == NULL) {
-    log("SYSERR: str_cmp() passed a NULL pointer, %p or %p.", arg1, arg2);
+    basic_mud_log("SYSERR: str_cmp() passed a NULL pointer, %p or %p.", arg1, arg2);
     return (0);
   }
 
@@ -170,7 +167,7 @@ int strn_cmp(const char *arg1, const char *arg2, int n)
   int chk, i;
 
   if (arg1 == NULL || arg2 == NULL) {
-    log("SYSERR: strn_cmp() passed a NULL pointer, %p or %p.", arg1, arg2);
+    basic_mud_log("SYSERR: strn_cmp() passed a NULL pointer, %p or %p.", arg1, arg2);
     return (0);
   }
 
@@ -186,12 +183,12 @@ int strn_cmp(const char *arg1, const char *arg2, int n)
 /* log a death trap hit */
 void log_death_trap(struct char_data *ch)
 {
-  mudlog(BRF, LVL_IMMORT, TRUE, "%s hit death trap #%d (%s)", GET_NAME(ch), GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name);
+  mudlog(BRF, LVL_IMMORT, TRUE, "%s hit death trap #%d (%s)", GET_NAME(ch), GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name.c_str());
 }
 
 
 /*
- * New variable argument log() function.  Works the same as the old for
+ * New variable argument basic_mud_log() function.  Works the same as the old for
  * previously written code but is very nice for new code.
  */
 void basic_mud_vlog(const char *format, va_list args)
@@ -200,12 +197,12 @@ void basic_mud_vlog(const char *format, va_list args)
   char *time_s = asctime(localtime(&ct));
 
   if (logfile == NULL) {
-    puts("SYSERR: Using log() before stream was initialized!");
+    puts("SYSERR: Using basic_mud_log() before stream was initialized!");
     return;
   }
 
   if (format == NULL)
-    format = "SYSERR: log() received a NULL format.";
+    format = "SYSERR: basic_mud_log() received a NULL format.";
 
   time_s[strlen(time_s) - 1] = '\0';
 
@@ -233,7 +230,7 @@ int touch(const char *path)
   FILE *fl;
 
   if (!(fl = fopen(path, "a"))) {
-    log("SYSERR: %s: %s", path, strerror(errno));
+    basic_mud_log("SYSERR: %s: %s", path, strerror(errno));
     return (-1);
   } else {
     fclose(fl);
@@ -499,7 +496,7 @@ void add_follower(struct char_data *ch, struct char_data *leader)
 
   ch->master = leader;
 
-  CREATE(k, struct follow_type, 1);
+  k = new follow_type;
 
   k->follower = ch;
   k->next = leader->followers;
@@ -548,7 +545,7 @@ int get_filename(char *filename, size_t fbufsize, int mode, const char *orig_nam
   char name[PATH_MAX], *ptr;
 
   if (orig_name == NULL || *orig_name == '\0' || filename == NULL) {
-    log("SYSERR: NULL pointer or empty string passed to get_filename(), %p or %p.",
+    basic_mud_log("SYSERR: NULL pointer or empty string passed to get_filename(), %p or %p.",
 		orig_name, filename);
     return (0);
   }
@@ -628,7 +625,7 @@ int num_pc_in_room(struct room_data *room)
 extern FILE *player_fl;
 void core_dump_real(const char *who, int line)
 {
-  log("SYSERR: Assertion failed at %s:%d!", who, line);
+  basic_mud_log("SYSERR: Assertion failed at %s:%d!", who, line);
 
 #if 0	/* By default, let's not litter. */
 #if defined(CIRCLE_UNIX)
@@ -660,7 +657,7 @@ void core_dump_real(const char *who, int line)
 int room_is_dark(room_rnum room)
 {
   if (!VALID_ROOM_RNUM(room)) {
-    log("room_is_dark: Invalid room rnum %d. (0-%d)", room, top_of_world);
+    basic_mud_log("room_is_dark: Invalid room rnum %d. (0-%d)", room, top_of_world);
     return (FALSE);
   }
 
@@ -677,4 +674,26 @@ int room_is_dark(room_rnum room)
     return (TRUE);
 
   return (FALSE);
+}
+
+bitvector_t asciiflag_conv(const char *flag)
+{
+  bitvector_t flags = 0;
+  int is_num = TRUE;
+  const char *p;
+
+  for (p = flag; *p; p++) {
+    if (islower(*p))
+      flags |= 1 << (*p - 'a');
+    else if (isupper(*p))
+      flags |= 1 << (26 + (*p - 'A'));
+
+    if (!isdigit(*p))
+      is_num = FALSE;
+  }
+
+  if (is_num)
+    flags = atol(flag);
+
+  return (flags);
 }

@@ -10,17 +10,9 @@
 #ifndef __DB_H__
 #define __DB_H__
 
-#include <vector>
+#include "structs.h"
 
-/* arbitrary constants used by index_boot() (must be unique) */
-enum class DBBoot : unsigned char  {
-  DB_BOOT_WLD = 0,
-  DB_BOOT_MOB,
-  DB_BOOT_OBJ,
-  DB_BOOT_ZON,
-  DB_BOOT_SHP,
-  DB_BOOT_HLP,
-};
+#include <vector>
 
 #if defined(CIRCLE_MACINTOSH)
 #define LIB_WORLD	":world:"
@@ -105,7 +97,7 @@ enum class DBBoot : unsigned char  {
 /* public procedures in db.c */
 void	boot_db(void);
 void	destroy_db(void);
-int	create_entry(char *name);
+int	create_entry(const char *name);
 void	zone_update(void);
 char	*fread_string(FILE *fl, const char *error);
 long	get_id_by_name(const char *name);
@@ -120,6 +112,9 @@ zone_rnum real_zone(zone_vnum vnum);
 room_rnum real_room(room_vnum vnum);
 mob_rnum real_mobile(mob_vnum vnum);
 obj_rnum real_object(obj_vnum vnum);
+
+int check_bitvector_names(bitvector_t bits, size_t namecount, const char *whatami, const char *whatbits);
+
 
 void	char_to_store(struct char_data *ch, struct char_file_u *st);
 void	store_to_char(struct char_file_u *st, struct char_data *ch);
@@ -168,22 +163,22 @@ struct reset_com {
 
 /* zone definition structure. for the 'zone-table'   */
 struct zone_data {
-   char	*name;		    /* name of this zone                  */
-   int	lifespan;           /* how long between resets (minutes)  */
-   int	age;                /* current age of this zone (minutes) */
-   room_vnum bot;           /* starting room number for this zone */
-   room_vnum top;           /* upper limit for rooms in this zone */
+  std::string name;		    /* name of this zone                  */
+  int	lifespan;           /* how long between resets (minutes)  */
+  int	age;                /* current age of this zone (minutes) */
+  room_vnum bot;           /* starting room number for this zone */
+  room_vnum top;           /* upper limit for rooms in this zone */
+  
+  int	reset_mode;         /* conditions for reset (see below)   */
+  zone_vnum number;	    /* virtual number of this zone	  */
 
-   int	reset_mode;         /* conditions for reset (see below)   */
-   zone_vnum number;	    /* virtual number of this zone	  */
-   struct reset_com *cmd;   /* command table for reset	          */
-
-   /*
-    * Reset mode:
-    *   0: Don't reset, and don't update age.
-    *   1: Reset if no PC's are located in zone.
-    *   2: Just reset.
-    */
+  std::vector<reset_com> cmd;   /* command table for reset	          */  
+  /*
+   * Reset mode:
+   *   0: Don't reset, and don't update age.
+   *   1: Reset if no PC's are located in zone.
+   *   2: Just reset.
+   */
 };
 
 
@@ -235,24 +230,23 @@ struct ban_list_element {
 
 /* global buffering system */
 
-extern struct room_data *world;
-//extern std::vector<room_data> world;
+extern std::vector<room_data> world;
 extern room_rnum top_of_world;
 
-extern struct zone_data *zone_table;
+extern std::vector<zone_data> zone_table;
 extern zone_rnum top_of_zone_table;
 
 extern struct descriptor_data *descriptor_list;
 extern struct char_data *character_list;
 extern struct player_special_data dummy_mob;
 
-extern struct index_data *mob_index;
-extern struct char_data *mob_proto;
+extern std::vector<index_data> mob_index;
+extern std::vector<char_data> mob_proto;
 extern mob_rnum top_of_mobt;
 
-extern struct index_data *obj_index;
+extern std::vector<index_data> obj_index;
+extern std::vector<obj_data> obj_proto;
 extern struct obj_data *object_list;
-extern struct obj_data *obj_proto;
 extern obj_rnum top_of_objt;
 
 extern char	*OK;

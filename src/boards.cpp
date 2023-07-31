@@ -128,7 +128,7 @@ void init_boards(void)
 
   for (i = 0; i < NUM_OF_BOARDS; i++) {
     if ((BOARD_RNUM(i) = real_object(BOARD_VNUM(i))) == NOTHING) {
-      log("SYSERR: Fatal board error: board vnum %d does not exist!",
+      basic_mud_log("SYSERR: Fatal board error: board vnum %d does not exist!",
 	      BOARD_VNUM(i));
       fatal_error = 1;
     }
@@ -169,7 +169,7 @@ SPECIAL(gen_board)
     return (0);
 
   if ((board_type = find_board(ch)) == -1) {
-    log("SYSERR:  degenerate board!  (what the hell...)");
+    basic_mud_log("SYSERR:  degenerate board!  (what the hell...)");
     return (0);
   }
   if (cmd == ACMD_WRITE)
@@ -202,7 +202,7 @@ int Board_write_message(int board_type, struct char_data *ch, char *arg, struct 
   }
   if ((NEW_MSG_INDEX(board_type).slot_num = find_slot()) == -1) {
     send_to_char(ch, "The board is malfunctioning - sorry.\r\n");
-    log("SYSERR: Board: failed to find empty slot on write.");
+    basic_mud_log("SYSERR: Board: failed to find empty slot on write.");
     return (1);
   }
   /* skip blanks */
@@ -246,7 +246,7 @@ int Board_show_board(int board_type, struct char_data *ch, char *arg, struct obj
 
   one_argument(arg, tmp);
 
-  if (!*tmp || !isname(tmp, board->name))
+  if (!*tmp || !isname(tmp, board->name.c_str()))
     return (0);
 
   if (GET_LEVEL(ch) < READ_LVL(board_type)) {
@@ -292,7 +292,7 @@ int Board_show_board(int board_type, struct char_data *ch, char *arg, struct obj
   return (1);
 
 fubar:
-  log("SYSERR: Board %d is fubar'd.", board_type);
+  basic_mud_log("SYSERR: Board %d is fubar'd.", board_type);
   send_to_char(ch, "Sorry, the board isn't working.\r\n");
   return (1);
 }
@@ -306,7 +306,7 @@ int Board_display_msg(int board_type, struct char_data *ch, char *arg, struct ob
   one_argument(arg, number);
   if (!*number)
     return (0);
-  if (isname(number, board->name))	/* so "read board" works */
+  if (isname(number, board->name.c_str()))	/* so "read board" works */
     return (Board_show_board(board_type, ch, arg, board));
   if (!is_number(number))	/* read 2.mail, look 2.sword */
     return (0);
@@ -333,7 +333,7 @@ int Board_display_msg(int board_type, struct char_data *ch, char *arg, struct ob
   if (MSG_SLOTNUM(board_type, ind) < 0 ||
       MSG_SLOTNUM(board_type, ind) >= INDEX_SIZE) {
     send_to_char(ch, "Sorry, the board is not working.\r\n");
-    log("SYSERR: Board is screwed up. (Room #%d)", GET_ROOM_VNUM(IN_ROOM(ch)));
+    basic_mud_log("SYSERR: Board is screwed up. (Room #%d)", GET_ROOM_VNUM(IN_ROOM(ch)));
     return (1);
   }
   if (!(MSG_HEADING(board_type, ind))) {
@@ -398,7 +398,7 @@ int Board_remove_msg(int board_type, struct char_data *ch, char *arg, struct obj
   slot_num = MSG_SLOTNUM(board_type, ind);
   if (slot_num < 0 || slot_num >= INDEX_SIZE) {
     send_to_char(ch, "That message is majorly screwed up.\r\n");
-    log("SYSERR: The board is seriously screwed up. (Room #%d)", GET_ROOM_VNUM(IN_ROOM(ch)));
+    basic_mud_log("SYSERR: The board is seriously screwed up. (Room #%d)", GET_ROOM_VNUM(IN_ROOM(ch)));
     return (1);
   }
   for (d = descriptor_list; d; d = d->next)
@@ -485,28 +485,29 @@ void Board_load_board(int board_type)
   }
   fread(&(num_of_msgs[board_type]), sizeof(int), 1, fl);
   if (num_of_msgs[board_type] < 1 || num_of_msgs[board_type] > MAX_BOARD_MESSAGES) {
-    log("SYSERR: Board file %d corrupt.  Resetting.", board_type);
+    basic_mud_log("SYSERR: Board file %d corrupt.  Resetting.", board_type);
     Board_reset_board(board_type);
     return;
   }
   for (i = 0; i < num_of_msgs[board_type]; i++) {
     fread(&(msg_index[board_type][i]), sizeof(struct board_msginfo), 1, fl);
     if ((len1 = msg_index[board_type][i].heading_len) <= 0) {
-      log("SYSERR: Board file %d corrupt!  Resetting.", board_type);
+      basic_mud_log("SYSERR: Board file %d corrupt!  Resetting.", board_type);
       Board_reset_board(board_type);
       return;
     }
-    CREATE(tmp1, char, len1);
+    tmp1 = new char[len1];
     fread(tmp1, sizeof(char), len1, fl);
     MSG_HEADING(board_type, i) = tmp1;
 
     if ((MSG_SLOTNUM(board_type, i) = find_slot()) == -1) {
-      log("SYSERR: Out of slots booting board %d!  Resetting...", board_type);
+      basic_mud_log("SYSERR: Out of slots booting board %d!  Resetting...", board_type);
       Board_reset_board(board_type);
       return;
     }
     if ((len2 = msg_index[board_type][i].message_len) > 0) {
-      CREATE(tmp2, char, len2);
+      tmp2 = new char[len2];
+
       fread(tmp2, sizeof(char), len2, fl);
       msg_storage[MSG_SLOTNUM(board_type, i)] = tmp2;
     } else

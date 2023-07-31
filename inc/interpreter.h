@@ -56,18 +56,6 @@ struct command_info {
 extern const struct command_info cmd_info[];
 #endif
 
-/*
- * Alert! Changed from 'struct alias' to 'struct alias_data' in bpl15
- * because a Windows 95 compiler gives a warning about it having similiar
- * named member.
- */
-struct alias_data {
-  char *alias;
-  char *replacement;
-  int type;
-  struct alias_data *next;
-};
-
 #define ALIAS_SIMPLE	0
 #define ALIAS_COMPLEX	1
 

@@ -11,6 +11,13 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+#include <list>
+#include <algorithm>
+#include <array>
+#include <tuple>
+#include <string>
+
+#include "sysdep.h"
 #include "olc.h"
 
 /*
@@ -571,15 +578,19 @@ typedef unsigned long int	bitvector_t;
 
 /* Extra description: used in objects, mobiles, and rooms */
 struct extra_descr_data {
-   char	*keyword;                 /* Keyword in look/examine          */
-   char	*description;             /* What to see                      */
-   struct extra_descr_data *next; /* Next in list                     */
+  std::string keyword;                 /* Keyword in look/examine          */
+  std::string description;             /* What to see                      */
+
+  extra_descr_data() noexcept : keyword(""), description("") {}
+  extra_descr_data(const extra_descr_data &o) : keyword(o.keyword), description(o.description){}
+
+  ~extra_descr_data() = default;
 };
 
 
 /* object-related structures ******************************************/
 
-
+void basic_mud_log(const char *, ...);
 /* object flags; used in obj_data */
 struct obj_flag_data {
    int	value[4];	/* Values of the item (see list)    */
@@ -591,6 +602,18 @@ struct obj_flag_data {
    int	cost_per_day;	/* Cost to keep pr. real day        */
    int	timer;		/* Timer for object                 */
    long /*bitvector_t*/	bitvector;	/* To set chars bits                */
+ 
+  obj_flag_data() = default;
+  obj_flag_data(const obj_flag_data &f) = default;
+
+  void clear() {
+    std::for_each(value, value+4, [](int &val) { val = 0; });
+    type_flag = 0;
+    wear_flags = extra_flags = 0;
+    weight = cost = cost_per_day = 0;
+    timer = 0;
+    bitvector = 0;
+  }
 };
 
 
@@ -598,31 +621,82 @@ struct obj_flag_data {
 struct obj_affected_type {
    byte location;      /* Which ability to change (APPLY_XXX) */
    sbyte modifier;     /* How much it changes by              */
+
+  void clear() {
+    location = 0;
+    modifier = 0;
+  }
 };
 
 
 /* ================== Memory Structure for Objects ================== */
 struct obj_data {
-   obj_vnum item_number;	/* Where in data-base			*/
-   room_rnum in_room;		/* In what room -1 when conta/carr	*/
+  obj_rnum item_number;	/* Where in data-base			*/
+  obj_vnum vnum;
+  room_rnum in_room;		/* In what room -1 when conta/carr	*/
 
-   struct obj_flag_data obj_flags;/* Object information               */
-   struct obj_affected_type affected[MAX_OBJ_AFFECT];  /* affects */
+  struct obj_flag_data obj_flags;/* Object information               */
+  struct obj_affected_type affected[MAX_OBJ_AFFECT];  /* affects (make a list? or std::array<>?) */
 
-   char	*name;                    /* Title of object :get etc.        */
-   char	*description;		  /* When in room                     */
-   char	*short_description;       /* when worn/carry/in cont.         */
-   char	*action_description;      /* What to write when used          */
-   struct extra_descr_data *ex_description; /* extra descriptions     */
+  std::string name;                    /* Title of object :get etc.        */
+  std::string description;	       /* When in room                     */
+  std::string short_description;       /* when worn/carry/in cont.         */
+  std::string action_description;      /* What to write when used          */
+
+  std::list<extra_descr_data> ex_description;
+
    struct char_data *carried_by;  /* Carried by :NULL in room/conta   */
    struct char_data *worn_by;	  /* Worn by?			      */
    sh_int worn_on;		  /* Worn where?		      */
 
    struct obj_data *in_obj;       /* In what object NULL when none    */
+  // TODO: make this a list. 
    struct obj_data *contains;     /* Contains objects                 */
 
+  // TODO: make object list a std::list, remove these. 
    struct obj_data *next_content; /* For 'contains' lists             */
    struct obj_data *next;         /* For the object list              */
+
+  // clean this sh*t up later
+  obj_data() noexcept {
+    clear();
+  }
+
+  obj_data(const obj_data &obj) noexcept {
+    item_number = obj.item_number;
+    vnum = obj.vnum;
+    in_room = obj.in_room;
+
+    obj_flags = obj.obj_flags;
+
+    for (int i = 0; i < MAX_OBJ_AFFECT; ++i) {
+      affected[i] = obj.affected[i];
+    }
+
+    name = std::string(obj.name);
+    description = std::string(obj.description);
+    short_description = std::string(obj.short_description);
+    action_description = std::string(obj.action_description);
+
+    ex_description = obj.ex_description; // should copy
+    in_obj = contains = next_content = next = nullptr; // for now
+    carried_by = worn_by =  nullptr;
+    worn_on = obj.worn_on;
+  }
+
+  void clear() {
+    in_obj = contains = next_content = next = nullptr;
+    worn_by = carried_by = nullptr;
+    ex_description.clear();
+    name = "";
+    description = "";
+    short_description = "";
+    action_description = "";
+
+    in_room = -1;
+    obj_flags.clear();
+    std::for_each(affected, affected +  MAX_OBJ_AFFECT, [](obj_affected_type &a) { a.clear(); });
+  }
 };
 /* ======================================================================= */
 
@@ -668,32 +742,33 @@ struct rent_info {
 
 
 struct room_direction_data {
-   char	*general_description;       /* When look DIR.			*/
+  std::string general_description;       /* When look DIR.			*/
+  std::string keyword;	       	         /* for open/close			*/
 
-   char	*keyword;		/* for open/close			*/
-
-   sh_int /*bitvector_t*/ exit_info;	/* Exit info			*/
-   obj_vnum key;		/* Key's number (-1 for no key)		*/
-   room_rnum to_room;		/* Where direction leads (NOWHERE)	*/
+   sh_int /*bitvector_t*/ exit_info;	 /* Exit info			        */
+   obj_vnum key;		         /* Key's number (-1 for no key)	*/
+   room_rnum to_room;		         /* Where direction leads (NOWHERE)	*/
 };
 
 
 /* ================== Memory Structure for room ======================= */
 struct room_data {
-   room_vnum number;		/* Rooms number	(vnum)		      */
-   zone_rnum zone;              /* Room zone (for resetting)          */
-   int	sector_type;            /* sector type (move/hide)            */
-   char	*name;                  /* Rooms name 'You are ...'           */
-   char	*description;           /* Shown when entered                 */
-   struct extra_descr_data *ex_description; /* for examine/look       */
-   struct room_direction_data *dir_option[NUM_OF_DIRS]; /* Directions */
-   int /*bitvector_t*/ room_flags;		/* DEATH,DARK ... etc */
+  room_vnum number;		/* Rooms number	(vnum)		      */
+  zone_rnum zone;               /* Room zone (for resetting)          */
+  int	sector_type;            /* sector type (move/hide)            */
+  std::string name;             /* Rooms name 'You are ...'           */
+  std::string description;      /* Shown when entered                 */
 
-   byte light;                  /* Number of lightsources in room     */
-   SPECIAL(*func);
+  std::list<extra_descr_data> ex_description;
+  std::array<std::tuple<room_direction_data,bool>, NUM_OF_DIRS> dir_option;
 
-   struct obj_data *contents;   /* List of items in room              */
-   struct char_data *people;    /* List of NPC / PC in room           */
+  int /*bitvector_t*/ room_flags;		/* DEATH,DARK ... etc */
+  
+  byte light;                  /* Number of lightsources in room     */
+  SPECIAL(*func);
+  
+  struct obj_data *contents;   /* List of items in room              */
+  struct char_data *people;    /* List of NPC / PC in room           */
 };
 /* ====================================================================== */
 
@@ -720,27 +795,31 @@ struct time_info_data {
 
 /* These data contain information about a players time data */
 struct time_data {
-   time_t birth;    /* This represents the characters age                */
-   time_t logon;    /* Time of the last logon (used to calculate played) */
-   int	played;     /* This is the total accumulated time played in secs */
+  time_t birth;    /* This represents the characters age                */
+  time_t logon;    /* Time of the last logon (used to calculate played) */
+  int	played;     /* This is the total accumulated time played in secs */
+  
+  time_data() : birth(0), logon(0), played(0) {}
 };
 
 
 /* general player-related info, usually PC's and NPC's */
 struct char_player_data {
-   char	passwd[MAX_PWD_LENGTH+1]; /* character's password      */
-   char	*name;	       /* PC / NPC s name (kill ...  )         */
-   char	*short_descr;  /* for NPC 'actions'                    */
-   char	*long_descr;   /* for 'look'			       */
-   char	*description;  /* Extra descriptions                   */
-   char	*title;        /* PC / NPC's title                     */
-   byte sex;           /* PC / NPC's sex                       */
-   byte chclass;       /* PC / NPC's class		       */
-   byte level;         /* PC / NPC's level                     */
-   sh_int hometown;    /* PC s Hometown (zone)                 */
-   struct time_data time;  /* PC's AGE in days                 */
-   ubyte weight;       /* PC / NPC's weight                    */
-   ubyte height;       /* PC / NPC's height                    */
+  char	passwd[MAX_PWD_LENGTH+1]; /* character's password                 */
+  std::string name;   	          /* PC / NPC s name (kill ...  )         */
+  std::string short_descr;        /* for NPC 'actions'                    */
+  std::string long_descr;         /* for 'look'			          */
+  std::string description;        /* Extra descriptions                   */
+  std::string title;              /* PC / NPC's title                     */
+  byte sex;                       /* PC / NPC's sex                       */
+  byte chclass;                   /* PC / NPC's class		          */
+  byte level;                     /* PC / NPC's level                     */
+  sh_int hometown;                /* PC s Hometown (zone)                 */
+  struct time_data time;          /* PC's AGE in days                     */
+  ubyte weight;                   /* PC / NPC's weight                    */
+  ubyte height;                   /* PC / NPC's height                    */
+
+  char_player_data() : name(""), short_descr(""), long_descr(""), description(""), title(""), sex(0), chclass(0), level(0), hometown(0), weight(0), height(0) {}
 };
 
 
@@ -753,6 +832,8 @@ struct char_ability_data {
    sbyte dex;
    sbyte con;
    sbyte cha;
+
+   char_ability_data() : str(0), str_add(0), intel(0), wis(0), dex(0), con(0), cha(0) {}
 };
 
 
@@ -772,6 +853,9 @@ struct char_point_data {
 
    sbyte hitroll;       /* Any bonus or penalty to the hit roll    */
    sbyte damroll;       /* Any bonus or penalty to the damage roll */
+
+   char_point_data() : mana(0), max_mana(0), hit(0), max_hit(0), move(0), 
+     max_move(0), armor(0), gold(0), bank_gold(0), exp(0), hitroll(0), damroll(0) {}
 };
 
 
@@ -784,13 +868,15 @@ struct char_point_data {
  * in player_special_data.
  */
 struct char_special_data_saved {
-   int	alignment;		/* +-1000 for alignments                */
-   long	idnum;			/* player's idnum; -1 for mobiles	*/
-   long /*bitvector_t*/ act;	/* act flag for NPC's; player flag for PC's */
-
-   long /*bitvector_t*/	affected_by;
-				/* Bitvector for spells/skills affected by */
-   sh_int apply_saving_throw[5]; /* Saving throw (Bonuses)		*/
+  int	alignment;		/* +-1000 for alignments                */
+  long	idnum;			/* player's idnum; -1 for mobiles	*/
+  long /*bitvector_t*/ act;	/* act flag for NPC's; player flag for PC's */
+  
+  long /*bitvector_t*/	affected_by;
+  /* Bitvector for spells/skills affected by */
+  sh_int apply_saving_throw[5]; /* Saving throw (Bonuses)		*/
+  
+  char_special_data_saved() : alignment(0), idnum(0), act(0), affected_by(0), apply_saving_throw{0,0,0,0,0} {}
 };
 
 
@@ -806,6 +892,8 @@ struct char_special_data {
    int	timer;			/* Timer for update			*/
 
    struct char_special_data_saved saved; /* constants saved in plrfile	*/
+
+   char_special_data() : fighting(nullptr), hunting(nullptr), position(0), carry_weight(0), carry_items(0), timer(0) {}
 };
 
 
@@ -857,6 +945,21 @@ struct player_special_data_saved {
 };
 
 /*
+ * Alert! Changed from 'struct alias' to 'struct alias_data' in bpl15
+ * because a Windows 95 compiler gives a warning about it having similiar
+ * named member.
+ */
+struct alias_data {
+  std::string alias;
+  std::string replacement;
+  int type;
+
+  bool operator==(const alias_data &other) const {
+    return alias == other.alias;
+  }
+};
+
+/*
  * Specials needed only by PCs, not NPCs.  Space for this structure is
  * not allocated in memory for NPCs, but it is for PCs and the portion
  * of it labelled 'saved' is saved in the playerfile.  This structure can
@@ -866,72 +969,84 @@ struct player_special_data_saved {
 struct player_special_data {
    struct player_special_data_saved saved;
 
-   char	*poofin;		/* Description on arrival of a god.     */
-   char	*poofout;		/* Description upon a god's exit.       */
-   struct alias_data *aliases;	/* Character's aliases			*/
-   long last_tell;		/* idnum of last tell from		*/
-   void *last_olc_targ;		/* olc control				*/
-   OlcMode last_olc_mode;		/* olc control				*/
+   char	*poofin;		               /* Description on arrival of a god.     */
+   char	*poofout;		            /* Description upon a god's exit.       */
+   std::list<alias_data> aliases;	/* Character's aliases			*/
+   long last_tell;	            	/* idnum of last tell from		*/
+   void *last_olc_targ;		         /* olc control				*/
+   OlcMode last_olc_mode;	         /* olc control				*/
+
+  player_special_data() : poofin(nullptr), poofout(nullptr), last_tell(0), last_olc_targ(nullptr), last_olc_mode(OlcMode::OLC_SET) {}
 };
 
 
 /* Specials used by NPCs, not PCs */
 struct mob_special_data {
-   memory_rec *memory;	    /* List of attackers to remember	       */
-   byte	attack_type;        /* The Attack Type Bitvector for NPC's     */
-   byte default_pos;        /* Default position for NPC                */
-   byte damnodice;          /* The number of damage dice's	       */
-   byte damsizedice;        /* The size of the damage dice's           */
+  memory_rec *memory;	    /* List of attackers to remember	       */
+  byte	attack_type;        /* The Attack Type Bitvector for NPC's     */
+  byte default_pos;        /* Default position for NPC                */
+  byte damnodice;          /* The number of damage dice's	       */
+  byte damsizedice;        /* The size of the damage dice's           */
+
+  mob_special_data() : memory(nullptr), attack_type(0), default_pos(0), damnodice(0), damsizedice(0) {}
 };
 
 
 /* An affect structure.  Used in char_file_u *DO*NOT*CHANGE* */
 struct affected_type {
-   sh_int type;          /* The type of spell that caused this      */
-   sh_int duration;      /* For how long its effects will last      */
-   sbyte modifier;       /* This is added to apropriate ability     */
-   byte location;        /* Tells which ability to change(APPLY_XXX)*/
-   long /*bitvector_t*/	bitvector; /* Tells which bits to set (AFF_XXX) */
-
-   struct affected_type *next;
+  sh_int type;          /* The type of spell that caused this      */
+  sh_int duration;      /* For how long its effects will last      */
+  sbyte modifier;       /* This is added to apropriate ability     */
+  byte location;        /* Tells which ability to change(APPLY_XXX)*/
+  long /*bitvector_t*/	bitvector; /* Tells which bits to set (AFF_XXX) */
+  
+  affected_type() : type(0), duration(0), modifier(0), location(0) {}
 };
 
 
 /* Structure used for chars following other chars */
 struct follow_type {
-   struct char_data *follower;
-   struct follow_type *next;
+  struct char_data *follower;
+  struct follow_type *next;
+
+  follow_type() : follower(nullptr), next(nullptr)  {}
 };
 
 
 /* ================== Structure for player/non-player ===================== */
 struct char_data {
-   int pfilepos;			 /* playerfile pos		  */
-   mob_rnum nr;                          /* Mob's rnum			  */
-   room_rnum in_room;                    /* Location (real room number)	  */
-   room_rnum was_in_room;		 /* location for linkdead people  */
-   int wait;				 /* wait for how many loops	  */
+  int pfilepos;			 /* playerfile pos		  */
+  mob_rnum nr;                          /* Mob's rnum			  */
+  mob_vnum vnr;                         /* Mob's vnum, eventually, get rid of rnums */
+  room_rnum in_room;                    /* Location (real room number)	  */
+  room_rnum was_in_room;		 /* location for linkdead people  */
+  int wait;				 /* wait for how many loops	  */
+  
+  struct char_player_data player;       /* Normal data                   */
+  struct char_ability_data real_abils;	 /* Abilities without modifiers   */
+  struct char_ability_data aff_abils;	 /* Abils with spells/stones/etc  */
+  struct char_point_data points;        /* Points                        */
+  struct char_special_data char_specials;	/* PC/NPC specials	  */
+  struct player_special_data *player_specials; /* PC specials		  */
+  struct mob_special_data mob_specials;	/* NPC specials		  */
+  
+  std::list<affected_type> affected;
+  //  struct affected_type *affected;       /* affected by what spells       */
+  struct obj_data *equipment[NUM_WEARS];/* Equipment array               */
 
-   struct char_player_data player;       /* Normal data                   */
-   struct char_ability_data real_abils;	 /* Abilities without modifiers   */
-   struct char_ability_data aff_abils;	 /* Abils with spells/stones/etc  */
-   struct char_point_data points;        /* Points                        */
-   struct char_special_data char_specials;	/* PC/NPC specials	  */
-   struct player_special_data *player_specials; /* PC specials		  */
-   struct mob_special_data mob_specials;	/* NPC specials		  */
+  struct obj_data *carrying;            /* Head of list                  */
+  struct descriptor_data *desc;         /* NULL for mobiles              */
 
-   struct affected_type *affected;       /* affected by what spells       */
-   struct obj_data *equipment[NUM_WEARS];/* Equipment array               */
+  struct char_data *next_in_room;     /* For room->people - list         */
+  struct char_data *next;             /* For either monster or ppl-list  */
+  struct char_data *next_fighting;    /* For fighting list               */
 
-   struct obj_data *carrying;            /* Head of list                  */
-   struct descriptor_data *desc;         /* NULL for mobiles              */
-
-   struct char_data *next_in_room;     /* For room->people - list         */
-   struct char_data *next;             /* For either monster or ppl-list  */
-   struct char_data *next_fighting;    /* For fighting list               */
-
-   struct follow_type *followers;        /* List of chars followers       */
-   struct char_data *master;             /* Who is char following?        */
+  struct follow_type *followers;        /* List of chars followers       */
+  struct char_data *master;             /* Who is char following?        */
+  
+  char_data() : pfilepos(0), nr(0), in_room(NOWHERE), was_in_room(NOWHERE), wait(0), player_specials(nullptr), 
+    equipment{nullptr}, carrying(nullptr), desc(nullptr), next_in_room(nullptr), next(nullptr), next_fighting(nullptr), 
+    followers(nullptr), master(nullptr) {}
 };
 /* ====================================================================== */
 

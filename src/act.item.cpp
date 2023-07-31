@@ -146,7 +146,7 @@ ACMD(do_put)
 	for (obj = ch->carrying; obj; obj = next_obj) {
 	  next_obj = obj->next_content;
 	  if (obj != cont && CAN_SEE_OBJ(ch, obj) &&
-	      (obj_dotmode == FIND_ALL || isname(theobj, obj->name))) {
+	      (obj_dotmode == FIND_ALL || isname(theobj, obj->name.c_str()))) {
 	    found = 1;
 	    perform_put(ch, obj, cont);
 	  }
@@ -247,7 +247,7 @@ void get_from_container(struct char_data *ch, struct obj_data *cont,
     for (obj = cont->contains; obj; obj = next_obj) {
       next_obj = obj->next_content;
       if (CAN_SEE_OBJ(ch, obj) &&
-	  (obj_dotmode == FIND_ALL || isname(arg, obj->name))) {
+	  (obj_dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
 	found = 1;
 	perform_get_from_container(ch, obj, cont, mode);
       }
@@ -306,7 +306,7 @@ void get_from_room(struct char_data *ch, char *arg, int howmany)
     for (obj = world[IN_ROOM(ch)].contents; obj; obj = next_obj) {
       next_obj = obj->next_content;
       if (CAN_SEE_OBJ(ch, obj) &&
-	  (dotmode == FIND_ALL || isname(arg, obj->name))) {
+	  (dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
 	found = 1;
 	perform_get_from_room(ch, obj);
       }
@@ -364,7 +364,7 @@ ACMD(do_get)
       }
       for (cont = ch->carrying; cont; cont = cont->next_content)
 	if (CAN_SEE_OBJ(ch, cont) &&
-	    (cont_dotmode == FIND_ALL || isname(arg2, cont->name))) {
+	    (cont_dotmode == FIND_ALL || isname(arg2, cont->name.c_str()))) {
 	  if (GET_OBJ_TYPE(cont) == ITEM_CONTAINER) {
 	    found = 1;
 	    get_from_container(ch, cont, arg1, FIND_OBJ_INV, amount);
@@ -375,7 +375,7 @@ ACMD(do_get)
 	}
       for (cont = world[IN_ROOM(ch)].contents; cont; cont = cont->next_content)
 	if (CAN_SEE_OBJ(ch, cont) &&
-	    (cont_dotmode == FIND_ALL || isname(arg2, cont->name))) {
+	    (cont_dotmode == FIND_ALL || isname(arg2, cont->name.c_str()))) {
 	  if (GET_OBJ_TYPE(cont) == ITEM_CONTAINER) {
 	    get_from_container(ch, cont, arg1, FIND_OBJ_ROOM, amount);
 	    found = 1;
@@ -395,8 +395,7 @@ ACMD(do_get)
 }
 
 
-void perform_drop_gold(struct char_data *ch, int amount,
-		            byte mode, room_rnum RDR)
+void perform_drop_gold(struct char_data *ch, int amount, byte mode, room_rnum RDR)
 {
   struct obj_data *obj;
 
@@ -407,7 +406,8 @@ void perform_drop_gold(struct char_data *ch, int amount,
   else {
     if (mode != SCMD_JUNK) {
       WAIT_STATE(ch, PULSE_VIOLENCE);	/* to prevent coin-bombing */
-      obj = create_money(amount);
+      obj = 
+      create_money(amount);
       if (mode == SCMD_DONATE) {
 	send_to_char(ch, "You throw some gold into the air where it disappears in a puff of smoke!\r\n");
 	act("$n throws some gold into the air where it disappears in a puff of smoke!",
@@ -475,7 +475,7 @@ int perform_drop(struct char_data *ch, struct obj_data *obj,
     extract_obj(obj);
     return (value);
   default:
-    log("SYSERR: Incorrect argument %d passed to perform_drop.", mode);
+    basic_mud_log("SYSERR: Incorrect argument %d passed to perform_drop.", mode);
     break;
   }
 
@@ -719,7 +719,7 @@ ACMD(do_give)
 	for (obj = ch->carrying; obj; obj = next_obj) {
 	  next_obj = obj->next_content;
 	  if (CAN_SEE_OBJ(ch, obj) &&
-	      ((dotmode == FIND_ALL || isname(arg, obj->name))))
+	      ((dotmode == FIND_ALL || isname(arg, obj->name.c_str()))))
 	    perform_give(ch, vict, obj);
 	}
     }
@@ -744,7 +744,7 @@ void weight_change_object(struct obj_data *obj, int weight)
     GET_OBJ_WEIGHT(obj) += weight;
     obj_to_obj(obj, tmp_obj);
   } else {
-    log("SYSERR: Unknown attempt to subtract weight from an object.");
+    basic_mud_log("SYSERR: Unknown attempt to subtract weight from an object.");
   }
 }
 
@@ -752,7 +752,7 @@ void weight_change_object(struct obj_data *obj, int weight)
 
 void name_from_drinkcon(struct obj_data *obj)
 {
-  char *new_name, *cur_name, *next;
+  char *new_name,  *cur_name, *next;
   const char *liqname;
   int liqlen, cpylen;
 
@@ -760,15 +760,16 @@ void name_from_drinkcon(struct obj_data *obj)
     return;
 
   liqname = drinknames[GET_OBJ_VAL(obj, 2)];
-  if (!isname(liqname, obj->name)) {
-    log("SYSERR: Can't remove liquid '%s' from '%s' (%d) item.", liqname, obj->name, obj->item_number);
+  if (!isname(liqname, obj->name.c_str())) {
+    basic_mud_log("SYSERR: Can't remove liquid '%s' from '%s' (%d) item.", liqname, obj->name.c_str(), obj->item_number);
     return;
   }
 
   liqlen = strlen(liqname);
-  CREATE(new_name, char, strlen(obj->name) - strlen(liqname)); /* +1 for NUL, -1 for space */
+  new_name = new char[obj->name.length() - liqlen];
 
-  for (cur_name = obj->name; cur_name; cur_name = next) {
+  char *m;
+  for (m = cur_name = strdup(obj->name.c_str()); cur_name; cur_name = next) {
     if (*cur_name == ' ')
       cur_name++;
 
@@ -784,10 +785,10 @@ void name_from_drinkcon(struct obj_data *obj)
       strcat(new_name, " ");	/* strcat: OK (size precalculated) */
     strncat(new_name, cur_name, cpylen);	/* strncat: OK (size precalculated) */
   }
+  free(m);
 
-  if (GET_OBJ_RNUM(obj) == NOTHING || obj->name != obj_proto[GET_OBJ_RNUM(obj)].name)
-    free(obj->name);
-  obj->name = new_name;
+  obj->name = std::string(new_name);
+  delete [] new_name;
 }
 
 
@@ -799,13 +800,11 @@ void name_to_drinkcon(struct obj_data *obj, int type)
   if (!obj || (GET_OBJ_TYPE(obj) != ITEM_DRINKCON && GET_OBJ_TYPE(obj) != ITEM_FOUNTAIN))
     return;
 
-  CREATE(new_name, char, strlen(obj->name) + strlen(drinknames[type]) + 2);
-  sprintf(new_name, "%s %s", obj->name, drinknames[type]);	/* sprintf: OK */
+  new_name = new char[obj->name.length() + strlen(drinknames[type]) + 2];
+  sprintf(new_name, "%s %s", obj->name.c_str(), drinknames[type]);	/* sprintf: OK */
 
-  if (GET_OBJ_RNUM(obj) == NOTHING || obj->name != obj_proto[GET_OBJ_RNUM(obj)].name)
-    free(obj->name);
-
-  obj->name = new_name;
+  obj->name = std::string(new_name);
+  delete [] new_name;
 }
 
 
@@ -906,7 +905,7 @@ ACMD(do_drink)
     af.modifier = 0;
     af.location = APPLY_NONE;
     af.bitvector = AFF_POISON;
-    affect_join(ch, &af, FALSE, FALSE, FALSE, FALSE);
+    affect_join(ch, af, false, false, false, false);
   }
   /* empty the container, and no longer poison. */
   GET_OBJ_VAL(temp, 1) -= amount;
@@ -979,7 +978,7 @@ ACMD(do_eat)
     af.modifier = 0;
     af.location = APPLY_NONE;
     af.bitvector = AFF_POISON;
-    affect_join(ch, &af, FALSE, FALSE, FALSE, FALSE);
+    affect_join(ch, af,false, false, false, false);
   }
   if (subcmd == SCMD_EAT)
     extract_obj(food);
@@ -1411,7 +1410,7 @@ void perform_remove(struct char_data *ch, int pos)
   struct obj_data *obj;
 
   if (!(obj = GET_EQ(ch, pos)))
-    log("SYSERR: perform_remove: bad pos %d passed.", pos);
+    basic_mud_log("SYSERR: perform_remove: bad pos %d passed.", pos);
   else if (OBJ_FLAGGED(obj, ITEM_NODROP))
     act("You can't remove $p, it must be CURSED!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
   else if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
@@ -1455,7 +1454,7 @@ ACMD(do_remove)
       found = 0;
       for (i = 0; i < NUM_WEARS; i++)
 	if (GET_EQ(ch, i) && CAN_SEE_OBJ(ch, GET_EQ(ch, i)) &&
-	    isname(arg, GET_EQ(ch, i)->name)) {
+	    isname(arg, GET_EQ(ch, i)->name.c_str())) {
 	  perform_remove(ch, i);
 	  found = 1;
 	}

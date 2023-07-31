@@ -11,12 +11,25 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <string>
+#include <sstream>
+
+// perhaps not the most effecient solution, but it's a simple one. 
+template<typename Out>
+void split(const std::string &s, char delim, Out output) {
+  std::stringstream ss(s);
+  std::string token;
+  while (std::getline(ss, token, delim)) {
+    if (!token.empty()) {
+      *(output++) = token;
+    }
+  }
+}
+
 /* external declarations and prototypes **********************************/
 
 extern struct weather_data weather_info;
 extern FILE *logfile;
-
-#define log			basic_mud_log
 
 #define READ_SIZE	256
 
@@ -37,6 +50,8 @@ struct time_info_data *age(struct char_data *ch);
 int	num_pc_in_room(struct room_data *room);
 void	core_dump_real(const char *, int);
 int	room_is_dark(room_rnum room);
+
+bitvector_t asciiflag_conv(const char *flag);
 
 #define core_dump()		core_dump_real(__FILE__, __LINE__)
 
@@ -148,16 +163,11 @@ void	update_pos(struct char_data *victim);
 
 /* memory utils **********************************************************/
 
-
-#define CREATE(result, type, number)  do {\
-	if ((number) * sizeof(type) <= 0)	\
-		log("SYSERR: Zero bytes or less requested at %s:%d.", __FILE__, __LINE__);	\
-	if (!((result) = (type *) calloc ((number), sizeof(type))))	\
-		{ perror("SYSERR: malloc failure"); abort(); } } while(0)
-
-#define RECREATE(result,type,number) do {\
-  if (!((result) = (type *) realloc ((result), sizeof(type) * (number))))\
-		{ perror("SYSERR: realloc failure"); abort(); } } while(0)
+#define RECREATE(result,type,number, old) do {	\
+  type *tmp = new type[number];			\
+  std::copy((result), (result)+old, tmp);	\
+  if ((old) == 1) delete result;		\
+  else            delete [] result; } while(0)
 
 /*
  * the source previously used the same code in many places to remove an item
@@ -198,7 +208,7 @@ void	update_pos(struct char_data *victim);
 #if 1
 /* Subtle bug in the '#var', but works well for now. */
 #define CHECK_PLAYER_SPECIAL(ch, var) \
-	(*(((ch)->player_specials == &dummy_mob) ? (log("SYSERR: Mob using '"#var"' at %s:%d.", __FILE__, __LINE__), &(var)) : &(var)))
+	(*(((ch)->player_specials == &dummy_mob) ? (basic_mud_log("SYSERR: Mob using '"#var"' at %s:%d.", __FILE__, __LINE__), &(var)) : &(var)))
 #else
 #define CHECK_PLAYER_SPECIAL(ch, var)	(var)
 #endif
@@ -223,7 +233,7 @@ void	update_pos(struct char_data *victim);
 #define AFF_FLAGGED(ch, flag) (IS_SET(AFF_FLAGS(ch), (flag)))
 #define PRF_FLAGGED(ch, flag) (IS_SET(PRF_FLAGS(ch), (flag)))
 #define ROOM_FLAGGED(loc, flag) (IS_SET(ROOM_FLAGS(loc), (flag)))
-#define EXIT_FLAGGED(exit, flag) (IS_SET((exit)->exit_info, (flag)))
+#define EXIT_FLAGGED(exit, flag) (IS_SET((exit).exit_info, (flag)))
 #define OBJAFF_FLAGGED(obj, flag) (IS_SET(GET_OBJ_AFFECT(obj), (flag)))
 #define OBJVAL_FLAGGED(obj, flag) (IS_SET(GET_OBJ_VAL((obj), 1), (flag)))
 #define OBJWEAR_FLAGGED(obj, flag) (IS_SET(GET_OBJ_WEAR(obj), (flag)))
@@ -260,10 +270,11 @@ void	update_pos(struct char_data *victim);
 #define GET_WAS_IN(ch)	((ch)->was_in_room)
 #define GET_AGE(ch)     (age(ch)->year)
 
-#define GET_PC_NAME(ch)	((ch)->player.name)
+#define GET_PC_NAME(ch)	((ch)->player.name.c_str())
 #define GET_NAME(ch)    (IS_NPC(ch) ? \
-			 (ch)->player.short_descr : GET_PC_NAME(ch))
-#define GET_TITLE(ch)   ((ch)->player.title)
+			 (ch)->player.short_descr.c_str() : GET_PC_NAME(ch))
+#define GET_TITLE(ch)   ((ch)->player.title.c_str())
+#define GET_TITLE_S(ch) ((ch)->player.title)
 #define GET_LEVEL(ch)   ((ch)->player.level)
 #define GET_PASSWD(ch)	((ch)->player.passwd)
 #define GET_PFILEPOS(ch)((ch)->pfilepos)
@@ -417,8 +428,8 @@ void	update_pos(struct char_data *victim);
 #define HSSH(ch) (GET_SEX(ch) ? (GET_SEX(ch)==SEX_MALE ? "he" :"she") : "it")
 #define HMHR(ch) (GET_SEX(ch) ? (GET_SEX(ch)==SEX_MALE ? "him":"her") : "it")
 
-#define ANA(obj) (strchr("aeiouAEIOU", *(obj)->name) ? "An" : "A")
-#define SANA(obj) (strchr("aeiouAEIOU", *(obj)->name) ? "an" : "a")
+#define ANA(obj) (strchr("aeiouAEIOU", *(obj)->name.c_str()) ? "An" : "A")
+#define SANA(obj) (strchr("aeiouAEIOU", *(obj)->name.c_str()) ? "an" : "a")
 
 
 /* Various macros building up to CAN_SEE */
@@ -470,17 +481,18 @@ void	update_pos(struct char_data *victim);
 #define PERS(ch, vict)   (CAN_SEE(vict, ch) ? GET_NAME(ch) : "someone")
 
 #define OBJS(obj, vict) (CAN_SEE_OBJ((vict), (obj)) ? \
-	(obj)->short_description  : "something")
+			 (obj)->short_description.c_str()  : "something")
 
 #define OBJN(obj, vict) (CAN_SEE_OBJ((vict), (obj)) ? \
-	fname((obj)->name) : "something")
+			 fname((obj)->name.c_str()) : "something")
 
 
-#define EXIT(ch, door)  (world[IN_ROOM(ch)].dir_option[door])
+#define EXIT(ch, door)     (std::get<1>(world[IN_ROOM(ch)].dir_option[door]))
+#define GET_EXIT(ch, door) (std::get<0>(world[IN_ROOM(ch)].dir_option[door]))
 
 #define CAN_GO(ch, door) (EXIT(ch,door) && \
-			 (EXIT(ch,door)->to_room != NOWHERE) && \
-			 !IS_SET(EXIT(ch, door)->exit_info, EX_CLOSED))
+			 (GET_EXIT(ch,door).to_room != NOWHERE) && \
+			 !IS_SET(GET_EXIT(ch, door).exit_info, EX_CLOSED))
 
 
 #define CLASS_ABBR(ch) (IS_NPC(ch) ? "--" : class_abbrevs[(int)GET_CLASS(ch)])

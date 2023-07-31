@@ -8,6 +8,9 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 ************************************************************************ */
 
+#include <list>
+#include <algorithm>
+
 #include "conf.h"
 #include "sysdep.h"
 
@@ -21,7 +24,10 @@
 #include "screen.h"
 #include "constants.h"
 
-/* extern functions. should bloody well be moved to headers */
+/*
+ * extern functions. should bloody well be moved to headers (or if 
+ * only used internally in this compilation unit, limit linkage to internal. ffs. 
+ */
 ACMD(do_action);
 ACMD(do_insult);
 bitvector_t find_class_bitvector(const char *arg);
@@ -67,7 +73,7 @@ void do_auto_exits(struct char_data *ch);
 ACMD(do_exits);
 void look_in_direction(struct char_data *ch, int dir);
 void look_in_obj(struct char_data *ch, char *arg);
-char *find_exdesc(char *word, struct extra_descr_data *list);
+std::string find_exdesc(const std::string &word, const std::list<extra_descr_data> &list);
 void look_at_target(struct char_data *ch, char *arg);
 
 /* local globals */
@@ -82,27 +88,25 @@ int *cmd_sort_info;
 void show_obj_to_char(struct obj_data *obj, struct char_data *ch, int mode)
 {
   if (!obj || !ch) {
-    log("SYSERR: NULL pointer in show_obj_to_char(): obj=%p ch=%p", (void *)obj, (void *)ch);
+    basic_mud_log("SYSERR: NULL pointer in show_obj_to_char(): obj=%p ch=%p", (void *)obj, (void *)ch);
     return;
   }
 
   switch (mode) {
   case SHOW_OBJ_LONG:
-    send_to_char(ch, "%s", obj->description);
+    send_to_char(ch, "%s", obj->description.c_str());
     break;
 
   case SHOW_OBJ_SHORT:
-    send_to_char(ch, "%s", obj->short_description);
+    send_to_char(ch, "%s", obj->short_description.c_str());
     break;
 
   case SHOW_OBJ_ACTION:
     switch (GET_OBJ_TYPE(obj)) {
     case ITEM_NOTE:
-      if (obj->action_description) {
-        char notebuf[MAX_NOTE_LENGTH + 64];
-
-        snprintf(notebuf, sizeof(notebuf), "There is something written on it:\r\n\r\n%s", obj->action_description);
-        page_string(ch->desc, notebuf, TRUE);
+      if (!obj->action_description.empty()) {
+	std::string note = "There is something written on it:\r\n\r\n" + obj->action_description;
+        page_string(ch->desc, note);
       } else
 	send_to_char(ch, "It's blank.\r\n");
       return;
@@ -118,7 +122,7 @@ void show_obj_to_char(struct obj_data *obj, struct char_data *ch, int mode)
     break;
 
   default:
-    log("SYSERR: Bad display mode (%d) in show_obj_to_char().", mode);
+    basic_mud_log("SYSERR: Bad display mode (%d) in show_obj_to_char().", mode);
     return;
   }
 
@@ -201,8 +205,8 @@ void look_at_char(struct char_data *i, struct char_data *ch)
   if (!ch->desc)
     return;
 
-   if (i->player.description)
-    send_to_char(ch, "%s", i->player.description);
+  if (!i->player.description.empty())
+    send_to_char(ch, "%s", i->player.description.c_str());
   else
     act("You see nothing special about $m.", FALSE, i, 0, ch, CommTarget::TO_VICT);
 
@@ -252,7 +256,7 @@ void list_one_char(struct char_data *i, struct char_data *ch)
     " is standing here."
   };
 
-  if (IS_NPC(i) && i->player.long_descr && GET_POS(i) == GET_DEFAULT_POS(i)) {
+  if (IS_NPC(i) && !i->player.long_descr.empty() && GET_POS(i) == GET_DEFAULT_POS(i)) {
     if (AFF_FLAGGED(i, AFF_INVISIBLE))
       send_to_char(ch, "*");
 
@@ -262,7 +266,7 @@ void list_one_char(struct char_data *i, struct char_data *ch)
       else if (IS_GOOD(i))
 	send_to_char(ch, "(Blue Aura) ");
     }
-    send_to_char(ch, "%s", i->player.long_descr);
+    send_to_char(ch, "%s", i->player.long_descr.c_str());
 
     if (AFF_FLAGGED(i, AFF_SANCTUARY))
       act("...$e glows with a bright light!", FALSE, i, 0, ch, CommTarget::TO_VICT);
@@ -273,9 +277,9 @@ void list_one_char(struct char_data *i, struct char_data *ch)
   }
 
   if (IS_NPC(i))
-    send_to_char(ch, "%c%s", UPPER(*i->player.short_descr), i->player.short_descr + 1);
+    send_to_char(ch, "%c%s", UPPER(*i->player.short_descr.c_str()), i->player.short_descr.substr(1).c_str());
   else
-    send_to_char(ch, "%s %s", i->player.name, GET_TITLE(i));
+    send_to_char(ch, "%s %s", i->player.name.c_str(), GET_TITLE(i));
 
   if (AFF_FLAGGED(i, AFF_INVISIBLE))
     send_to_char(ch, " (invisible)");
@@ -339,9 +343,9 @@ void do_auto_exits(struct char_data *ch)
   send_to_char(ch, "%s[ Exits: ", CCCYN(ch, C_NRM));
 
   for (door = 0; door < NUM_OF_DIRS; door++) {
-    if (!EXIT(ch, door) || EXIT(ch, door)->to_room == NOWHERE)
+    if (!EXIT(ch, door) || GET_EXIT(ch, door).to_room == NOWHERE)
       continue;
-    if (EXIT_FLAGGED(EXIT(ch, door), EX_CLOSED))
+    if (EXIT_FLAGGED(GET_EXIT(ch, door), EX_CLOSED))
       continue;
 
     send_to_char(ch, "%c ", LOWER(*dirs[door]));
@@ -368,19 +372,19 @@ ACMD(do_exits)
   send_to_char(ch, "Obvious exits:\r\n");
 
   for (door = 0; door < NUM_OF_DIRS; door++) {
-    if (!EXIT(ch, door) || EXIT(ch, door)->to_room == NOWHERE)
+    if (!EXIT(ch, door) || GET_EXIT(ch, door).to_room == NOWHERE)
       continue;
-    if (EXIT_FLAGGED(EXIT(ch, door), EX_CLOSED))
+    if (EXIT_FLAGGED(GET_EXIT(ch, door), EX_CLOSED))
       continue;
 
     len++;
 
     if (GET_LEVEL(ch) >= LVL_IMMORT)
-      send_to_char(ch, "%-5s - [%5d] %s\r\n", dirs[door], GET_ROOM_VNUM(EXIT(ch, door)->to_room),
-		world[EXIT(ch, door)->to_room].name);
+      send_to_char(ch, "%-5s - [%5d] %s\r\n", dirs[door], GET_ROOM_VNUM(GET_EXIT(ch, door).to_room),
+		   world[GET_EXIT(ch, door).to_room].name.c_str());
     else
-      send_to_char(ch, "%-5s - %s\r\n", dirs[door], IS_DARK(EXIT(ch, door)->to_room) &&
-		!CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[EXIT(ch, door)->to_room].name);
+      send_to_char(ch, "%-5s - %s\r\n", dirs[door], IS_DARK(GET_EXIT(ch, door).to_room) &&
+		   !CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[GET_EXIT(ch, door).to_room].name.c_str());
   }
 
   if (!len)
@@ -406,15 +410,15 @@ void look_at_room(struct char_data *ch, int ignore_brief)
     char buf[MAX_STRING_LENGTH];
 
     sprintbit(ROOM_FLAGS(IN_ROOM(ch)), room_bits, buf, sizeof(buf));
-    send_to_char(ch, "[%5d] %s [ %s]", GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name, buf);
+    send_to_char(ch, "[%5d] %s [ %s]", GET_ROOM_VNUM(IN_ROOM(ch)), world[IN_ROOM(ch)].name.c_str(), buf);
   } else
-    send_to_char(ch, "%s", world[IN_ROOM(ch)].name);
+    send_to_char(ch, "%s", world[IN_ROOM(ch)].name.c_str());
 
   send_to_char(ch, "%s\r\n", CCNRM(ch, C_NRM));
 
   if ((!IS_NPC(ch) && !PRF_FLAGGED(ch, PRF_BRIEF)) || ignore_brief ||
       ROOM_FLAGGED(IN_ROOM(ch), ROOM_DEATH))
-    send_to_char(ch, "%s", world[IN_ROOM(ch)].description);
+    send_to_char(ch, "%s", world[IN_ROOM(ch)].description.c_str());
 
   /* autoexits */
   if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_AUTOEXIT))
@@ -433,15 +437,15 @@ void look_at_room(struct char_data *ch, int ignore_brief)
 void look_in_direction(struct char_data *ch, int dir)
 {
   if (EXIT(ch, dir)) {
-    if (EXIT(ch, dir)->general_description)
-      send_to_char(ch, "%s", EXIT(ch, dir)->general_description);
+    if (!GET_EXIT(ch, dir).general_description.empty())
+      send_to_char(ch, "%s", GET_EXIT(ch, dir).general_description.c_str());
     else
       send_to_char(ch, "You see nothing special.\r\n");
 
-    if (EXIT_FLAGGED(EXIT(ch, dir), EX_CLOSED) && EXIT(ch, dir)->keyword)
-      send_to_char(ch, "The %s is closed.\r\n", fname(EXIT(ch, dir)->keyword));
-    else if (EXIT_FLAGGED(EXIT(ch, dir), EX_ISDOOR) && EXIT(ch, dir)->keyword)
-      send_to_char(ch, "The %s is open.\r\n", fname(EXIT(ch, dir)->keyword));
+    if (EXIT_FLAGGED(GET_EXIT(ch, dir), EX_CLOSED) && GET_EXIT(ch, dir).keyword.c_str())
+      send_to_char(ch, "The %s is closed.\r\n", fname(GET_EXIT(ch, dir).keyword.c_str()));
+    else if (EXIT_FLAGGED(GET_EXIT(ch, dir), EX_ISDOOR) && GET_EXIT(ch, dir).keyword.c_str())
+      send_to_char(ch, "The %s is open.\r\n", fname(GET_EXIT(ch, dir).keyword.c_str()));
   } else
     send_to_char(ch, "Nothing special there...\r\n");
 }
@@ -468,7 +472,7 @@ void look_in_obj(struct char_data *ch, char *arg)
       if (OBJVAL_FLAGGED(obj, CONT_CLOSED))
 	send_to_char(ch, "It is closed.\r\n");
       else {
-	send_to_char(ch, "%s", fname(obj->name));
+	send_to_char(ch, "%s", fname(obj->name.c_str()));
 	switch (bits) {
 	case FIND_OBJ_INV:
 	  send_to_char(ch, " (carried): \r\n");
@@ -500,19 +504,14 @@ void look_in_obj(struct char_data *ch, char *arg)
   }
 }
 
-
-
-char *find_exdesc(char *word, struct extra_descr_data *list)
+std::string find_exdesc(const std::string &word, const std::list<extra_descr_data> &list)
 {
-  struct extra_descr_data *i;
-
-  for (i = list; i; i = i->next)
-    if (isname(word, i->keyword))
-      return (i->description);
-
-  return (NULL);
+  auto rc = std::find_if(list.begin(), list.end(), [&word](const extra_descr_data &ex) { return isname(word.c_str(), ex.keyword.c_str()); } );
+  if (list.end() != rc) {
+    return rc->description;
+  }
+  return "";
 }
-
 
 /*
  * Given the argument "look at <target>", figure out what object or char
@@ -527,7 +526,7 @@ void look_at_target(struct char_data *ch, char *arg)
   int bits, found = FALSE, j, fnum, i = 0;
   struct char_data *found_char = NULL;
   struct obj_data *obj, *found_obj = NULL;
-  char *desc;
+  std::string desc;
 
   if (!ch->desc)
     return;
@@ -558,24 +557,24 @@ void look_at_target(struct char_data *ch, char *arg)
   }
 
   /* Does the argument match an extra desc in the room? */
-  if ((desc = find_exdesc(arg, world[IN_ROOM(ch)].ex_description)) != NULL && ++i == fnum) {
-    page_string(ch->desc, desc, FALSE);
+  if ((desc = find_exdesc(arg, world[IN_ROOM(ch)].ex_description)) != "" && ++i == fnum) {
+    page_string(ch->desc, desc);
     return;
   }
 
   /* Does the argument match an extra desc in the char's equipment? */
   for (j = 0; j < NUM_WEARS && !found; j++)
     if (GET_EQ(ch, j) && CAN_SEE_OBJ(ch, GET_EQ(ch, j)))
-      if ((desc = find_exdesc(arg, GET_EQ(ch, j)->ex_description)) != NULL && ++i == fnum) {
-	send_to_char(ch, "%s", desc);
+      if ((desc = find_exdesc(arg, GET_EQ(ch, j)->ex_description)) != "" && ++i == fnum) {
+	send_to_char(ch, "%s", desc.c_str());
 	found = TRUE;
       }
 
   /* Does the argument match an extra desc in the char's inventory? */
   for (obj = ch->carrying; obj && !found; obj = obj->next_content) {
     if (CAN_SEE_OBJ(ch, obj))
-      if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
-	send_to_char(ch, "%s", desc);
+      if ((desc = find_exdesc(arg, obj->ex_description)) != "" && ++i == fnum) {
+	send_to_char(ch, "%s", desc.c_str());
 	found = TRUE;
       }
   }
@@ -583,8 +582,8 @@ void look_at_target(struct char_data *ch, char *arg)
   /* Does the argument match an extra desc of an object in the room? */
   for (obj = world[IN_ROOM(ch)].contents; obj && !found; obj = obj->next_content)
     if (CAN_SEE_OBJ(ch, obj))
-      if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
-	send_to_char(ch, "%s", desc);
+      if ((desc = find_exdesc(arg, obj->ex_description)) != "" && ++i == fnum) {
+	send_to_char(ch, "%s", desc.c_str());
 	found = TRUE;
       }
 
@@ -1249,8 +1248,8 @@ ACMD(do_users)
       strcpy(idletime, "");
 
     sprintf(line, "%3d %-7s %-12s %-14s %-3s %-8s ", d->desc_num, classname,
-	d->original && d->original->player.name ? d->original->player.name :
-	d->character && d->character->player.name ? d->character->player.name :
+	    d->original && !d->original->player.name.empty() ? d->original->player.name.c_str() :
+	    d->character && !d->character->player.name.empty() ? d->character->player.name.c_str() :
 	"UNDEFINED",
 	state, idletime, timeptr);
 
@@ -1318,7 +1317,7 @@ ACMD(do_gen_ps)
     send_to_char(ch, "%s\r\n", GET_NAME(ch));
     break;
   default:
-    log("SYSERR: Unhandled case in do_gen_ps. (%d)", subcmd);
+    basic_mud_log("SYSERR: Unhandled case in do_gen_ps. (%d)", subcmd);
     return;
   }
 }
@@ -1340,7 +1339,7 @@ void perform_mortal_where(struct char_data *ch, char *arg)
 	continue;
       if (world[IN_ROOM(ch)].zone != world[IN_ROOM(i)].zone)
 	continue;
-      send_to_char(ch, "%-20s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name);
+      send_to_char(ch, "%-20s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name.c_str());
     }
   } else {			/* print only FIRST char, not all. */
     for (i = character_list; i; i = i->next) {
@@ -1350,7 +1349,7 @@ void perform_mortal_where(struct char_data *ch, char *arg)
 	continue;
       if (!isname(arg, i->player.name))
 	continue;
-      send_to_char(ch, "%-25s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name);
+      send_to_char(ch, "%-25s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name.c_str());
       return;
     }
     send_to_char(ch, "Nobody around by that name.\r\n");
@@ -1362,18 +1361,18 @@ void print_object_location(int num, struct obj_data *obj, struct char_data *ch,
 			        int recur)
 {
   if (num > 0)
-    send_to_char(ch, "O%3d. %-25s - ", num, obj->short_description);
+    send_to_char(ch, "O%3d. %-25s - ", num, obj->short_description.c_str());
   else
     send_to_char(ch, "%33s", " - ");
 
   if (IN_ROOM(obj) != NOWHERE)
-    send_to_char(ch, "[%5d] %s\r\n", GET_ROOM_VNUM(IN_ROOM(obj)), world[IN_ROOM(obj)].name);
+    send_to_char(ch, "[%5d] %s\r\n", GET_ROOM_VNUM(IN_ROOM(obj)), world[IN_ROOM(obj)].name.c_str());
   else if (obj->carried_by)
     send_to_char(ch, "carried by %s\r\n", PERS(obj->carried_by, ch));
   else if (obj->worn_by)
     send_to_char(ch, "worn by %s\r\n", PERS(obj->worn_by, ch));
   else if (obj->in_obj) {
-    send_to_char(ch, "inside %s%s\r\n", obj->in_obj->short_description, (recur ? ", which is" : " "));
+    send_to_char(ch, "inside %s%s\r\n", obj->in_obj->short_description.c_str(), (recur ? ", which is" : " "));
     if (recur)
       print_object_location(0, obj->in_obj, ch, recur);
   } else
@@ -1397,10 +1396,10 @@ void perform_immort_where(struct char_data *ch, char *arg)
 	if (i && CAN_SEE(ch, i) && (IN_ROOM(i) != NOWHERE)) {
 	  if (d->original)
 	    send_to_char(ch, "%-20s - [%5d] %s (in %s)\r\n",
-		GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(d->character)),
-		world[IN_ROOM(d->character)].name, GET_NAME(d->character));
+			 GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(d->character)),
+			 world[IN_ROOM(d->character)].name.c_str(), GET_NAME(d->character));
 	  else
-	    send_to_char(ch, "%-20s - [%5d] %s\r\n", GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name);
+	    send_to_char(ch, "%-20s - [%5d] %s\r\n", GET_NAME(i), GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name.c_str());
 	}
       }
   } else {
@@ -1408,10 +1407,10 @@ void perform_immort_where(struct char_data *ch, char *arg)
       if (CAN_SEE(ch, i) && IN_ROOM(i) != NOWHERE && isname(arg, i->player.name)) {
 	found = 1;
 	send_to_char(ch, "M%3d. %-25s - [%5d] %s\r\n", ++num, GET_NAME(i),
-		GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name);
+		     GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name.c_str());
       }
     for (num = 0, k = object_list; k; k = k->next)
-      if (CAN_SEE_OBJ(ch, k) && isname(arg, k->name)) {
+      if (CAN_SEE_OBJ(ch, k) && isname(arg, k->name.c_str())) {
 	found = 1;
 	print_object_location(++num, k, ch, TRUE);
       }
@@ -1683,7 +1682,8 @@ void sort_commands(void)
     num_of_cmds++;
   num_of_cmds++;	/* \n */
 
-  CREATE(cmd_sort_info, int, num_of_cmds);
+  cmd_sort_info = new int[num_of_cmds];
+
 
   for (a = 0; a < num_of_cmds; a++)
     cmd_sort_info[a] = a;
