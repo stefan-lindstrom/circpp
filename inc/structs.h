@@ -12,6 +12,7 @@
 #define __STRUCTS_H__
 
 #include <list>
+#include <vector>
 #include <algorithm>
 #include <array>
 #include <tuple>
@@ -508,7 +509,6 @@
 #define MAX_STRING_LENGTH	8192
 #define MAX_INPUT_LENGTH	256	/* Max length per *line* of input */
 #define MAX_RAW_INPUT_LENGTH	512	/* Max size of *raw* input */
-#define MAX_MESSAGES		60
 #define MAX_NAME_LENGTH		20  /* Used in char_file_u *DO*NOT*CHANGE* */
 #define MAX_PWD_LENGTH		10  /* Used in char_file_u *DO*NOT*CHANGE* */
 #define MAX_TITLE_LENGTH	80  /* Used in char_file_u *DO*NOT*CHANGE* */
@@ -1135,25 +1135,22 @@ struct descriptor_data {
 
 
 struct msg_type {
-   char	*attacker_msg;  /* message to attacker */
-   char	*victim_msg;    /* message to victim   */
-   char	*room_msg;      /* message to room     */
+   std::string attacker_msg;  /* message to attacker */
+   std::string victim_msg;    /* message to victim   */
+   std::string room_msg;      /* message to room     */
 };
-
 
 struct message_type {
    struct msg_type die_msg;	/* messages when death			*/
    struct msg_type miss_msg;	/* messages when miss			*/
    struct msg_type hit_msg;	/* messages when hit			*/
    struct msg_type god_msg;	/* messages when hit on god		*/
-   struct message_type *next;	/* to next messages of this kind.	*/
 };
 
 
 struct message_list {
    int	a_type;			/* Attack type				*/
-   int	number_of_attacks;	/* How many attack messages to chose from. */
-   struct message_type *msg;	/* List of messages.			*/
+   std::vector<message_type> msg;
 };
 
 

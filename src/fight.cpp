@@ -22,6 +22,8 @@
 #include "screen.h"
 #include "constants.h"
 
+#include <algorithm>
+
 /* Structures */
 struct char_data *combat_list = NULL;	/* head of l-list of fighting chars */
 struct char_data *next_combat_list = NULL;
@@ -38,8 +40,6 @@ void perform_group_gain(struct char_data *ch, int base, struct char_data *victim
 void dam_message(int dam, struct char_data *ch, struct char_data *victim, int w_type);
 void appear(struct char_data *ch);
 void load_messages(void);
-void free_messages(void);
-void free_messages_type(struct msg_type *msg);
 void check_killer(struct char_data *ch, struct char_data *vict);
 void make_corpse(struct char_data *ch);
 void change_alignment(struct char_data *ch, struct char_data *victim);
@@ -77,6 +77,21 @@ struct attack_hit_type attack_hit_text[] =
 
 /* The Fight related routines */
 
+static std::string __fread_action(FILE *fl, int nr)
+{
+  // for now
+  auto val = fread_action(fl, nr);
+  std::string rc;
+
+  if (nullptr != val) {
+    rc = val;
+    free(val);
+  }
+
+  return rc;
+}
+
+
 void appear(struct char_data *ch)
 {
   if (affected_by_spell(ch, SPELL_INVISIBLE))
@@ -102,50 +117,17 @@ int compute_armor_class(struct char_data *ch)
   return (MAX(-100, armorclass));      /* -100 is lowest */
 }
 
-
-void free_messages_type(struct msg_type *msg)
-{
-  if (msg->attacker_msg)	free(msg->attacker_msg);
-  if (msg->victim_msg)		free(msg->victim_msg);
-  if (msg->room_msg)		free(msg->room_msg);
-}
-
-
-void free_messages(void)
-{
-  int i;
-
-  for (i = 0; i < MAX_MESSAGES; i++)
-    while (fight_messages[i].msg) {
-      struct message_type *former = fight_messages[i].msg;
-
-      free_messages_type(&former->die_msg);
-      free_messages_type(&former->miss_msg);
-      free_messages_type(&former->hit_msg);
-      free_messages_type(&former->god_msg);
-
-      fight_messages[i].msg = fight_messages[i].msg->next;
-      free(former);
-    }
-}
-
-
 void load_messages(void)
 {
   FILE *fl;
   int i, type;
-  struct message_type *messages;
   char chk[128];
+
+  basic_mud_log("Loading messages from file %s", MESS_FILE);
 
   if (!(fl = fopen(MESS_FILE, "r"))) {
     basic_mud_log("SYSERR: Error reading combat message file %s: %s", MESS_FILE, strerror(errno));
     exit(1);
-  }
-
-  for (i = 0; i < MAX_MESSAGES; i++) {
-    fight_messages[i].a_type = 0;
-    fight_messages[i].number_of_attacks = 0;
-    fight_messages[i].msg = NULL;
   }
 
   fgets(chk, 128, fl);
@@ -155,30 +137,34 @@ void load_messages(void)
   while (*chk == 'M') {
     fgets(chk, 128, fl);
     sscanf(chk, " %d\n", &type);
-    for (i = 0; (i < MAX_MESSAGES) && (fight_messages[i].a_type != type) &&
-	 (fight_messages[i].a_type); i++);
-    if (i >= MAX_MESSAGES) {
-      basic_mud_log("SYSERR: Too many combat messages.  Increase MAX_MESSAGES and recompile.");
-      exit(1);
-    }
-    messages = new message_type;
-    fight_messages[i].number_of_attacks++;
-    fight_messages[i].a_type = type;
-    messages->next = fight_messages[i].msg;
-    fight_messages[i].msg = messages;
 
-    messages->die_msg.attacker_msg = fread_action(fl, i);
-    messages->die_msg.victim_msg = fread_action(fl, i);
-    messages->die_msg.room_msg = fread_action(fl, i);
-    messages->miss_msg.attacker_msg = fread_action(fl, i);
-    messages->miss_msg.victim_msg = fread_action(fl, i);
-    messages->miss_msg.room_msg = fread_action(fl, i);
-    messages->hit_msg.attacker_msg = fread_action(fl, i);
-    messages->hit_msg.victim_msg = fread_action(fl, i);
-    messages->hit_msg.room_msg = fread_action(fl, i);
-    messages->god_msg.attacker_msg = fread_action(fl, i);
-    messages->god_msg.victim_msg = fread_action(fl, i);
-    messages->god_msg.room_msg = fread_action(fl, i);
+    auto found = std::find_if(fight_messages.begin(), fight_messages.end(), [=](message_list mess) { return mess.a_type == type; });
+
+    if (found != fight_messages.end()) {
+        i = std::distance(fight_messages.begin(), found);
+    } else {
+      message_list target;
+      fight_messages.push_back(target),
+      i = fight_messages.size() - 1;
+    }
+    message_type messages;
+    fight_messages[i].a_type = type;
+
+    messages.die_msg.attacker_msg = __fread_action(fl, i);
+    messages.die_msg.victim_msg = __fread_action(fl, i);
+    messages.die_msg.room_msg = __fread_action(fl, i);
+    messages.miss_msg.attacker_msg = __fread_action(fl, i);
+    messages.miss_msg.victim_msg = __fread_action(fl, i);
+    messages.miss_msg.room_msg = __fread_action(fl, i);
+    messages.hit_msg.attacker_msg = __fread_action(fl, i);
+    messages.hit_msg.victim_msg = __fread_action(fl, i);
+    messages.hit_msg.room_msg = __fread_action(fl, i);
+    messages.god_msg.attacker_msg = __fread_action(fl, i);
+    messages.god_msg.victim_msg = __fread_action(fl, i);
+    messages.god_msg.room_msg = __fread_action(fl, i);
+
+    fight_messages[i].msg.push_back(messages);
+
     fgets(chk, 128, fl);
     while (!feof(fl) && (*chk == '\n' || *chk == '*'))
       fgets(chk, 128, fl);
@@ -596,68 +582,67 @@ void dam_message(int dam, struct char_data *ch, struct char_data *victim,
 int skill_message(int dam, struct char_data *ch, struct char_data *vict,
 		      int attacktype)
 {
-  int i, j, nr;
-  struct message_type *msg;
+  int nr;
 
   struct obj_data *weap = GET_EQ(ch, WEAR_WIELD);
 
-  for (i = 0; i < MAX_MESSAGES; i++) {
-    if (fight_messages[i].a_type == attacktype) {
-      nr = dice(1, fight_messages[i].number_of_attacks);
-      for (j = 1, msg = fight_messages[i].msg; (j < nr) && msg; j++)
-	msg = msg->next;
+
+  for (auto it = fight_messages.begin(); it != fight_messages.end(); ++it) {
+    message_list current = *it;
+
+    if (current.a_type == attacktype) {
+      nr = dice(1, current.msg.size() - 1);
+      message_type msg = current.msg[nr];
 
       if (!IS_NPC(vict) && (GET_LEVEL(vict) >= LVL_IMMORT)) {
-	act(msg->god_msg.attacker_msg, FALSE, ch, weap, vict, CommTarget::TO_CHAR);
-	act(msg->god_msg.victim_msg, FALSE, ch, weap, vict, CommTarget::TO_VICT);
-	act(msg->god_msg.room_msg, FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
+      	act(msg.god_msg.attacker_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_CHAR);
+	      act(msg.god_msg.victim_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_VICT);
+        act(msg.god_msg.room_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
       } else if (dam != 0) {
         /*
          * Don't send redundant color codes for TYPE_SUFFERING & other types
          * of damage without attacker_msg.
          */
-	if (GET_POS(vict) == POS_DEAD) {
-          if (msg->die_msg.attacker_msg) {
+        if (GET_POS(vict) == POS_DEAD) {
+          if (!msg.die_msg.attacker_msg.empty()) {
             send_to_char(ch, CCYEL(ch, C_CMP));
-            act(msg->die_msg.attacker_msg, FALSE, ch, weap, vict, CommTarget::TO_CHAR);
+            act(msg.die_msg.attacker_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_CHAR);
             send_to_char(ch, CCNRM(ch, C_CMP));
           }
+          send_to_char(vict, CCRED(vict, C_CMP));
+          act(msg.die_msg.victim_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
+          send_to_char(vict, CCNRM(vict, C_CMP));
 
-	  send_to_char(vict, CCRED(vict, C_CMP));
-	  act(msg->die_msg.victim_msg, FALSE, ch, weap, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
-	  send_to_char(vict, CCNRM(vict, C_CMP));
-
-	  act(msg->die_msg.room_msg, FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
-	} else {
-          if (msg->hit_msg.attacker_msg) {
-	    send_to_char(ch, CCYEL(ch, C_CMP));
-	    act(msg->hit_msg.attacker_msg, FALSE, ch, weap, vict, CommTarget::TO_CHAR);
-	    send_to_char(ch, CCNRM(ch, C_CMP));
+          act(msg.die_msg.room_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
+        } else {
+          if (!msg.hit_msg.attacker_msg.empty()) {
+            send_to_char(ch, CCYEL(ch, C_CMP));
+            act(msg.hit_msg.attacker_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_CHAR);
+            send_to_char(ch, CCNRM(ch, C_CMP));
           }
+          send_to_char(vict, CCRED(vict, C_CMP));
+          act(msg.hit_msg.victim_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
+          send_to_char(vict, CCNRM(vict, C_CMP));
 
-	  send_to_char(vict, CCRED(vict, C_CMP));
-	  act(msg->hit_msg.victim_msg, FALSE, ch, weap, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
-	  send_to_char(vict, CCNRM(vict, C_CMP));
-
-	  act(msg->hit_msg.room_msg, FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
-	}
+          act(msg.hit_msg.room_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
+        }
       } else if (ch != vict) {	/* Dam == 0 */
-        if (msg->miss_msg.attacker_msg) {
-	  send_to_char(ch, CCYEL(ch, C_CMP));
-	  act(msg->miss_msg.attacker_msg, FALSE, ch, weap, vict, CommTarget::TO_CHAR);
-	  send_to_char(ch, CCNRM(ch, C_CMP));
+        if (!msg.miss_msg.attacker_msg.empty()) {
+          send_to_char(ch, CCYEL(ch, C_CMP));
+          act(msg.miss_msg.attacker_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_CHAR);
+             send_to_char(ch, CCNRM(ch, C_CMP));
         }
 
-	send_to_char(vict, CCRED(vict, C_CMP));
-	act(msg->miss_msg.victim_msg, FALSE, ch, weap, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
-	send_to_char(vict, CCNRM(vict, C_CMP));
+        send_to_char(vict, CCRED(vict, C_CMP));
+        act(msg.miss_msg.victim_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
+        send_to_char(vict, CCNRM(vict, C_CMP));
 
-	act(msg->miss_msg.room_msg, FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
+        act(msg.miss_msg.room_msg.c_str(), FALSE, ch, weap, vict, CommTarget::TO_NOTVICT);
       }
-      return (1);
+      return 1;
     }
   }
-  return (0);
+  return 0;
 }
 
 /*
