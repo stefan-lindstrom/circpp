@@ -22,11 +22,12 @@
 #include "interpreter.h"
 #include "spells.h"
 
+#include "fight.h"
+
 /* local vars */
 int extractions_pending = 0;
 
 /* external vars */
-extern struct char_data *combat_list;
 extern const char *MENU;
 
 /* local functions */
@@ -903,10 +904,11 @@ void extract_char_final(struct char_data *ch)
   if (FIGHTING(ch))
     stop_fighting(ch);
 
-  for (k = combat_list; k; k = temp) {
-    temp = k->next_fighting;
-    if (FIGHTING(k) == ch)
+  for (auto it = combat_list.begin(); it != combat_list.end(); ++ it) {
+    k = *it;
+    if (FIGHTING(k) == ch) {
       stop_fighting(k);
+    }
   }
   /* we can't forget the hunters either... */
   for (temp = character_list; temp; temp = temp->next)
