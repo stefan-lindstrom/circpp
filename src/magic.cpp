@@ -20,9 +20,9 @@
 #include "db.h"
 #include "interpreter.h"
 #include "constants.h"
+#include "class.h"
 
 /* external functions */
-byte saving_throws(int class_num, int type, int level); /* class.c */
 void clearMemory(struct char_data *ch);
 void weight_change_object(struct obj_data *obj, int weight);
 

@@ -21,7 +21,7 @@
 #include "spells.h"
 #include "screen.h"
 #include "constants.h"
-
+#include "class.h"
 #include "fight.h"
 
 #include <algorithm>

@@ -23,6 +23,7 @@
 #include "screen.h"
 #include "house.h"
 #include "constants.h"
+#include "class.h"
 
 /* extern procedures, TODO: move decls to headers */
 void list_skills(struct char_data *ch);

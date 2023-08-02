@@ -16,6 +16,8 @@
 #include "structs.h"
 #include "interpreter.h"	/* alias_data definition for structs.h */
 
+#include "config.h"
+
 #define TRUE	1
 #define YES	1
 #define FALSE	0
@@ -246,7 +248,7 @@ int max_bad_pws = 3;
  * to just have to remove the SITEOK flags from those people I want to ban
  * rather than what is currently done?
  */
-int siteok_everyone = TRUE;
+bool siteok_everyone = true;
 
 /*
  * Some nameservers are very slow and cause the game to lag terribly every 

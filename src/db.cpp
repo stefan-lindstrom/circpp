@@ -17,6 +17,8 @@
 #include "sysdep.h"
 
 #include <algorithm>
+#include <fstream>
+#include <streambuf>
 
 #include "structs.h"
 #include "utils.h"
@@ -34,6 +36,7 @@
 #include "mob_future.h"
 #include "shop.h"
 #include "shop_future.h"
+#include "class.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -63,18 +66,18 @@ room_rnum r_mortal_start_room;	/* rnum of mortal start room	 */
 room_rnum r_immort_start_room;	/* rnum of immort start room	 */
 room_rnum r_frozen_start_room;	/* rnum of frozen start room	 */
 
-char *credits = NULL;		/* game credits			 */
-char *news = NULL;		/* mud news			 */
-char *motd = NULL;		/* message of the day - mortals */
-char *imotd = NULL;		/* message of the day - immorts */
-char *GREETINGS = NULL;		/* opening credits screen	*/
-char *help = NULL;		/* help screen			 */
-char *info = NULL;		/* info page			 */
-char *wizlist = NULL;		/* list of higher gods		 */
-char *immlist = NULL;		/* list of peon gods		 */
-char *background = NULL;	/* background story		 */
-char *handbook = NULL;		/* handbook for new immortals	 */
-char *policies = NULL;		/* policies page		 */
+std::string credits;		/* game credits			 */
+std::string news;		/* mud news			 */
+std::string motd;		/* message of the day - mortals */
+std::string imotd;		/* message of the day - immorts */
+std::string GREETINGS;		/* opening credits screen	*/
+std::string help;		/* help screen			 */
+std::string info;		/* info page			 */
+std::string wizlist;		/* list of higher gods		 */
+std::string immlist;		/* list of peon gods		 */
+std::string background;	/* background story		 */
+std::string handbook;		/* handbook for new immortals	 */
+std::string policies;		/* policies page		 */
 
 struct help_index_element *help_table = 0;	/* the help table	 */
 int top_of_helpt = 0;		/* top of help index table	 */
@@ -100,6 +103,8 @@ int is_empty(zone_rnum zone_nr);
 void reset_zone(zone_rnum zone);
 int file_to_string(const char *name, char *buf);
 int file_to_string_alloc(const char *name, char **buf);
+std::string slurp_file_to_string(const char *filename);
+
 void reboot_wizlists(void);
 ACMD(do_reboot);
 void boot_world(void);
@@ -146,27 +151,9 @@ extern const char *unused_spellname;	/* spell_parser.c */
 /* this is necessary for the autowiz system */
 void reboot_wizlists(void)
 {
-  file_to_string_alloc(WIZLIST_FILE, &wizlist);
-  file_to_string_alloc(IMMLIST_FILE, &immlist);
+  wizlist = slurp_file_to_string(WIZLIST_FILE);
+  immlist = slurp_file_to_string(IMMLIST_FILE);
 }
-
-
-/* Wipe out all the loaded text files, for shutting down. */
-void free_text_files(void)
-{
-  char **textfiles[] = {
-	&wizlist, &immlist, &news, &credits, &motd, &imotd, &help, &info,
-	&policies, &handbook, &background, &GREETINGS, NULL
-  };
-  int rf;
-
-  for (rf = 0; textfiles[rf]; rf++)
-    if (*textfiles[rf]) {
-      free(*textfiles[rf]);
-      *textfiles[rf] = NULL;
-    }
-}
-
 
 /*
  * Too bad it doesn't check the return values to let the user
@@ -183,44 +170,57 @@ ACMD(do_reboot)
   one_argument(argument, arg);
 
   if (!str_cmp(arg, "all") || *arg == '*') {
-    if (file_to_string_alloc(GREETINGS_FILE, &GREETINGS) == 0)
-      prune_crlf(GREETINGS);
-    file_to_string_alloc(WIZLIST_FILE, &wizlist);
-    file_to_string_alloc(IMMLIST_FILE, &immlist);
-    file_to_string_alloc(NEWS_FILE, &news);
-    file_to_string_alloc(CREDITS_FILE, &credits);
-    file_to_string_alloc(MOTD_FILE, &motd);
-    file_to_string_alloc(IMOTD_FILE, &imotd);
-    file_to_string_alloc(HELP_PAGE_FILE, &help);
-    file_to_string_alloc(INFO_FILE, &info);
-    file_to_string_alloc(POLICIES_FILE, &policies);
-    file_to_string_alloc(HANDBOOK_FILE, &handbook);
-    file_to_string_alloc(BACKGROUND_FILE, &background);
-  } else if (!str_cmp(arg, "wizlist"))
-    file_to_string_alloc(WIZLIST_FILE, &wizlist);
-  else if (!str_cmp(arg, "immlist"))
-    file_to_string_alloc(IMMLIST_FILE, &immlist);
-  else if (!str_cmp(arg, "news"))
-    file_to_string_alloc(NEWS_FILE, &news);
-  else if (!str_cmp(arg, "credits"))
-    file_to_string_alloc(CREDITS_FILE, &credits);
-  else if (!str_cmp(arg, "motd"))
-    file_to_string_alloc(MOTD_FILE, &motd);
-  else if (!str_cmp(arg, "imotd"))
-    file_to_string_alloc(IMOTD_FILE, &imotd);
-  else if (!str_cmp(arg, "help"))
-    file_to_string_alloc(HELP_PAGE_FILE, &help);
-  else if (!str_cmp(arg, "info"))
-    file_to_string_alloc(INFO_FILE, &info);
-  else if (!str_cmp(arg, "policy"))
-    file_to_string_alloc(POLICIES_FILE, &policies);
-  else if (!str_cmp(arg, "handbook"))
-    file_to_string_alloc(HANDBOOK_FILE, &handbook);
-  else if (!str_cmp(arg, "background"))
-    file_to_string_alloc(BACKGROUND_FILE, &background);
+    GREETINGS = slurp_file_to_string(GREETINGS_FILE);
+    prune_crlf(GREETINGS);
+
+    wizlist = slurp_file_to_string(WIZLIST_FILE);
+    immlist = slurp_file_to_string(IMMLIST_FILE);
+    news = slurp_file_to_string(NEWS_FILE);
+    credits = slurp_file_to_string(CREDITS_FILE);
+    motd = slurp_file_to_string(MOTD_FILE);
+    imotd = slurp_file_to_string(IMOTD_FILE);
+    help = slurp_file_to_string(HELP_PAGE_FILE);
+    info = slurp_file_to_string(INFO_FILE);
+    policies = slurp_file_to_string(POLICIES_FILE);
+    handbook = slurp_file_to_string(HANDBOOK_FILE);
+    background = slurp_file_to_string(BACKGROUND_FILE);
+
+  } else if (!str_cmp(arg, "wizlist")) {
+    wizlist = slurp_file_to_string(WIZLIST_FILE);
+  }
+  else if (!str_cmp(arg, "immlist")){
+    immlist = slurp_file_to_string(IMMLIST_FILE);
+  }
+  else if (!str_cmp(arg, "news")) {
+    news = slurp_file_to_string(NEWS_FILE);
+  }
+  else if (!str_cmp(arg, "credits")) {
+    credits = slurp_file_to_string(CREDITS_FILE);
+  }
+  else if (!str_cmp(arg, "motd")) {
+    motd = slurp_file_to_string(MOTD_FILE);
+  }
+  else if (!str_cmp(arg, "imotd")) {
+    imotd = slurp_file_to_string(IMOTD_FILE);
+  }
+  else if (!str_cmp(arg, "help")) {
+    help = slurp_file_to_string(HELP_PAGE_FILE);
+  }
+  else if (!str_cmp(arg, "info")) {
+    info = slurp_file_to_string(INFO_FILE);
+  }
+  else if (!str_cmp(arg, "policy")) {
+    policies = slurp_file_to_string(POLICIES_FILE);
+  }
+  else if (!str_cmp(arg, "handbook")) {
+    handbook = slurp_file_to_string(HANDBOOK_FILE);
+      }
+  else if (!str_cmp(arg, "background")) {
+    background = slurp_file_to_string(BACKGROUND_FILE);
+  }
   else if (!str_cmp(arg, "greetings")) {
-    if (file_to_string_alloc(GREETINGS_FILE, &GREETINGS) == 0)
-      prune_crlf(GREETINGS);
+    GREETINGS = slurp_file_to_string(GREETINGS_FILE);
+    prune_crlf(GREETINGS);
   } else if (!str_cmp(arg, "xhelp")) {
     if (help_table)
       free_help();
@@ -333,19 +333,20 @@ void boot_db(void)
   reset_time();
 
   basic_mud_log("Reading news, credits, help, bground, info & motds.");
-  file_to_string_alloc(NEWS_FILE, &news);
-  file_to_string_alloc(CREDITS_FILE, &credits);
-  file_to_string_alloc(MOTD_FILE, &motd);
-  file_to_string_alloc(IMOTD_FILE, &imotd);
-  file_to_string_alloc(HELP_PAGE_FILE, &help);
-  file_to_string_alloc(INFO_FILE, &info);
-  file_to_string_alloc(WIZLIST_FILE, &wizlist);
-  file_to_string_alloc(IMMLIST_FILE, &immlist);
-  file_to_string_alloc(POLICIES_FILE, &policies);
-  file_to_string_alloc(HANDBOOK_FILE, &handbook);
-  file_to_string_alloc(BACKGROUND_FILE, &background);
-  if (file_to_string_alloc(GREETINGS_FILE, &GREETINGS) == 0)
-    prune_crlf(GREETINGS);
+  
+  news = slurp_file_to_string(NEWS_FILE);
+  credits = slurp_file_to_string(CREDITS_FILE);
+  motd = slurp_file_to_string(MOTD_FILE);
+  imotd = slurp_file_to_string(IMOTD_FILE);
+  help = slurp_file_to_string(HELP_PAGE_FILE);
+  info = slurp_file_to_string(INFO_FILE);
+  wizlist = slurp_file_to_string(WIZLIST_FILE);
+  immlist = slurp_file_to_string(IMMLIST_FILE);
+  policies = slurp_file_to_string(POLICIES_FILE);
+  handbook = slurp_file_to_string(HANDBOOK_FILE);
+  background = slurp_file_to_string(BACKGROUND_FILE);
+  GREETINGS = slurp_file_to_string(GREETINGS_FILE);
+  prune_crlf(GREETINGS);
 
   basic_mud_log("Loading spell definitions.");
   mag_assign_spells();
@@ -1589,7 +1590,7 @@ void free_char(struct char_data *ch)
   std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
 
   if (ch->desc)
-    ch->desc->character = NULL;
+    ch->desc->character = nullptr;
 
   free(ch);
 }
@@ -1601,6 +1602,12 @@ void free_obj(struct obj_data *obj)
   delete obj;
 }
 
+
+std::string slurp_file_to_string(const char *filename)
+{
+  std::ifstream t(filename);
+  return std::string((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+}
 
 /*
  * Steps:

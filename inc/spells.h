@@ -270,7 +270,6 @@ int	cast_spell(struct char_data *ch, struct char_data *tch,
 
 /* other prototypes */
 void spell_level(int spell, int chclass, int level);
-void init_spell_levels(void);
 const char *skill_name(int num);
 
 #endif

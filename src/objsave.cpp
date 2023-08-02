@@ -19,6 +19,7 @@
 #include "interpreter.h"
 #include "utils.h"
 #include "spells.h"
+#include "class.h"
 
 /* these factors should be unique integers */
 #define RENT_FACTOR 	1
@@ -32,7 +33,6 @@ ACMD(do_action);
 ACMD(do_tell);
 SPECIAL(receptionist);
 SPECIAL(cryogenicist);
-int invalid_class(struct char_data *ch, struct obj_data *obj);
 
 /* local functions */
 void Crash_extract_norent_eq(struct char_data *ch);

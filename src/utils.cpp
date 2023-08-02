@@ -117,6 +117,14 @@ char *strdup(const char *source)
 }
 #endif
 
+void prune_crlf(std::string &txt) {
+  if (txt.back() == '\n') {
+    txt.pop_back();
+  }
+  if (txt.back() == '\r') {
+    txt.pop_back();
+  }
+}
 
 /*
  * Strips \r\n from end of string.

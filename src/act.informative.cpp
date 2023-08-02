@@ -23,6 +23,7 @@
 #include "spells.h"
 #include "screen.h"
 #include "constants.h"
+#include "class.h"
 
 /*
  * extern functions. should bloody well be moved to headers (or if 
@@ -30,10 +31,7 @@
  */
 ACMD(do_action);
 ACMD(do_insult);
-bitvector_t find_class_bitvector(const char *arg);
-int level_exp(int chclass, int level);
-char *title_male(int chclass, int level);
-char *title_female(int chclass, int level);
+
 struct time_info_data *real_time_passed(time_t t2, time_t t1);
 int compute_armor_class(struct char_data *ch);
 
@@ -934,7 +932,7 @@ ACMD(do_help)
   skip_spaces(&argument);
 
   if (!*argument) {
-    page_string(ch->desc, help, 0);
+    page_string(ch->desc, help);
     return;
   }
   if (!help_table) {
@@ -1281,31 +1279,31 @@ ACMD(do_gen_ps)
 
   switch (subcmd) {
   case SCMD_CREDITS:
-    page_string(ch->desc, credits, 0);
+    page_string(ch->desc, credits);
     break;
   case SCMD_NEWS:
-    page_string(ch->desc, news, 0);
+    page_string(ch->desc, news);
     break;
   case SCMD_INFO:
-    page_string(ch->desc, info, 0);
+    page_string(ch->desc, info);
     break;
   case SCMD_WIZLIST:
-    page_string(ch->desc, wizlist, 0);
+    page_string(ch->desc, wizlist);
     break;
   case SCMD_IMMLIST:
-    page_string(ch->desc, immlist, 0);
+    page_string(ch->desc, immlist);
     break;
   case SCMD_HANDBOOK:
-    page_string(ch->desc, handbook, 0);
+    page_string(ch->desc, handbook);
     break;
   case SCMD_POLICIES:
-    page_string(ch->desc, policies, 0);
+    page_string(ch->desc, policies);
     break;
   case SCMD_MOTD:
-    page_string(ch->desc, motd, 0);
+    page_string(ch->desc, motd);
     break;
   case SCMD_IMOTD:
-    page_string(ch->desc, imotd, 0);
+    page_string(ch->desc, imotd);
     break;
   case SCMD_CLEAR:
     send_to_char(ch, "\033[H\033[J");

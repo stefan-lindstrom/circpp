@@ -73,7 +73,6 @@
 /* externs */
 extern struct ban_list_element *ban_list;
 extern int num_invalid;
-extern char *GREETINGS;
 extern const char *circlemud_version;
 extern int circle_restrict;
 extern int mini_mud;
@@ -90,7 +89,6 @@ extern int autosave_time;	/* see config.c */
 extern int *cmd_sort_info;
 
 extern struct time_info_data time_info;		/* In db.c */
-extern char *help;
 
 /* local globals */
 struct descriptor_data *descriptor_list = NULL;		/* master desc list */
@@ -328,7 +326,6 @@ int main(int argc, char **argv)
     basic_mud_log("Clearing other memory.");
     free_player_index();	/* db.c */
     clear_free_list();		/* mail.c */
-    free_text_files();		/* db.c */
     Board_clear_all();		/* boards.c */
     free(cmd_sort_info);	/* act.informative.c */
     free_social_messages();	/* act.social.c */
@@ -1376,7 +1373,7 @@ int new_descriptor(socket_t s)
   newd->next = descriptor_list;
   descriptor_list = newd;
 
-  write_to_output(newd, "%s", GREETINGS);
+  write_to_output(newd, "%s", GREETINGS.c_str());
 
   return (0);
 }

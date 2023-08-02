@@ -14,9 +14,6 @@
  * you should go through this entire file from beginning to end and add
  * the appropriate new special cases for your new class.
  */
-
-
-
 #include "conf.h"
 #include "sysdep.h"
 
@@ -26,22 +23,8 @@
 #include "spells.h"
 #include "interpreter.h"
 #include "constants.h"
-
-extern int siteok_everyone;
-
-/* local functions */
-void snoop_check(struct char_data *ch);
-int parse_class(char arg);
-bitvector_t find_class_bitvector(const char *arg);
-byte saving_throws(int class_num, int type, int level);
-int thaco(int class_num, int level);
-void roll_real_abils(struct char_data *ch);
-void do_start(struct char_data *ch);
-int backstab_mult(int level);
-int invalid_class(struct char_data *ch, struct obj_data *obj);
-int level_exp(int chclass, int level);
-const char *title_male(int chclass, int level);
-const char *title_female(int chclass, int level);
+#include "class.h"
+#include "config.h"
 
 /* Names first */
 

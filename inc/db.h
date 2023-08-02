@@ -251,21 +251,23 @@ extern char	*NOEFFECT;
 
 extern int top_of_helpt;
 extern struct help_index_element *help_table;
-extern char *help;
 extern struct time_info_data time_info;
 
 
 extern struct time_info_data time_info;
-extern char *credits;
-extern char *news;
-extern char *info;
-extern char *motd;
-extern char *imotd;
-extern char *wizlist;
-extern char *immlist;
-extern char *policies;
-extern char *handbook;
-extern const char *class_abbrevs[];
+
+extern std::string help;
+extern std::string credits;
+extern std::string news;
+extern std::string info;
+extern std::string motd;
+extern std::string imotd;
+extern std::string wizlist;
+extern std::string immlist;
+extern std::string policies;
+extern std::string handbook;
+extern std::string GREETINGS;
+extern std::string background;
 
 extern room_rnum donation_room_1;
 #if 0
@@ -291,9 +293,6 @@ extern int load_into_inventory;
 extern int buf_switches, buf_largecount, buf_overflows;
 extern int top_of_p_table;
 extern int mini_mud;
-
-/* for chars */
-extern const char *pc_class_types[];
 
 extern std::vector<message_list> fight_messages;
 extern int pk_allowed;          /* see config.c */

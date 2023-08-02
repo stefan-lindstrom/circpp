@@ -19,11 +19,11 @@
 #include "db.h"
 #include "spells.h"
 #include "constants.h"
+#include "class.h"
 
 /*   external vars  */
 extern struct time_info_data time_info;
 extern struct spell_info_type spell_info[];
-extern struct guild_info_type guild_info[];
 
 /* extern functions */
 ACMD(do_drop);
@@ -110,9 +110,6 @@ const char *prac_types[] = {
 #define MAX_PER_PRAC	1	/* max percent gain in skill per practice */
 #define MIN_PER_PRAC	2	/* min percent gain in skill per practice */
 #define PRAC_TYPE	3	/* should it say 'spell' or 'skill'?	 */
-
-/* actual prac_params are in class.c */
-extern int prac_params[4][NUM_CLASSES];
 
 #define LEARNED(ch) (prac_params[LEARNED_LEVEL][(int)GET_CLASS(ch)])
 #define MINGAIN(ch) (prac_params[MIN_PER_PRAC][(int)GET_CLASS(ch)])

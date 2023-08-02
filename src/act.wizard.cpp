@@ -23,15 +23,13 @@
 #include "house.h"
 #include "screen.h"
 #include "constants.h"
+#include "class.h"
 
 /* extern functions */
-int level_exp(int chclass, int level);
 void show_shops(struct char_data *ch, char *value);
 void hcontrol_list_houses(struct char_data *ch);
-void do_start(struct char_data *ch);
 void appear(struct char_data *ch);
 void reset_zone(zone_rnum zone);
-void roll_real_abils(struct char_data *ch);
 int parse_class(char arg);
 void run_autowiz(void);
 

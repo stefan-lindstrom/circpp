@@ -22,16 +22,13 @@
 #include "handler.h"
 #include "mail.h"
 #include "screen.h"
-
+#include "class.h"
 
 /* external variables */
 extern room_rnum r_mortal_start_room;
 extern room_rnum r_immort_start_room;
 extern room_rnum r_frozen_start_room;
-extern const char *class_menu;
-extern char *motd;
-extern char *imotd;
-extern char *background;
+
 extern char *MENU;
 extern char *WELC_MESSG;
 extern char *START_MESSG;
@@ -44,8 +41,6 @@ extern int max_bad_pws;
 /* external functions */
 void echo_on(struct descriptor_data *d);
 void echo_off(struct descriptor_data *d);
-void do_start(struct char_data *ch);
-int parse_class(char arg);
 int special(struct char_data *ch, int cmd, char *arg);
 int isbanned(char *hostname);
 int Valid_Name(char *newname);
@@ -1431,9 +1426,9 @@ void nanny(struct descriptor_data *d, char *arg)
 	return;
 
       if (GET_LEVEL(d->character) >= LVL_IMMORT)
-	write_to_output(d, "%s", imotd);
+      	write_to_output(d, "%s", imotd.c_str());
       else
-	write_to_output(d, "%s", motd);
+      	write_to_output(d, "%s", motd.c_str());
 
       mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(d->character)), TRUE, "%s [%s] has connected.", GET_NAME(d->character), d->host);
 
@@ -1522,7 +1517,7 @@ void nanny(struct descriptor_data *d, char *arg)
     /* Now GET_NAME() will work properly. */
     init_char(d->character);
     save_char(d->character);
-    write_to_output(d, "%s\r\n*** PRESS RETURN: ", motd);
+    write_to_output(d, "%s\r\n*** PRESS RETURN: ", motd.c_str());
     STATE(d) = CON_RMOTD;
 
     mudlog(NRM, LVL_IMMORT, TRUE, "%s [%s] new player.", GET_NAME(d->character), d->host);
@@ -1609,7 +1604,7 @@ void nanny(struct descriptor_data *d, char *arg)
       break;
 
     case '3':
-      page_string(d, background, 0);
+      page_string(d, background);
       STATE(d) = CON_RMOTD;
       break;
 

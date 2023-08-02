@@ -18,7 +18,7 @@
 #include "db.h"
 #include "handler.h"
 #include "interpreter.h"
-
+#include "class.h"
 
 /* external variables */
 extern int max_exp_gain;
@@ -36,9 +36,6 @@ int graf(int grafage, int p0, int p1, int p2, int p3, int p4, int p5, int p6);
 void run_autowiz(void);
 
 void Crash_rentsave(struct char_data *ch, int cost);
-int level_exp(int chclass, int level);
-char *title_male(int chclass, int level);
-char *title_female(int chclass, int level);
 void update_char_objects(struct char_data *ch);	/* handler.c */
 void reboot_wizlists(void);
 
@@ -207,14 +204,14 @@ void set_title(struct char_data *ch, char *title)
 {
   if (title == NULL) {
     if (GET_SEX(ch) == SEX_FEMALE)
-      title = title_female(GET_CLASS(ch), GET_LEVEL(ch));
+      GET_TITLE_S(ch) = title_female(GET_CLASS(ch), GET_LEVEL(ch));
     else
-      title = title_male(GET_CLASS(ch), GET_LEVEL(ch));
+      GET_TITLE_S(ch) = title_male(GET_CLASS(ch), GET_LEVEL(ch));
+  } else {
+    if (strlen(title) > MAX_TITLE_LENGTH) {
+      title[MAX_TITLE_LENGTH] = '\0';
+    }
   }
-
-  if (strlen(title) > MAX_TITLE_LENGTH)
-    title[MAX_TITLE_LENGTH] = '\0';
-
 
   GET_TITLE_S(ch) = title;
 }
