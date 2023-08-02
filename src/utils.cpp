@@ -657,7 +657,7 @@ void core_dump_real(const char *who, int line)
 int room_is_dark(room_rnum room)
 {
   if (!VALID_ROOM_RNUM(room)) {
-    basic_mud_log("room_is_dark: Invalid room rnum %d. (0-%d)", room, top_of_world);
+    basic_mud_log("room_is_dark: Invalid room rnum %d. (0-%ld)", room, world.size() - 1);
     return (FALSE);
   }
 

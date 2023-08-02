@@ -40,22 +40,15 @@
 **************************************************************************/
 
 std::vector<room_data> world;
-room_rnum top_of_world = 0;	/* ref to top element of world	 */
-
 std::list<char_data *> character_list;
-
 std::vector<index_data> mob_index;
 std::vector<char_data> mob_proto;
-mob_rnum top_of_mobt = 0;	/* top of mobile index table	 */
 
 struct obj_data *object_list = NULL;	/* global linked list of objs	 */
 
 std::vector<index_data> obj_index;
 std::vector<obj_data> obj_proto;
-obj_rnum top_of_objt = 0;	/* top of object index table	 */
-
 std::vector<zone_data> zone_table;
-zone_rnum top_of_zone_table = 0;/* top element of zone tab	 */
 
 std::vector<message_list> fight_messages;	/* fighting messages	 */
 
@@ -258,7 +251,6 @@ void boot_world(void)
 
   basic_mud_log("Waiting for completion of zone loading...");
   zone_table = z.items();
-  top_of_zone_table = zone_table.size() - 1;
   basic_mud_log("   %lu zones, %lu bytes.", zone_table.size(), zone_table.size() * sizeof(zone_data));
 
   std::for_each(zone_table.begin(), zone_table.end(), [](zone_data z) {
@@ -272,7 +264,6 @@ void boot_world(void)
 
   basic_mud_log("Waiting for completion of object loading ... then building index.");
   obj_proto = o.items();
-  top_of_objt = obj_proto.size() + 1;
 
   std::for_each(obj_proto.begin(), obj_proto.end(), [](const obj_data &o) {
       index_data oi;
@@ -281,13 +272,12 @@ void boot_world(void)
       oi.func = nullptr;
       obj_index.push_back(oi);
     });
-  basic_mud_log("   %d objs, %lu bytes in index, %lu bytes in prototypes.", top_of_objt, top_of_objt * sizeof(index_data), top_of_objt * sizeof(obj_data));
+  basic_mud_log("   %ld objs, %lu bytes in index, %lu bytes in prototypes.", obj_proto.size(), obj_proto.size() * sizeof(index_data), obj_proto.size() * sizeof(obj_data));
 
   // get rooms.  
   basic_mud_log("Waiting for completion of room loading...");
   world = r.items();
-  top_of_world = world.size() - 1;
-  basic_mud_log("   %d rooms, %lu bytes.", top_of_world, top_of_world * sizeof(room_data));
+  basic_mud_log("   %ld rooms, %lu bytes.", world.size(), world.size() * sizeof(room_data));
 
   basic_mud_log("Renumbering rooms.");
   renum_world();
@@ -302,7 +292,6 @@ void boot_world(void)
 
   basic_mud_log("Waiting for completion of mob loading...");
   mob_proto = mobs.items();
-  top_of_mobt = mob_proto.size() + 1;
 
   std::for_each(mob_proto.begin(), mob_proto.end(), [](const char_data &m) {
       index_data mi;
@@ -312,7 +301,7 @@ void boot_world(void)
       mob_index.push_back(mi);
     });
 
-  basic_mud_log("   %d mobiles, %lu bytes.", top_of_mobt, top_of_mobt * sizeof(char_data));
+  basic_mud_log("   %ld mobiles, %lu bytes.", mob_proto.size(), mob_proto.size() * sizeof(char_data));
 
 
   basic_mud_log("Renumbering zone table.");
@@ -323,7 +312,6 @@ void boot_world(void)
     shop_future s(mini_mud);
     s.parse();
     shop_index = s.items();
-    top_shop = shop_index.size();
   }
 }
 
@@ -420,9 +408,8 @@ void boot_db(void)
     House_boot();
   }
 
-  for (i = 0; i <= top_of_zone_table; i++) {
-    basic_mud_log("Resetting #%d: %s (rooms %d-%d).", zone_table[i].number,
-		  zone_table[i].name.c_str(), zone_table[i].bot, zone_table[i].top);
+  for (i = 0; static_cast<unsigned long>(i) < zone_table.size(); i++) {
+    basic_mud_log("Resetting #%d: %s (rooms %d-%d).", zone_table[i].number, zone_table[i].name.c_str(), zone_table[i].bot, zone_table[i].top);
     reset_zone(i);
   }
 
@@ -723,7 +710,7 @@ void renum_world(void)
 {
   int room, door;
 
-  for (room = 0; room <= top_of_world; room++)
+  for (room = 0; static_cast<unsigned long>(room) < world.size(); room++)
     for (door = 0; door < NUM_OF_DIRS; door++)
       if (std::get<1>(world[room].dir_option[door]))
 	if (std::get<0>(world[room].dir_option[door]).to_room != NOWHERE)
@@ -752,7 +739,7 @@ void renum_zone_table(void)
   zone_rnum zone;
   char buf[128];
 
-  for (zone = 0; zone <= top_of_zone_table; zone++)
+  for (zone = 0; static_cast<unsigned long>(zone) < zone_table.size(); zone++)
     for (cmd_no = 0; cmd_no < zone_table[zone].cmd.size(); cmd_no++) {
       a = b = c = 0;
       olda = ZCMD.arg1;
@@ -906,13 +893,16 @@ int hsort(const void *a, const void *b)
 
 int vnum_mobile(char *searchname, struct char_data *ch)
 {
-  int nr, found = 0;
+  unsigned long int nr;
+  int found = 0;
 
-  for (nr = 0; nr <= top_of_mobt; nr++)
-    if (isname(searchname, mob_proto[nr].player.name))
+  for (nr = 0; nr < mob_proto.size(); nr++) {
+    if (isname(searchname, mob_proto[nr].player.name)) {
       send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, mob_index[nr].vnum, mob_proto[nr].player.short_descr.c_str());
+    }
+  }
 
-  return (found);
+  return found;
 }
 
 
@@ -921,7 +911,7 @@ int vnum_object(char *searchname, struct char_data *ch)
 {
   int nr, found = 0;
 
-  for (nr = 0; nr <= top_of_objt; nr++)
+  for (nr = 0; static_cast<unsigned long>(nr) < obj_proto.size(); nr++)
     if (isname(searchname, obj_proto[nr].name.c_str()))
       send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, obj_index[nr].vnum, obj_proto[nr].short_description.c_str());
 
@@ -950,7 +940,7 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
   if (type == VIRTUAL) {
     if ((i = real_mobile(nr)) == NOBODY) {
       basic_mud_log("WARNING: Mobile vnum %d does not exist in database.", nr);
-      return (NULL);
+      return nullptr;
     }
   } else
     i = nr;
@@ -1002,7 +992,7 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
   struct obj_data *obj;
   obj_rnum i = type == VIRTUAL ? real_object(nr) : nr;
 
-  if (i == NOTHING || i > top_of_objt) {
+  if (i == NOTHING || static_cast<unsigned long>(i) > obj_proto.size()) {
     basic_mud_log("Object (%c) %d does not exist in database.", type == VIRTUAL ? 'V' : 'R', nr);
     return (NULL);
   }
@@ -1043,7 +1033,7 @@ void zone_update(void)
     timer = 0;
 
     /* since one minute has passed, increment zone ages */
-    for (i = 0; i <= top_of_zone_table; i++) {
+    for (i = 0; static_cast<unsigned long>(i) < zone_table.size(); i++) {
       if (zone_table[i].age < zone_table[i].lifespan &&
 	  zone_table[i].reset_mode)
 	(zone_table[i].age)++;
@@ -1446,7 +1436,6 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
     auto &aff = ch->affected.front();
     affect_remove(ch, aff);
   }
-  //  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
 
   if (sz > MAX_AFFECT)
     basic_mud_log("SYSERR: WARNING: OUT OF STORE ROOM FOR AFFECTED TYPES!!!");
@@ -1741,8 +1730,6 @@ void reset_char(struct char_data *ch)
 /* clear ALL the working variables of a char; do NOT free any space alloc'ed */
 void clear_char(struct char_data *ch)
 {
-  //  memset((char *) ch, 0, sizeof(struct char_data));
-
   IN_ROOM(ch) = NOWHERE;
   GET_PFILEPOS(ch) = -1;
   GET_MOB_RNUM(ch) = NOBODY;

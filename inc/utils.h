@@ -225,8 +225,7 @@ void	update_pos(struct char_data *victim);
  * IS_MOB() acts as a VALID_MOB_RNUM()-like function.
  */
 #define IS_NPC(ch)	(IS_SET(MOB_FLAGS(ch), MOB_ISNPC))
-#define IS_MOB(ch)	(IS_NPC(ch) && GET_MOB_RNUM(ch) <= top_of_mobt && \
-				GET_MOB_RNUM(ch) != NOBODY)
+#define IS_MOB(ch)	(IS_NPC(ch) && static_cast<unsigned long>(GET_MOB_RNUM(ch)) <= (mob_proto.size() + 1) && GET_MOB_RNUM(ch) != NOBODY)
 
 #define MOB_FLAGGED(ch, flag) (IS_NPC(ch) && IS_SET(MOB_FLAGS(ch), (flag)))
 #define PLR_FLAGGED(ch, flag) (!IS_NPC(ch) && IS_SET(PLR_FLAGS(ch), (flag)))
@@ -256,7 +255,7 @@ void	update_pos(struct char_data *victim);
 #define IS_DARK(room)	room_is_dark((room))
 #define IS_LIGHT(room)  (!IS_DARK(room))
 
-#define VALID_ROOM_RNUM(rnum)	((rnum) != NOWHERE && (rnum) <= top_of_world)
+#define VALID_ROOM_RNUM(rnum)	((rnum) != NOWHERE && static_cast<unsigned long>(rnum) <= world.size())
 #define GET_ROOM_VNUM(rnum) \
 	((room_vnum)(VALID_ROOM_RNUM(rnum) ? world[(rnum)].number : NOWHERE))
 #define GET_ROOM_SPEC(room) \
@@ -391,8 +390,7 @@ void	update_pos(struct char_data *victim);
  * If using unsigned types, the top array index will catch everything.
  * If using signed types, NOTHING will catch the majority of bad accesses.
  */
-#define VALID_OBJ_RNUM(obj)	(GET_OBJ_RNUM(obj) <= top_of_objt && \
-				 GET_OBJ_RNUM(obj) != NOTHING)
+#define VALID_OBJ_RNUM(obj)	(static_cast<unsigned long>(GET_OBJ_RNUM(obj)) < obj_proto.size() && GET_OBJ_RNUM(obj) != NOTHING)
 
 #define GET_OBJ_TYPE(obj)	((obj)->obj_flags.type_flag)
 #define GET_OBJ_COST(obj)	((obj)->obj_flags.cost)

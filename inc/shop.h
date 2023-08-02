@@ -160,6 +160,5 @@ extern void assign_the_shopkeepers(void);
 
 // exported data
 extern std::vector<shop_data> shop_index;
-extern int top_shop;
 
 #endif

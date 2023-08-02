@@ -377,8 +377,8 @@ void char_from_room(struct char_data *ch)
 /* place a character in a room */
 void char_to_room(struct char_data *ch, room_rnum room)
 {
-  if (ch == NULL || room == NOWHERE || room > top_of_world)
-    basic_mud_log("SYSERR: Illegal value(s) passed to char_to_room. (Room: %d/%d Ch: %p", room, top_of_world, reinterpret_cast<void *>(ch));
+  if (ch == NULL || room == NOWHERE || static_cast<unsigned long>(room) >= world.size())
+    basic_mud_log("SYSERR: Illegal value(s) passed to char_to_room. (Room: %d/%ld Ch: %p", room, world.size(), reinterpret_cast<void *>(ch));
   else {
     ch->next_in_room = world[room].people;
     world[room].people = ch;
@@ -671,8 +671,8 @@ struct char_data *get_char_num(mob_rnum nr)
 /* put an object in a room */
 void obj_to_room(struct obj_data *object, room_rnum room)
 {
-  if (!object || room == NOWHERE || room > top_of_world)
-    basic_mud_log("SYSERR: Illegal value(s) passed to obj_to_room. (Room #%d/%d, obj %p)", room, top_of_world, reinterpret_cast<void *>(object));
+  if (!object || room == NOWHERE || static_cast<unsigned long>(room) >= world.size())
+    basic_mud_log("SYSERR: Illegal value(s) passed to obj_to_room. (Room #%d/%ld, obj %p)", room, world.size(), reinterpret_cast<void *>(object));
   else {
     object->next_content = world[room].contents;
     world[room].contents = object;
@@ -993,14 +993,10 @@ void extract_pending_chars(void)
 
     vict = *found;
     extracted++;
-    basic_mud_log("Found char %s to extract, total extracted so far %d", GET_NAME(*found), extracted);
-
     if (MOB_FLAGGED(vict, MOB_NOTDEADYET)) {
-      basic_mud_log("NPC %s", GET_NAME(vict));
       REMOVE_BIT(MOB_FLAGS(vict), MOB_NOTDEADYET);
     }
     else if (PLR_FLAGGED(vict, PLR_NOTDEADYET)) {
-      basic_mud_log("Player %s", GET_NAME(vict));
       REMOVE_BIT(PLR_FLAGS(vict), PLR_NOTDEADYET);
     }    
     extract_char_final(vict);

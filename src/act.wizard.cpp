@@ -1743,7 +1743,7 @@ ACMD(do_zreset)
     return;
   }
   if (*arg == '*') {
-    for (i = 0; i <= top_of_zone_table; i++)
+    for (i = 0; static_cast<unsigned long>(i) < zone_table.size(); i++)
       reset_zone(i);
     send_to_char(ch, "Reset world.\r\n");
     mudlog(NRM, MAX(LVL_GRGOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s reset entire world.", GET_NAME(ch));
@@ -1752,11 +1752,12 @@ ACMD(do_zreset)
     i = world[IN_ROOM(ch)].zone;
   else {
     j = atoi(arg);
-    for (i = 0; i <= top_of_zone_table; i++)
+    for (i = 0; static_cast<unsigned long>(i) < zone_table.size(); i++) 
       if (zone_table[i].number == j)
-	break;
+    
+  break;
   }
-  if (i <= top_of_zone_table) {
+  if (static_cast<unsigned long>(i) < zone_table.size()) {
     reset_zone(i);
     send_to_char(ch, "Reset zone %d (#%d): %s.\r\n", i, zone_table[i].number, zone_table[i].name.c_str());
     mudlog(NRM, MAX(LVL_GRGOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s reset zone %d (%s)", GET_NAME(ch), i, zone_table[i].name.c_str());
@@ -1950,16 +1951,16 @@ ACMD(do_show)
     if (self)
       print_zone_to_buf(buf, sizeof(buf), world[IN_ROOM(ch)].zone);
     else if (*value && is_number(value)) {
-      for (zvn = atoi(value), zrn = 0; zone_table[zrn].number != zvn && zrn <= top_of_zone_table; zrn++);
-      if (zrn <= top_of_zone_table)
+      for (zvn = atoi(value), zrn = 0; zone_table[zrn].number != zvn && static_cast<unsigned long>(zrn) < zone_table.size(); zrn++);
+      if (static_cast<unsigned long>(zrn) < zone_table.size())
 	print_zone_to_buf(buf, sizeof(buf), zrn);
       else {
 	send_to_char(ch, "That is not a valid zone.\r\n");
 	return;
       }
     } else
-      for (len = zrn = 0; zrn <= top_of_zone_table; zrn++) {
-	nlen = print_zone_to_buf(buf + len, sizeof(buf) - len, zrn);
+      for (len = zrn = 0; static_cast<unsigned long>(zrn) < zone_table.size(); zrn++) {
+        nlen = print_zone_to_buf(buf + len, sizeof(buf) - len, zrn);
         if (len + nlen >= sizeof(buf) || nlen < 0)
           break;
         len += nlen;
@@ -2026,16 +2027,16 @@ ACMD(do_show)
 	"Current stats:\r\n"
 	"  %5d players in game  %5d connected\r\n"
 	"  %5d registered\r\n"
-	"  %5d mobiles          %5d prototypes\r\n"
-	"  %5d objects          %5d prototypes\r\n"
-	"  %5d rooms            %5d zones\r\n"
+	"  %5d mobiles          %5ld prototypes\r\n"
+	"  %5d objects          %5ld prototypes\r\n"
+	"  %5ld rooms            %5ld zones\r\n"
 	"  %5d large bufs\r\n"
 	"  %5d buf switches     %5d overflows\r\n",
 	i, con,
 	top_of_p_table + 1,
-	j, top_of_mobt + 1,
-	k, top_of_objt + 1,
-	top_of_world + 1, top_of_zone_table + 1,
+	j, mob_proto.size(),
+	k, obj_proto.size(),
+	world.size(), zone_table.size(),
 	buf_largecount,
 	buf_switches, buf_overflows
 	);
@@ -2044,7 +2045,7 @@ ACMD(do_show)
   /* show errors */
   case 5:
     len = strlcpy(buf, "Errant Rooms\r\n------------\r\n", sizeof(buf));
-    for (i = 0, k = 0; i <= top_of_world; i++)
+    for (i = 0, k = 0; static_cast<unsigned long>(i) <= world.size(); i++)
       for (j = 0; j < NUM_OF_DIRS; j++)
 	if (std::get<1>(world[i].dir_option[j]) && std::get<0>(world[i].dir_option[j]).to_room == 0) {
 	  nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++k, GET_ROOM_VNUM(i), world[i].name.c_str());
@@ -2058,7 +2059,7 @@ ACMD(do_show)
   /* show death */
   case 6:
     len = strlcpy(buf, "Death Traps\r\n-----------\r\n", sizeof(buf));
-    for (i = 0, j = 0; i <= top_of_world; i++)
+    for (i = 0, j = 0; static_cast<unsigned long>(i) <= world.size(); i++)
       if (ROOM_FLAGGED(i, ROOM_DEATH)) {
         nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name.c_str());
         if (len + nlen >= sizeof(buf) || nlen < 0)
@@ -2071,7 +2072,7 @@ ACMD(do_show)
   /* show godrooms */
   case 7:
     len = strlcpy(buf, "Godrooms\r\n--------------------------\r\n", sizeof(buf));
-    for (i = 0, j = 0; i <= top_of_world; i++)
+    for (i = 0, j = 0; static_cast<unsigned long>(i) <= world.size(); i++)
       if (ROOM_FLAGGED(i, ROOM_GODROOM)) {
         nlen = snprintf(buf + len, sizeof(buf) - len, "%2d: [%5d] %s\r\n", ++j, GET_ROOM_VNUM(i), world[i].name.c_str());
         if (len + nlen >= sizeof(buf) || nlen < 0)

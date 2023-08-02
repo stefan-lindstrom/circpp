@@ -232,10 +232,7 @@ struct ban_list_element {
 /* global buffering system */
 
 extern std::vector<room_data> world;
-extern room_rnum top_of_world;
-
 extern std::vector<zone_data> zone_table;
-extern zone_rnum top_of_zone_table;
 
 extern struct descriptor_data *descriptor_list;
 extern std::list<char_data *> character_list;
@@ -243,12 +240,10 @@ extern struct player_special_data dummy_mob;
 
 extern std::vector<index_data> mob_index;
 extern std::vector<char_data> mob_proto;
-extern mob_rnum top_of_mobt;
 
 extern std::vector<index_data> obj_index;
 extern std::vector<obj_data> obj_proto;
 extern struct obj_data *object_list;
-extern obj_rnum top_of_objt;
 
 extern char	*OK;
 extern char	*NOPERSON;
