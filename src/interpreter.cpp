@@ -1142,7 +1142,7 @@ int _parse_name(char *arg, char *name)
 int perform_dupe_check(struct descriptor_data *d)
 {
   struct descriptor_data *k, *next_k;
-  struct char_data *target = NULL, *ch, *next_ch;
+  struct char_data *target = nullptr, *ch;
   int mode = 0;
 
   int id = GET_IDNUM(d->character);
@@ -1200,21 +1200,25 @@ int perform_dupe_check(struct descriptor_data *d)
   * duplicates, though theoretically none should be able to exist).
   */
 
-  for (ch = character_list; ch; ch = next_ch) {
-    next_ch = ch->next;
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    ch = *it;
 
-    if (IS_NPC(ch))
+    if (IS_NPC(ch)) {
       continue;
-    if (GET_IDNUM(ch) != id)
+    }
+    if (GET_IDNUM(ch) != id) {
       continue;
+    }
 
     /* ignore chars with descriptors (already handled by above step) */
-    if (ch->desc)
+    if (ch->desc) {
       continue;
+    }
 
     /* don't extract the target char we've found one already */
-    if (ch == target)
+    if (ch == target) {
       continue;
+    }
 
     /* we don't already have a target and found a candidate for switching */
     if (!target) {
@@ -1224,15 +1228,16 @@ int perform_dupe_check(struct descriptor_data *d)
     }
 
     /* we've found a duplicate - blow him away, dumping his eq in limbo. */
-    if (IN_ROOM(ch) != NOWHERE)
+    if (IN_ROOM(ch) != NOWHERE) {
       char_from_room(ch);
+    }
     char_to_room(ch, 1);
     extract_char(ch);
   }
 
   /* no target for switching into was found - allow login to continue */
   if (!target)
-    return (0);
+    return 0;
 
   /* Okay, we've found a target.  Connect d to target. */
   free_char(d->character); /* get rid of the old char */
@@ -1264,7 +1269,7 @@ int perform_dupe_check(struct descriptor_data *d)
     break;
   }
 
-  return (1);
+  return 1;
 }
 
 
@@ -1564,8 +1569,8 @@ void nanny(struct descriptor_data *d, char *arg)
         load_room = r_frozen_start_room;
 
       send_to_char(d->character, "%s", WELC_MESSG);
-      d->character->next = character_list;
-      character_list = d->character;
+      character_list.push_back(d->character);
+
       char_to_room(d->character, load_room);
       load_result = Crash_load(d->character);
 

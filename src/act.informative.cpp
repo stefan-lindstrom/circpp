@@ -1342,13 +1342,18 @@ void perform_mortal_where(struct char_data *ch, char *arg)
       send_to_char(ch, "%-20s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name.c_str());
     }
   } else {			/* print only FIRST char, not all. */
-    for (i = character_list; i; i = i->next) {
-      if (IN_ROOM(i) == NOWHERE || i == ch)
-	continue;
-      if (!CAN_SEE(ch, i) || world[IN_ROOM(i)].zone != world[IN_ROOM(ch)].zone)
-	continue;
-      if (!isname(arg, i->player.name))
-	continue;
+    for (auto it = character_list.begin(); it != character_list.end(); ++ it) {
+      i = *it;
+
+      if (IN_ROOM(i) == NOWHERE || i == ch) {
+      	continue;
+      }
+      if (!CAN_SEE(ch, i) || world[IN_ROOM(i)].zone != world[IN_ROOM(ch)].zone) {
+	      continue;
+      }
+      if (!isname(arg, i->player.name)) {
+        continue;
+      }
       send_to_char(ch, "%-25s - %s\r\n", GET_NAME(i), world[IN_ROOM(i)].name.c_str());
       return;
     }
@@ -1357,8 +1362,7 @@ void perform_mortal_where(struct char_data *ch, char *arg)
 }
 
 
-void print_object_location(int num, struct obj_data *obj, struct char_data *ch,
-			        int recur)
+void print_object_location(int num, struct obj_data *obj, struct char_data *ch, int recur)
 {
   if (num > 0)
     send_to_char(ch, "O%3d. %-25s - ", num, obj->short_description.c_str());
@@ -1386,7 +1390,8 @@ void perform_immort_where(struct char_data *ch, char *arg)
   struct char_data *i;
   struct obj_data *k;
   struct descriptor_data *d;
-  int num = 0, found = 0;
+  int num = 0;
+  bool found = false;
 
   if (!*arg) {
     send_to_char(ch, "Players\r\n-------\r\n");
@@ -1403,19 +1408,26 @@ void perform_immort_where(struct char_data *ch, char *arg)
 	}
       }
   } else {
-    for (i = character_list; i; i = i->next)
-      if (CAN_SEE(ch, i) && IN_ROOM(i) != NOWHERE && isname(arg, i->player.name)) {
-	found = 1;
-	send_to_char(ch, "M%3d. %-25s - [%5d] %s\r\n", ++num, GET_NAME(i),
+    for (auto it = character_list.begin(); it != character_list.end(); ++ it) {
+      i = *it;
+
+      if (CAN_SEE(ch, i) && IN_ROOM(i) != NOWHERE && isname(arg, i->player.name)) { 
+        found = true;
+        send_to_char(ch, "M%3d. %-25s - [%5d] %s\r\n", ++num, GET_NAME(i),
 		     GET_ROOM_VNUM(IN_ROOM(i)), world[IN_ROOM(i)].name.c_str());
       }
-    for (num = 0, k = object_list; k; k = k->next)
+    }
+    
+    for (num = 0, k = object_list; k; k = k->next) {
       if (CAN_SEE_OBJ(ch, k) && isname(arg, k->name.c_str())) {
-	found = 1;
-	print_object_location(++num, k, ch, TRUE);
+        found = true;
+        print_object_location(++num, k, ch, TRUE);
       }
-    if (!found)
+    }
+
+    if (!found) {
       send_to_char(ch, "Couldn't find any such thing.\r\n");
+    }
   }
 }
 

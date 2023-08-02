@@ -2004,17 +2004,24 @@ ACMD(do_show)
     j = 0;
     k = 0;
     con = 0;
-    for (vict = character_list; vict; vict = vict->next) {
-      if (IS_NPC(vict))
-	j++;
+    for (auto it = character_list.begin(); it != character_list.end(); ++ it) {
+      vict = *it;
+
+      if (IS_NPC(vict)) {
+      	j++;
+      }
       else if (CAN_SEE(ch, vict)) {
-	i++;
-	if (vict->desc)
-	  con++;
+        i++;
+        if (vict->desc) {
+          con++;
+        }
       }
     }
-    for (obj = object_list; obj; obj = obj->next)
+    
+    for (obj = object_list; obj; obj = obj->next) {
       k++;
+    }
+
     send_to_char(ch,
 	"Current stats:\r\n"
 	"  %5d players in game  %5d connected\r\n"

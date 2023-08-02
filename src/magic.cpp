@@ -71,7 +71,9 @@ void affect_update(void)
 {
   struct char_data *i;
 
-  for (i = character_list; i; i = i->next) {
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    i = *it;
+
     for (auto af = i->affected.begin(); af != i->affected.end(); ++af) {      
       if (af->duration >= 1) {
         af->duration--;

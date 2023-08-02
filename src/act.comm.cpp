@@ -175,8 +175,6 @@ ACMD(do_reply)
   (void)cmd;
   (void)subcmd;
 
-  struct char_data *tch = character_list;
-
   if (IS_NPC(ch))
     return;
 
@@ -199,13 +197,15 @@ ACMD(do_reply)
      *      we could not find link dead people.  Not that they can
      *      hear tells anyway. :) -gg 2/24/98
      */
-    while (tch != NULL && (IS_NPC(tch) || GET_IDNUM(tch) != GET_LAST_TELL(ch)))
-      tch = tch->next;
 
-    if (tch == NULL)
+    auto found = std::find_if(character_list.begin(), character_list.end(), [=](char_data *tch) { return GET_IDNUM(tch) == GET_LAST_TELL(ch); });
+
+    if (found == character_list.end()) {
       send_to_char(ch, "They are no longer playing.\r\n");
-    else if (is_tell_ok(ch, tch))
-      perform_tell(ch, tch, argument);
+    }
+    else if (is_tell_ok(ch, *found)) {
+      perform_tell(ch, *found, argument);
+    }
   }
 }
 

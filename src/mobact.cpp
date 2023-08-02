@@ -38,13 +38,13 @@ bool aggressive_mob_on_a_leash(struct char_data *slave, struct char_data *master
 
 void mobile_activity(void)
 {
-  struct char_data *ch, *next_ch, *vict;
+  struct char_data *ch, *vict;
   struct obj_data *obj, *best_obj;
   int door, found, max;
   memory_rec *names;
 
-  for (ch = character_list; ch; ch = next_ch) {
-    next_ch = ch->next;
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    ch = *it;
 
     if (!IS_MOB(ch))
       continue;
@@ -52,35 +52,39 @@ void mobile_activity(void)
     /* Examine call for special procedure */
     if (MOB_FLAGGED(ch, MOB_SPEC) && !no_specials) {
       if (mob_index[GET_MOB_RNUM(ch)].func == NULL) {
-	basic_mud_log("SYSERR: %s (#%d): Attempting to call non-existing mob function.",
-		GET_NAME(ch), GET_MOB_VNUM(ch));
-	REMOVE_BIT(MOB_FLAGS(ch), MOB_SPEC);
+        basic_mud_log("SYSERR: %s (#%d): Attempting to call non-existing mob function.", GET_NAME(ch), GET_MOB_VNUM(ch));
+        REMOVE_BIT(MOB_FLAGS(ch), MOB_SPEC);
       } else {
         char actbuf[MAX_INPUT_LENGTH] = "";
-	if ((mob_index[GET_MOB_RNUM(ch)].func) (ch, ch, 0, actbuf))
-	  continue;		/* go to next char */
+        
+        if ((mob_index[GET_MOB_RNUM(ch)].func) (ch, ch, 0, actbuf)) {
+          continue;		/* go to next char */
+        }
       }
     }
 
     /* If the mob has no specproc, do the default actions */
-    if (FIGHTING(ch) || !AWAKE(ch))
+    if (FIGHTING(ch) || !AWAKE(ch)) {
       continue;
+    }
 
     /* Scavenger (picking up objects) */
     if (MOB_FLAGGED(ch, MOB_SCAVENGER))
       if (world[IN_ROOM(ch)].contents && !rand_number(0, 10)) {
-	max = 1;
-	best_obj = NULL;
-	for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content)
-	  if (CAN_GET_OBJ(ch, obj) && GET_OBJ_COST(obj) > max) {
-	    best_obj = obj;
-	    max = GET_OBJ_COST(obj);
-	  }
-	if (best_obj != NULL) {
-	  obj_from_room(best_obj);
-	  obj_to_char(best_obj, ch);
-	  act("$n gets $p.", FALSE, ch, best_obj, 0, CommTarget::TO_ROOM);
-	}
+        max = 1;
+        best_obj = nullptr;
+        for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content) {
+          if (CAN_GET_OBJ(ch, obj) && GET_OBJ_COST(obj) > max) {
+            best_obj = obj;
+            max = GET_OBJ_COST(obj);
+          }
+        }
+
+        if (best_obj != NULL) {
+          obj_from_room(best_obj);
+          obj_to_char(best_obj, ch);
+          act("$n gets $p.", FALSE, ch, best_obj, 0, CommTarget::TO_ROOM);
+        }
       }
 
     /* Mob Movement */

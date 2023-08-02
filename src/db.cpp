@@ -16,7 +16,6 @@
 #include "conf.h"
 #include "sysdep.h"
 
-#include <vector>
 #include <algorithm>
 
 #include "structs.h"
@@ -43,8 +42,7 @@
 std::vector<room_data> world;
 room_rnum top_of_world = 0;	/* ref to top element of world	 */
 
-struct char_data *character_list = NULL;	/* global linked list of
-						 * chars	 */
+std::list<char_data *> character_list;
 
 std::vector<index_data> mob_index;
 std::vector<char_data> mob_proto;
@@ -938,8 +936,6 @@ struct char_data *create_char(void)
 
   ch = new char_data;
   clear_char(ch);
-  ch->next = character_list;
-  character_list = ch;
 
   return (ch);
 }
@@ -962,8 +958,7 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
   mob = new char_data;
   clear_char(mob);
   *mob = mob_proto[i];
-  mob->next = character_list;
-  character_list = mob;
+  character_list.push_back(mob);
 
   if (!mob->points.max_hit) {
     mob->points.max_hit = dice(mob->points.hit, mob->points.mana) +

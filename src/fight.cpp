@@ -229,7 +229,8 @@ void set_fighting(struct char_data *ch, struct char_data *vict)
 /* remove a char from the list of fighting chars */
 void stop_fighting(struct char_data *ch)
 {
-  std::remove(combat_list.begin(), combat_list.end(), ch);
+  auto removed = std::remove(combat_list.begin(), combat_list.end(), ch);
+  combat_list.erase(removed, combat_list.end());
 
   FIGHTING(ch) = NULL;
   GET_POS(ch) = POS_STANDING;

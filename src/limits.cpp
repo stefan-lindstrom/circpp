@@ -402,13 +402,13 @@ void check_idling(struct char_data *ch)
 /* Update PCs, NPCs, and objects */
 void point_update(void)
 {
-  struct char_data *i, *next_char;
+  struct char_data *i;
   struct obj_data *j, *next_thing, *jj, *next_thing2;
 
   /* characters */
-  for (i = character_list; i; i = next_char) {
-    next_char = i->next;
-	
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    i = *it;
+
     gain_condition(i, FULL, -1);
     gain_condition(i, DRUNK, -1);
     gain_condition(i, THIRST, -1);

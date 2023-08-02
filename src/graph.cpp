@@ -215,18 +215,13 @@ ACMD(do_track)
 void hunt_victim(struct char_data *ch)
 {
   int dir;
-  byte found;
-  struct char_data *tmp;
 
   if (!ch || !HUNTING(ch) || FIGHTING(ch))
     return;
 
-  /* make sure the char still exists */
-  for (found = FALSE, tmp = character_list; tmp && !found; tmp = tmp->next)
-    if (HUNTING(ch) == tmp)
-      found = TRUE;
+  auto found = std::find(character_list.begin(), character_list.end(), HUNTING(ch));
 
-  if (!found) {
+  if (found == character_list.end()) {
     char actbuf[MAX_INPUT_LENGTH] = "Damn!  My prey is gone!!";
 
     do_say(ch, actbuf, 0, 0);

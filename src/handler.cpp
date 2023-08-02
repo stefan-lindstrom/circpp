@@ -655,11 +655,15 @@ struct char_data *get_char_num(mob_rnum nr)
 {
   struct char_data *i;
 
-  for (i = character_list; i; i = i->next)
-    if (GET_MOB_RNUM(i) == nr)
-      return (i);
+  for (auto it = character_list.begin(); it != character_list.end(); ++ it) {
+    i = *it;
 
-  return (NULL);
+    if (GET_MOB_RNUM(i) == nr) {
+      return i;
+    }
+  }
+
+  return nullptr;;
 }
 
 
@@ -849,7 +853,7 @@ void extract_char_final(struct char_data *ch)
   if (!IS_NPC(ch) && !ch->desc) {
     for (d = descriptor_list; d; d = d->next)
       if (d->original == ch) {
-	do_return(d->character, NULL, 0, 0);
+        do_return(d->character, NULL, 0, 0);
         break;
       }
   }
@@ -863,8 +867,9 @@ void extract_char_final(struct char_data *ch)
      * If this body is not possessed, the owner won't have a
      * body after the removal so dump them to the main menu.
      */
-    if (ch->desc->original)
+    if (ch->desc->original) {
       do_return(ch, NULL, 0, 0);
+    }
     else {
       /*
        * Now we boot anybody trying to log in with the same character, to
@@ -911,16 +916,18 @@ void extract_char_final(struct char_data *ch)
     }
   }
   /* we can't forget the hunters either... */
-  for (temp = character_list; temp; temp = temp->next)
-    if (HUNTING(temp) == ch)
-      HUNTING(temp) = NULL;
-
+  for (auto it = character_list.begin(); it != character_list.end(); ++ it) {
+      temp = *it;
+      if (HUNTING(temp) == ch) {
+        HUNTING(temp) = nullptr;
+      }
+  }
   char_from_room(ch);
 
   if (IS_NPC(ch)) {
     if (GET_MOB_RNUM(ch) != NOTHING)	/* prototyped */
       mob_index[GET_MOB_RNUM(ch)].number--;
-    clearMemory(ch);
+     clearMemory(ch);
   } else {
     save_char(ch);
     Crash_delete_crashfile(ch);
@@ -947,10 +954,12 @@ void extract_char_final(struct char_data *ch)
  */
 void extract_char(struct char_data *ch)
 {
-  if (IS_NPC(ch))
+  if (IS_NPC(ch)) {
     SET_BIT(MOB_FLAGS(ch), MOB_NOTDEADYET);
-  else
+  }
+  else {
     SET_BIT(PLR_FLAGS(ch), PLR_NOTDEADYET);
+  }
 
   extractions_pending++;
 }
@@ -968,32 +977,37 @@ void extract_char(struct char_data *ch)
  */
 void extract_pending_chars(void)
 {
-  struct char_data *vict, *next_vict, *prev_vict;
+  struct char_data *vict;
 
-  if (extractions_pending < 0)
+  if (extractions_pending < 0) {
     basic_mud_log("SYSERR: Negative (%d) extractions pending.", extractions_pending);
+  }
 
-  for (vict = character_list, prev_vict = NULL; vict && extractions_pending; vict = next_vict) {
-    next_vict = vict->next;
+  int extracted = 0;
+  do {
+    auto found = std::find_if(character_list.begin(), character_list.end(), [](char_data *x){return MOB_FLAGGED(x, MOB_NOTDEADYET) || PLR_FLAGGED(x, PLR_NOTDEADYET); });
 
-    if (MOB_FLAGGED(vict, MOB_NOTDEADYET))
-      REMOVE_BIT(MOB_FLAGS(vict), MOB_NOTDEADYET);
-    else if (PLR_FLAGGED(vict, PLR_NOTDEADYET))
-      REMOVE_BIT(PLR_FLAGS(vict), PLR_NOTDEADYET);
-    else {
-      /* Last non-free'd character to continue chain from. */
-      prev_vict = vict;
-      continue;
+    if (found == character_list.end()) {
+      break;
     }
 
-    extract_char_final(vict);
-    extractions_pending--;
+    vict = *found;
+    extracted++;
+    basic_mud_log("Found char %s to extract, total extracted so far %d", GET_NAME(*found), extracted);
 
-    if (prev_vict)
-      prev_vict->next = next_vict;
-    else
-      character_list = next_vict;
-  }
+    if (MOB_FLAGGED(vict, MOB_NOTDEADYET)) {
+      basic_mud_log("NPC %s", GET_NAME(vict));
+      REMOVE_BIT(MOB_FLAGS(vict), MOB_NOTDEADYET);
+    }
+    else if (PLR_FLAGGED(vict, PLR_NOTDEADYET)) {
+      basic_mud_log("Player %s", GET_NAME(vict));
+      REMOVE_BIT(PLR_FLAGS(vict), PLR_NOTDEADYET);
+    }    
+    extract_char_final(vict);
+    character_list.remove(vict);
+
+  } while(false);
+  extractions_pending -= extracted;
 
   if (extractions_pending > 0)
     basic_mud_log("SYSERR: Couldn't find %d extractions as counted.", extractions_pending);
@@ -1018,21 +1032,28 @@ struct char_data *get_player_vis(struct char_data *ch, char *name, int *number, 
     num = get_number(&name);
   }
 
-  for (i = character_list; i; i = i->next) {
-    if (IS_NPC(i))
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    i = *it;
+
+    if (IS_NPC(i)) {
       continue;
-    if (inroom == FIND_CHAR_ROOM && IN_ROOM(i) != IN_ROOM(ch))
+    }
+    if (inroom == FIND_CHAR_ROOM && IN_ROOM(i) != IN_ROOM(ch)) {
       continue;
-    if (str_cmp(i->player.name.c_str(), name)) /* If not same, continue */
+    }
+    if (str_cmp(i->player.name.c_str(), name)) { /* If not same, continue */ 
       continue;
-    if (!CAN_SEE(ch, i))
+    }
+    if (!CAN_SEE(ch, i)) {
       continue;
-    if (--(*number) != 0)
+    }
+    if (--(*number) != 0) {
       continue;
-    return (i);
+    }
+    return i;
   }
 
-  return (NULL);
+  return nullptr;
 }
 
 
@@ -1080,19 +1101,25 @@ struct char_data *get_char_world_vis(struct char_data *ch, char *name, int *numb
   if (*number == 0)
     return get_player_vis(ch, name, NULL, 0);
 
-  for (i = character_list; i && *number; i = i->next) {
-    if (IN_ROOM(ch) == IN_ROOM(i))
-      continue;
-    if (!isname(name, i->player.name))
-      continue;
-    if (!CAN_SEE(ch, i))
-      continue;
-    if (--(*number) != 0)
-      continue;
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    i = *it;
 
-    return (i);
+    if (IN_ROOM(ch) == IN_ROOM(i)) {
+      continue;
+    }
+    if (!isname(name, i->player.name)) {
+      continue;
+    }
+    if (!CAN_SEE(ch, i)) {
+      continue;
+    }
+    if (--(*number) != 0) {
+      continue;
+    }
+
+    return i;
   }
-  return (NULL);
+  return nullptr;
 }
 
 

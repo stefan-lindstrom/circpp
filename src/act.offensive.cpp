@@ -147,6 +147,7 @@ ACMD(do_kill)
     else if (ch == vict)
       send_to_char(ch, "Your mother would be so sad.. :(\r\n");
     else {
+      basic_mud_log("%s kills %s", GET_NAME(ch), GET_NAME(vict));
       act("You chop $M to pieces!  Ah!  The blood!", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
       act("$N chops you to pieces!", FALSE, vict, 0, ch, CommTarget::TO_CHAR);
       act("$n brutally slays $N!", FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
