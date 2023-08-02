@@ -43,13 +43,10 @@ std::vector<room_data> world;
 std::list<char_data *> character_list;
 std::vector<index_data> mob_index;
 std::vector<char_data> mob_proto;
-
-struct obj_data *object_list = NULL;	/* global linked list of objs	 */
-
+std::list<obj_data *> object_list;
 std::vector<index_data> obj_index;
 std::vector<obj_data> obj_proto;
 std::vector<zone_data> zone_table;
-
 std::vector<message_list> fight_messages;	/* fighting messages	 */
 
 struct player_index_element *player_table = NULL;	/* index to plr file	 */
@@ -979,10 +976,9 @@ struct obj_data *create_obj(void)
 
   obj->ex_description = std::list<extra_descr_data>();
   clear_object(obj);
-  obj->next = object_list;
-  object_list = obj;
+  object_list.push_back(obj);
 
-  return (obj);
+  return obj;
 }
 
 
@@ -1003,8 +999,7 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
 
   *obj = obj_proto[i];
 
-  obj->next = object_list;
-  object_list = obj;
+  object_list.push_back(obj);
 
   obj_index[i].number++;
 

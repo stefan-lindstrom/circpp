@@ -607,7 +607,7 @@ struct obj_data *get_obj_in_list_num(int num, struct obj_data *list)
     if (GET_OBJ_RNUM(i) == num)
       return (i);
 
-  return (NULL);
+  return nullptr;
 }
 
 
@@ -615,13 +615,13 @@ struct obj_data *get_obj_in_list_num(int num, struct obj_data *list)
 /* search the entire world for an object number, and return a pointer  */
 struct obj_data *get_obj_num(obj_rnum nr)
 {
-  struct obj_data *i;
+  for (auto it = object_list.begin(); it != object_list.end(); ++it) {
+    if (GET_OBJ_RNUM(*it) == nr) {
+      return (*it);
+    }
+  }
 
-  for (i = object_list; i; i = i->next)
-    if (GET_OBJ_RNUM(i) == nr)
-      return (i);
-
-  return (NULL);
+  return nullptr;
 }
 
 
@@ -768,8 +768,6 @@ void object_list_new_owner(struct obj_data *list, struct char_data *ch)
 /* Extract an object from the world */
 void extract_obj(struct obj_data *obj)
 {
-  struct obj_data *temp;
-
   if (obj->worn_by != NULL)
     if (unequip_char(obj->worn_by, obj->worn_on) != obj)
       basic_mud_log("SYSERR: Inconsistent worn_by and worn_on pointers!!");
@@ -784,7 +782,7 @@ void extract_obj(struct obj_data *obj)
   while (obj->contains)
     extract_obj(obj->contains);
 
-  REMOVE_FROM_LIST(obj, object_list, next);
+  object_list.remove(obj);
 
   if (GET_OBJ_RNUM(obj) != NOTHING)
     (obj_index[GET_OBJ_RNUM(obj)].number)--;
@@ -1176,13 +1174,17 @@ struct obj_data *get_obj_vis(struct char_data *ch, char *name, int *number)
     return (i);
 
   /* ok.. no luck yet. scan the entire obj list   */
-  for (i = object_list; i && *number; i = i->next)
-    if (isname(name, i->name))
-      if (CAN_SEE_OBJ(ch, i))
-	if (--(*number) == 0)
-	  return (i);
-
-  return (NULL);
+  for (auto it = object_list.begin(); it != object_list.end(); ++ it) {
+    i = *it;
+    
+    if (isname(name, i->name)) {
+      if (CAN_SEE_OBJ(ch, i)) {}
+	      if (--(*number) == 0) {
+	        return (i);
+        }
+    }
+  }
+  return nullptr;
 }
 
 

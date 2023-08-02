@@ -403,7 +403,7 @@ void check_idling(struct char_data *ch)
 void point_update(void)
 {
   struct char_data *i;
-  struct obj_data *j, *next_thing, *jj, *next_thing2;
+  struct obj_data *j,  *jj, *next_thing2;
 
   /* characters */
   for (auto it = character_list.begin(); it != character_list.end(); ++it) {
@@ -437,39 +437,42 @@ void point_update(void)
   }
 
   /* objects */
-  for (j = object_list; j; j = next_thing) {
-    next_thing = j->next;	/* Next in object list */
+  for (auto it = object_list.begin(); it != object_list.end(); ++it) {
+    j = *it;
 
     /* If this is a corpse */
     if (IS_CORPSE(j)) {
       /* timer count down */
-      if (GET_OBJ_TIMER(j) > 0)
-	GET_OBJ_TIMER(j)--;
+      if (GET_OBJ_TIMER(j) > 0) {
+      	GET_OBJ_TIMER(j)--;
+      }
 
       if (!GET_OBJ_TIMER(j)) {
+        if (j->carried_by)
+          act("$p decays in your hands.", FALSE, j->carried_by, j, 0, CommTarget::TO_CHAR);
+        else if ((IN_ROOM(j) != NOWHERE) && (world[IN_ROOM(j)].people)) {
+          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_ROOM);
+          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_CHAR);
+        }
+        for (jj = j->contains; jj; jj = next_thing2) {
 
-	if (j->carried_by)
-	  act("$p decays in your hands.", FALSE, j->carried_by, j, 0, CommTarget::TO_CHAR);
-	else if ((IN_ROOM(j) != NOWHERE) && (world[IN_ROOM(j)].people)) {
-	  act("A quivering horde of maggots consumes $p.",
-	      TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_ROOM);
-	  act("A quivering horde of maggots consumes $p.",
-	      TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_CHAR);
-	}
-	for (jj = j->contains; jj; jj = next_thing2) {
-	  next_thing2 = jj->next_content;	/* Next in inventory */
-	  obj_from_obj(jj);
+          next_thing2 = jj->next_content;	/* Next in inventory */
+          obj_from_obj(jj);
 
-	  if (j->in_obj)
-	    obj_to_obj(jj, j->in_obj);
-	  else if (j->carried_by)
-	    obj_to_room(jj, IN_ROOM(j->carried_by));
-	  else if (IN_ROOM(j) != NOWHERE)
-	    obj_to_room(jj, IN_ROOM(j));
-	  else
-	    core_dump();
-	}
-	extract_obj(j);
+          if (j->in_obj) {
+            obj_to_obj(jj, j->in_obj);
+          }
+          else if (j->carried_by) {
+            obj_to_room(jj, IN_ROOM(j->carried_by));
+          }
+          else if (IN_ROOM(j) != NOWHERE) {
+            obj_to_room(jj, IN_ROOM(j));
+          }
+          else {
+            core_dump();
+          }
+        }
+        extract_obj(j);
       }
     }
   }

@@ -1896,7 +1896,6 @@ ACMD(do_show)
   zone_vnum zvn;
   byte self = FALSE;
   struct char_data *vict;
-  struct obj_data *obj;
   struct descriptor_data *d;
   char field[MAX_INPUT_LENGTH], value[MAX_INPUT_LENGTH],
 	arg[MAX_INPUT_LENGTH], buf[MAX_STRING_LENGTH];
@@ -2019,9 +2018,7 @@ ACMD(do_show)
       }
     }
     
-    for (obj = object_list; obj; obj = obj->next) {
-      k++;
-    }
+    k = object_list.size();
 
     send_to_char(ch,
 	"Current stats:\r\n"

@@ -1418,7 +1418,10 @@ void perform_immort_where(struct char_data *ch, char *arg)
       }
     }
     
-    for (num = 0, k = object_list; k; k = k->next) {
+    num = 0;
+    for (auto it = object_list.begin(); it != object_list.end(); ++ it) {
+      k = *it;
+
       if (CAN_SEE_OBJ(ch, k) && isname(arg, k->name.c_str())) {
         found = true;
         print_object_location(++num, k, ch, TRUE);

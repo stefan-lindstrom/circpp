@@ -243,7 +243,7 @@ extern std::vector<char_data> mob_proto;
 
 extern std::vector<index_data> obj_index;
 extern std::vector<obj_data> obj_proto;
-extern struct obj_data *object_list;
+extern std::list<obj_data *> object_list;
 
 extern char	*OK;
 extern char	*NOPERSON;

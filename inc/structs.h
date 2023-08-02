@@ -655,7 +655,6 @@ struct obj_data {
 
   // TODO: make object list a std::list, remove these. 
    struct obj_data *next_content; /* For 'contains' lists             */
-   struct obj_data *next;         /* For the object list              */
 
   // clean this sh*t up later
   obj_data() noexcept {
@@ -679,13 +678,13 @@ struct obj_data {
     action_description = std::string(obj.action_description);
 
     ex_description = obj.ex_description; // should copy
-    in_obj = contains = next_content = next = nullptr; // for now
+    in_obj = contains = next_content = nullptr; // for now
     carried_by = worn_by =  nullptr;
     worn_on = obj.worn_on;
   }
 
   void clear() {
-    in_obj = contains = next_content = next = nullptr;
+    in_obj = contains = next_content =  nullptr;
     worn_by = carried_by = nullptr;
     ex_description.clear();
     name = "";
