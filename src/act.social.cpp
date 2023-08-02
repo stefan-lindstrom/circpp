@@ -19,19 +19,7 @@
 #include "handler.h"
 #include "db.h"
 #include "spells.h"
-
-
-/* local globals */
-static int list_top = -1;
-
-/* local functions */
-char *fread_action(FILE *fl, int nr);
-int find_action(int cmd);
-ACMD(do_action);
-ACMD(do_insult);
-void boot_social_messages(void);
-void free_social_messages(void);
-
+#include "act.h"
 
 struct social_messg {
   int act_nr;
@@ -56,31 +44,34 @@ struct social_messg {
 } *soc_mess_list;
 
 
-int find_action(int cmd)
-{
-  int bot, top, mid;
+namespace {
+  int list_top = -1;
 
-  bot = 0;
-  top = list_top;
+  int find_action(int cmd)
+  {
+    int bot, top, mid;
 
-  if (top < 0)
-    return (-1);
+    bot = 0;
+    top = list_top;
 
-  for (;;) {
-    mid = (bot + top) / 2;
-
-    if (soc_mess_list[mid].act_nr == cmd)
-      return (mid);
-    if (bot >= top)
+    if (top < 0)
       return (-1);
 
-    if (soc_mess_list[mid].act_nr > cmd)
-      top = --mid;
-    else
-      bot = ++mid;
+    for (;;) {
+      mid = (bot + top) / 2;
+
+      if (soc_mess_list[mid].act_nr == cmd)
+        return (mid);
+      if (bot >= top)
+        return (-1);
+
+      if (soc_mess_list[mid].act_nr > cmd)
+        top = --mid;
+      else
+        bot = ++mid;
+    }
   }
 }
-
 
 
 ACMD(do_action)

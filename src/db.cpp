@@ -37,6 +37,8 @@
 #include "shop.h"
 #include "shop_future.h"
 #include "class.h"
+#include "config.h"
+#include "act.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -52,10 +54,10 @@ std::vector<obj_data> obj_proto;
 std::vector<zone_data> zone_table;
 std::vector<message_list> fight_messages;	/* fighting messages	 */
 
-struct player_index_element *player_table = NULL;	/* index to plr file	 */
-FILE *player_fl = NULL;		/* file desc of player file	 */
-int top_of_p_table = 0;		/* ref to top of table		 */
+std::vector<player_index_element> player_table;
+FILE *player_fl = nullptr;		/* file desc of player file	 */
 long top_idnum = 0;		/* highest idnum in use		 */
+
 
 int no_mail = 0;		/* mail disabled?		 */
 int mini_mud = 0;		/* mini-mud mode?		 */
@@ -100,7 +102,6 @@ void assign_objects(void);
 void assign_rooms(void);
 void build_player_index(void);
 int is_empty(zone_rnum zone_nr);
-void reset_zone(zone_rnum zone);
 int file_to_string(const char *name, char *buf);
 int file_to_string_alloc(const char *name, char **buf);
 std::string slurp_file_to_string(const char *filename);
@@ -125,9 +126,7 @@ struct time_info_data *mud_time_passed(time_t t2, time_t t1);
 void load_messages(void);
 void weather_and_time(int mode);
 void mag_assign_spells(void);
-void boot_social_messages(void);
 void update_obj_file(void);	/* In objsave.c */
-void sort_commands(void);
 void sort_spells(void);
 void load_banned(void);
 void Read_Invalid_List(void);
@@ -230,7 +229,7 @@ ACMD(do_reboot)
     return;
   }
 
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", OK.c_str());
 }
 
 
@@ -485,25 +484,17 @@ void save_mud_time(struct time_info_data *when)
 
 void free_player_index(void)
 {
-  int tp;
-
-  if (!player_table)
+  if (player_table.empty())
     return;
 
-  for (tp = 0; tp <= top_of_p_table; tp++)
-    if (player_table[tp].name)
-      free(player_table[tp].name);
-
-  free(player_table);
-  player_table = NULL;
-  top_of_p_table = 0;
+  player_table.clear();
 }
 
 
 /* generate index table for the player file */
 void build_player_index(void)
 {
-  int nr = -1, i;
+  int nr = -1;
   long size, recs;
   struct char_file_u dummy;
 
@@ -515,8 +506,8 @@ void build_player_index(void)
       basic_mud_log("No playerfile.  Creating a new one.");
       touch(PLAYER_FILE);
       if (!(player_fl = fopen(PLAYER_FILE, "r+b"))) {
-	perror("SYSERR: fatal error opening playerfile");
-	exit(1);
+      	perror("SYSERR: fatal error opening playerfile");
+	      exit(1);
       }
     }
   }
@@ -529,10 +520,8 @@ void build_player_index(void)
   recs = size / sizeof(struct char_file_u);
   if (recs) {
     basic_mud_log("   %ld players in database.", recs);
-    player_table = new player_index_element[recs];
   } else {
-    player_table = NULL;
-    top_of_p_table = -1;
+    player_table.clear();
     return;
   }
 
@@ -543,14 +532,19 @@ void build_player_index(void)
 
     /* new record */
     nr++;
-    player_table[nr].name = new char[strlen(dummy.name) + 1];
-    for (i = 0; (*(player_table[nr].name + i) = LOWER(*(dummy.name + i))); i++)
-      ;
-    player_table[nr].id = dummy.char_specials_saved.idnum;
-    top_idnum = MAX(top_idnum, dummy.char_specials_saved.idnum);
-  }
+    player_table.push_back(player_index_element());    
+    player_table[nr].name = std::string(dummy.name);
 
-  top_of_p_table = nr;
+    basic_mud_log("Name before: %s",player_table[nr].name.c_str());
+
+    std::transform(player_table[nr].name.begin(), player_table[nr].name.end(), player_table[nr].name.begin(), [](unsigned char c){ return std::tolower(c); });
+
+//    std::for_each(player_table[nr].name.begin(), player_table[nr].name.end(), [](unsigned char &ch) { return (ch =  std::tolower(ch)); });
+    basic_mud_log("Name after: %s",player_table[nr].name.c_str());
+
+    player_table[nr].id = dummy.char_specials_saved.idnum;
+    top_idnum = std::max(top_idnum, dummy.char_specials_saved.idnum);
+  }
 }
 
 /*
@@ -1257,37 +1251,37 @@ int is_empty(zone_rnum zone_nr)
 
 long get_ptable_by_name(const char *name)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i <= top_of_p_table; i++)
-    if (!str_cmp(player_table[i].name, name))
-      return (i);
+  for (i = 0; i < player_table.size(); i++)
+    if (!str_cmp(player_table[i].name.c_str(), name))
+      return i;
 
-  return (-1);
+  return -1;
 }
 
 
 long get_id_by_name(const char *name)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i <= top_of_p_table; i++)
-    if (!str_cmp(player_table[i].name, name))
+  for (i = 0; i < player_table.size(); i++)
+    if (!str_cmp(player_table[i].name.c_str(), name))
       return (player_table[i].id);
 
-  return (-1);
+  return -1;
 }
 
 
-char *get_name_by_id(long id)
+std::string get_name_by_id(long id)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i <= top_of_p_table; i++)
+  for (i = 0; i < player_table.size(); i++)
     if (player_table[i].id == id)
       return (player_table[i].name);
 
-  return (NULL);
+  return std::string();
 }
 
 
@@ -1502,25 +1496,16 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
  */
 int create_entry(const char *name)
 {
-  int i, pos;
+  int i;
 
-  if (top_of_p_table == -1) {	/* no table */
-    player_table = new player_index_element;
-    pos = top_of_p_table = 0;
-  } else if ((pos = get_ptable_by_name(name)) == -1) {	/* new name */
-    i = ++top_of_p_table + 1;
-
-    RECREATE(player_table, struct player_index_element, i, top_of_p_table);
-    pos = top_of_p_table;
-  }
-
-  player_table[pos].name = new char[strlen(name) + 1];
+  player_table.push_back(player_index_element());
+  player_table.back().name = new char[strlen(name) + 1];
 
   /* copy lowercase equivalent of name to table field */
-  for (i = 0; (player_table[pos].name[i] = LOWER(name[i])); i++)
-	/* Nothing */;
+  for (i = 0; (player_table.back().name[i] = LOWER(name[i])); i++)
+    ;
 
-  return (pos);
+  return (player_table.size() - 1);
 }
 
 
@@ -1769,7 +1754,7 @@ void init_char(struct char_data *ch)
     ch->player_specials = new player_special_data;
 
   /* *** if this is our first player --- he be God *** */
-  if (top_of_p_table == 0) {
+  if (player_table.empty()) {
     GET_LEVEL(ch) = LVL_IMPL;
     GET_EXP(ch) = 7000000;
 

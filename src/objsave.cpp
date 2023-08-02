@@ -20,6 +20,9 @@
 #include "utils.h"
 #include "spells.h"
 #include "class.h"
+#include "config.h"
+#include "objsave.h"
+#include "act.h"
 
 /* these factors should be unique integers */
 #define RENT_FACTOR 	1
@@ -53,7 +56,6 @@ int Crash_is_unrentable(struct obj_data *obj);
 void Crash_extract_norents(struct obj_data *obj);
 void Crash_extract_expensive(struct obj_data *obj);
 void Crash_calculate_rent(struct obj_data *obj, int *cost);
-void Crash_rentsave(struct char_data *ch, int cost);
 void Crash_cryosave(struct char_data *ch, int cost);
 
 
@@ -264,7 +266,7 @@ int Crash_delete_crashfile(struct char_data *ch)
 }
 
 
-int Crash_clean_file(char *name)
+int Crash_clean_file(const char *name)
 {
   char filename[MAX_STRING_LENGTH];
   struct rent_info rent;
@@ -324,11 +326,11 @@ int Crash_clean_file(char *name)
 
 void update_obj_file(void)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i <= top_of_p_table; i++)
-    if (*player_table[i].name)
-      Crash_clean_file(player_table[i].name);
+  for (i = 0; i < player_table.size(); i++)
+    if (!player_table[i].name.empty())
+      Crash_clean_file(player_table[i].name.c_str());
 }
 
 

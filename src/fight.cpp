@@ -23,6 +23,8 @@
 #include "constants.h"
 #include "class.h"
 #include "fight.h"
+#include "config.h"
+#include "act.h"
 
 #include <algorithm>
 
@@ -32,19 +34,16 @@ struct std::list<char_data *> combat_list;
 /* local functions */
 void perform_group_gain(struct char_data *ch, int base, struct char_data *victim);
 void dam_message(int dam, struct char_data *ch, struct char_data *victim, int w_type);
-void appear(struct char_data *ch);
 void load_messages(void);
 void check_killer(struct char_data *ch, struct char_data *vict);
 void make_corpse(struct char_data *ch);
 void change_alignment(struct char_data *ch, struct char_data *victim);
 void death_cry(struct char_data *ch);
 void raw_kill(struct char_data *ch);
-void die(struct char_data *ch);
 void group_gain(struct char_data *ch, struct char_data *victim);
 void solo_gain(struct char_data *ch, struct char_data *victim);
 char *replace_string(const char *str, const char *weapon_singular, const char *weapon_plural);
 void perform_violence(void);
-int compute_armor_class(struct char_data *ch);
 int compute_thaco(struct char_data *ch, struct char_data *vict);
 
 /* Weapon attack texts */

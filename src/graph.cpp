@@ -19,7 +19,7 @@
 #include "handler.h"
 #include "db.h"
 #include "spells.h"
-
+#include "act.h"
 #include "constants.h"
 
 /* external functions */

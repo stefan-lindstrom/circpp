@@ -34,6 +34,7 @@ extern FILE *logfile;
 #define READ_SIZE	256
 
 /* public functions in utils.c */
+struct time_info_data *real_time_passed(time_t t2, time_t t1);
 void prune_crlf(std::string &txt);
 void	basic_mud_log(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 void	basic_mud_vlog(const char *format, va_list args);
@@ -90,13 +91,6 @@ void	die_follower(struct char_data *ch);
 void	add_follower(struct char_data *ch, struct char_data *leader);
 void	stop_follower(struct char_data *ch);
 bool	circle_follow(struct char_data *ch, struct char_data *victim);
-
-/* in act.informative.c */
-void	look_at_room(struct char_data *ch, int mode);
-
-/* in act.movmement.c */
-int	do_simple_move(struct char_data *ch, int dir, int following);
-int	perform_move(struct char_data *ch, int dir, int following);
 
 /* in limits.c */
 int	mana_gain(struct char_data *ch);

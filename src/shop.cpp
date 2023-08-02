@@ -23,15 +23,12 @@
 #include "utils.h"
 #include "shop.h"
 #include "constants.h"
+#include "act.h"
 
 /* External variables */
 extern struct time_info_data time_info;
 
 /* Forward/External function declarations */
-ACMD(do_tell);
-ACMD(do_action);
-ACMD(do_echo);
-ACMD(do_say);
 void sort_keeper_objs(struct char_data *keeper, int shop_nr);
 
 
@@ -55,7 +52,6 @@ struct obj_data *get_slide_obj_vis(struct char_data *ch, char *name, struct obj_
 char *customer_string(int shop_nr, int detailed);
 void list_all_shops(struct char_data *ch);
 void list_detailed_shop(struct char_data *ch, int shop_nr);
-void show_shops(struct char_data *ch, char *arg);
 int is_ok_char(struct char_data *keeper, struct char_data *ch, int shop_nr);
 int is_open(struct char_data *keeper, int shop_nr, int msg);
 int is_ok(struct char_data *keeper, struct char_data *ch, int shop_nr);

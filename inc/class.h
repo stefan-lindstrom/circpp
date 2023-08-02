@@ -13,7 +13,6 @@ extern struct guild_info_type guild_info[];
 // exported functions
 int parse_class(char arg);
 bitvector_t find_class_bitvector(const char *arg);
-void snoop_check(struct char_data *ch);
 byte saving_throws(int class_num, int type, int level);
 int thaco(int class_num, int level);
 void roll_real_abils(struct char_data *ch);

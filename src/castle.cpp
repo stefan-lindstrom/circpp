@@ -20,7 +20,7 @@
 #include "handler.h"
 #include "db.h"
 #include "spells.h"
-
+#include "act.h"
 
 /* IMPORTANT!
    The below defined number is the zone number of the Kings Castle.
@@ -66,8 +66,6 @@ SPECIAL(training_master);
 SPECIAL(peter);
 SPECIAL(jerry);
 SPECIAL(guild);
-ACMD(do_gen_door);
-ACMD(do_follow);
 
 /*
  * Assign castle special procedures.

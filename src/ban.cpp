@@ -18,6 +18,7 @@
 #include "interpreter.h"
 #include "handler.h"
 #include "db.h"
+#include "act.h"
 
 /* local globals */
 struct ban_list_element *ban_list = NULL;
@@ -27,6 +28,7 @@ void load_banned(void);
 int isbanned(char *hostname);
 void _write_one_node(FILE *fp, struct ban_list_element *node);
 void write_ban_list(void);
+// move to an act.<ban|other>.c?
 ACMD(do_ban);
 ACMD(do_unban);
 int Valid_Name(char *newname);

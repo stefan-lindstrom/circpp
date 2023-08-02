@@ -23,12 +23,11 @@
 #include "spells.h"
 #include "class.h"
 #include "fight.h"
+#include "config.h"
+#include "act.h"
 
 /* local vars */
 int extractions_pending = 0;
-
-/* external vars */
-extern const char *MENU;
 
 /* local functions */
 int apply_ac(struct char_data *ch, int eq_pos);
@@ -882,7 +881,7 @@ void extract_char_final(struct char_data *ch)
           STATE(d) = CON_CLOSE;
       }
       STATE(ch->desc) = CON_MENU;
-      write_to_output(ch->desc, "%s", MENU);
+      write_to_output(ch->desc, "%s", MENU.c_str());
     }
   }
 

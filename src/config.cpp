@@ -18,11 +18,6 @@
 
 #include "config.h"
 
-#define TRUE	1
-#define YES	1
-#define FALSE	0
-#define NO	0
-
 /*
  * Below are several constants which you can change to alter certain aspects
  * of the way CircleMUD acts.  Since this is a .c file, all you have to do
@@ -54,10 +49,10 @@
  * However, if you decide you want to have an all-out knock-down drag-out
  * PK Mud, just set pk_allowed to YES - and anything goes.
  */
-int pk_allowed = NO;
+bool pk_allowed = NO;
 
 /* is playerthieving allowed? */
-int pt_allowed = NO;
+bool pt_allowed = NO;
 
 /* minimum level a player must be to shout/holler/gossip/auction */
 int level_can_shout = 1;
@@ -86,7 +81,7 @@ int idle_rent_time = 48;
 int idle_max_level = LVL_GOD;
 
 /* should items in death traps automatically be junked? */
-int dts_are_dumps = YES;
+bool dts_are_dumps = YES;
 
 /*
  * Whether you want items that immortals load to appear on the ground or not.
@@ -95,12 +90,12 @@ int dts_are_dumps = YES;
  * able to carry around things like boards.  That's not necessarily a bad
  * thing, but this will be left at a default of 'NO' for historic reasons.
  */
-int load_into_inventory = NO;
+bool load_into_inventory = NO;
 
 /* "okay" etc. */
-const char *OK = "Okay.\r\n";
-const char *NOPERSON = "No-one by that name here.\r\n";
-const char *NOEFFECT = "Nothing seems to happen.\r\n";
+const std::string OK = "Okay.\r\n";
+const std::string NOPERSON = "No-one by that name here.\r\n";
+const std::string NOEFFECT = "Nothing seems to happen.\r\n";
 
 /*
  * You can define or not define TRACK_THOUGH_DOORS, depending on whether
@@ -108,7 +103,7 @@ const char *NOEFFECT = "Nothing seems to happen.\r\n";
  * hidden doors. A setting of 'NO' means to not go through the doors
  * while 'YES' will pass through doors to find the target.
  */
-int track_through_doors = YES;
+bool track_through_doors = YES;
 
 /*
  * If you want mortals to level up to immortal once they have enough
@@ -132,7 +127,7 @@ int immort_level_ok = 0;
  * Should the MUD allow you to 'rent' for free?  (i.e. if you just quit,
  * your objects are saved at no cost, as in Merc-type MUDs.)
  */
-int free_rent = YES;
+bool free_rent = YES;
 
 /* maximum number of items players are allowed to rent */
 int max_obj_save = 30;
@@ -147,7 +142,7 @@ int min_rent_cost = 100;
  * the 'save' command will be disabled to prevent item duplication via
  * game crashes.
  */
-int auto_save = YES;
+bool auto_save = YES;
 
 /*
  * if auto_save (above) is yes, how often (in minutes) should the MUD
@@ -266,10 +261,10 @@ bool siteok_everyone = true;
  * the SLOWNS command from within the MUD.
  */
 
-int nameserver_is_slow = NO;
+bool nameserver_is_slow = NO;
 
 
-const char *MENU =
+const std::string MENU =
 "\r\n"
 "Welcome to CircleMUD!\r\n"
 "0) Exit from CircleMUD.\r\n"
@@ -283,12 +278,12 @@ const char *MENU =
 
 
 
-const char *WELC_MESSG =
+const std::string WELC_MESSG =
 "\r\n"
 "Welcome to the land of CircleMUD!  May your visit here be... Interesting."
 "\r\n\r\n";
 
-const char *START_MESSG =
+const std::string START_MESSG =
 "Welcome.  This is your new CircleMUD character!  You can now earn gold,\r\n"
 "gain experience, find weapons and equipment, and much more -- while\r\n"
 "meeting people from around the world!\r\n";
@@ -304,7 +299,7 @@ const char *START_MESSG =
  * someone immorts, or is promoted to a higher (or lower) god level?
  * NOTE: this only works under UNIX systems.
  */
-int use_autowiz = YES;
+bool use_autowiz = YES;
 
 /* If yes, what is the lowest level which should be on the wizlist?  (All
    immort levels below the level you specify will go on the immlist instead.) */

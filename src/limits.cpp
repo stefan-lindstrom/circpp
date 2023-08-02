@@ -19,6 +19,7 @@
 #include "handler.h"
 #include "interpreter.h"
 #include "class.h"
+#include "limits_c.h"
 
 /* external variables */
 extern int max_exp_gain;
@@ -33,7 +34,6 @@ extern int free_rent;
 
 /* local functions */
 int graf(int grafage, int p0, int p1, int p2, int p3, int p4, int p5, int p6);
-void run_autowiz(void);
 
 void Crash_rentsave(struct char_data *ch, int cost);
 void update_char_objects(struct char_data *ch);	/* handler.c */
@@ -213,7 +213,7 @@ void set_title(struct char_data *ch, char *title)
     }
   }
 
-  GET_TITLE_S(ch) = title;
+  GET_TITLE_S(ch).clear();
 }
 
 

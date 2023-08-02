@@ -23,17 +23,14 @@
 #include "mail.h"
 #include "screen.h"
 #include "class.h"
+#include "config.h"
+#include "act.h"
 
 /* external variables */
 extern room_rnum r_mortal_start_room;
 extern room_rnum r_immort_start_room;
 extern room_rnum r_frozen_start_room;
 
-extern char *MENU;
-extern char *WELC_MESSG;
-extern char *START_MESSG;
-extern struct player_index_element *player_table;
-extern int top_of_p_table;
 extern int circle_restrict;
 extern int no_specials;
 extern int max_bad_pws;
@@ -1479,7 +1476,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_QSEX;
     } else {
       save_char(d->character);
-      write_to_output(d, "\r\nDone.\r\n%s", MENU);
+      write_to_output(d, "\r\nDone.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     }
     break;
@@ -1524,7 +1521,7 @@ void nanny(struct descriptor_data *d, char *arg)
     break;
 
   case CON_RMOTD:		/* read CR after printing motd   */
-    write_to_output(d, "%s", MENU);
+    write_to_output(d, "%s", MENU.c_str());
     STATE(d) = CON_MENU;
     break;
 
@@ -1563,7 +1560,7 @@ void nanny(struct descriptor_data *d, char *arg)
       if (PLR_FLAGGED(d->character, PLR_FROZEN))
         load_room = r_frozen_start_room;
 
-      send_to_char(d->character, "%s", WELC_MESSG);
+      send_to_char(d->character, "%s", WELC_MESSG.c_str());
       character_list.push_back(d->character);
 
       char_to_room(d->character, load_room);
@@ -1579,7 +1576,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_PLAYING;
       if (GET_LEVEL(d->character) == 0) {
 	do_start(d->character);
-	send_to_char(d->character, "%s", START_MESSG);
+	send_to_char(d->character, "%s", START_MESSG.c_str());
       }
       look_at_room(d->character, 0);
       if (has_mail(GET_IDNUM(d->character)))
@@ -1621,7 +1618,7 @@ void nanny(struct descriptor_data *d, char *arg)
       break;
 
     default:
-      write_to_output(d, "\r\nThat's not a menu choice!\r\n%s", MENU);
+      write_to_output(d, "\r\nThat's not a menu choice!\r\n%s", MENU.c_str());
       break;
     }
     break;
@@ -1630,7 +1627,7 @@ void nanny(struct descriptor_data *d, char *arg)
   case CON_CHPWD_GETOLD:
     if (strncmp(CRYPT(arg, GET_PASSWD(d->character)), GET_PASSWD(d->character), MAX_PWD_LENGTH)) {
       echo_on(d);
-      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU);
+      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     } else {
       write_to_output(d, "\r\nEnter a new password: ");
@@ -1641,7 +1638,7 @@ void nanny(struct descriptor_data *d, char *arg)
   case CON_DELCNF1:
     echo_on(d);
     if (strncmp(CRYPT(arg, GET_PASSWD(d->character)), GET_PASSWD(d->character), MAX_PWD_LENGTH)) {
-      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU);
+      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     } else {
       write_to_output(d, "\r\nYOU ARE ABOUT TO DELETE THIS CHARACTER PERMANENTLY.\r\n"
@@ -1670,7 +1667,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_CLOSE;
       return;
     } else {
-      write_to_output(d, "\r\nCharacter not deleted.\r\n%s", MENU);
+      write_to_output(d, "\r\nCharacter not deleted.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     }
     break;

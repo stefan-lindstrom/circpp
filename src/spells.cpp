@@ -20,14 +20,13 @@
 #include "db.h"
 #include "constants.h"
 #include "interpreter.h"
+#include "config.h"
+#include "act.h"
+#include "fight.h"
 
 /* external functions */
 void clearMemory(struct char_data *ch);
-void weight_change_object(struct obj_data *obj, int weight);
 int mag_savingthrow(struct char_data *ch, int type, int modifier);
-void name_to_drinkcon(struct obj_data *obj, int type);
-void name_from_drinkcon(struct obj_data *obj);
-int compute_armor_class(struct char_data *ch);
 
 /*
  * Special spells appear below.

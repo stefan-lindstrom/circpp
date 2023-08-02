@@ -13,6 +13,8 @@
 #include "conf.h"
 #include "sysdep.h"
 
+#include "act.h"
+
 #if CIRCLE_GNU_LIBC_MEMORY_TRACK
 # include <mcheck.h>
 #endif
@@ -158,7 +160,6 @@ void weather_and_time(int mode);
 int perform_alias(struct descriptor_data *d, char *orig, size_t maxlen);
 void clear_free_list(void);
 void Board_clear_all(void);
-void free_social_messages(void);
 void Free_Invalid_List(void);
 
 #ifdef __CXREF__

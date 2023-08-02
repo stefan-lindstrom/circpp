@@ -24,38 +24,63 @@
 #include "house.h"
 #include "constants.h"
 #include "class.h"
+#include "config.h"
+#include "act.h"
+#include "spec_procs.h"
+#include "fight.h"
+#include "alias.h"
+#include "objsave.h"
+#include "shop.h"
 
-/* extern procedures, TODO: move decls to headers */
-void list_skills(struct char_data *ch);
-void appear(struct char_data *ch);
-void write_aliases(struct char_data *ch);
-void perform_immort_vis(struct char_data *ch);
-SPECIAL(shop_keeper);
-ACMD(do_gen_comm);
-void die(struct char_data *ch);
-void Crash_rentsave(struct char_data *ch, int cost);
 
-/* local functions TODO: Functions that will be kept should be made static, orplaces in anonymous ns */
-ACMD(do_quit);
-ACMD(do_save);
-ACMD(do_not_here);
-ACMD(do_sneak);
-ACMD(do_hide);
-ACMD(do_steal);
-ACMD(do_practice);
-ACMD(do_visible);
-ACMD(do_title);
-int perform_group(struct char_data *ch, struct char_data *vict);
-void print_group(struct char_data *ch);
-ACMD(do_group);
-ACMD(do_ungroup);
-ACMD(do_report);
-ACMD(do_split);
-ACMD(do_use);
-ACMD(do_wimpy);
-ACMD(do_display);
-ACMD(do_gen_write);
-ACMD(do_gen_tog);
+namespace {
+  int perform_group(struct char_data *ch, struct char_data *vict)
+  {
+    if (AFF_FLAGGED(vict, AFF_GROUP) || !CAN_SEE(ch, vict))
+      return (0);
+
+    SET_BIT(AFF_FLAGS(vict), AFF_GROUP);
+    if (ch != vict)
+      act("$N is now a member of your group.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
+    act("You are now a member of $n's group.", FALSE, ch, 0, vict, CommTarget::TO_VICT);
+    act("$N is now a member of $n's group.", FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
+    return (1);
+  }
+
+
+  void print_group(struct char_data *ch)
+  {
+    struct char_data *k;
+    struct follow_type *f;
+
+    if (!AFF_FLAGGED(ch, AFF_GROUP))
+      send_to_char(ch, "But you are not the member of a group!\r\n");
+    else {
+      char buf[MAX_STRING_LENGTH];
+
+      send_to_char(ch, "Your group consists of:\r\n");
+
+      k = (ch->master ? ch->master : ch);
+
+      if (AFF_FLAGGED(k, AFF_GROUP)) {
+        snprintf(buf, sizeof(buf), "     [%3dH %3dM %3dV] [%2d %s] $N (Head of group)",
+          GET_HIT(k), GET_MANA(k), GET_MOVE(k), GET_LEVEL(k), CLASS_ABBR(k));
+        act(buf, FALSE, ch, 0, k, CommTarget::TO_CHAR);
+      }
+
+      for (f = k->followers; f; f = f->next) {
+        if (!AFF_FLAGGED(f->follower, AFF_GROUP))
+    continue;
+
+        snprintf(buf, sizeof(buf), "     [%3dH %3dM %3dV] [%2d %s] $N", GET_HIT(f->follower),
+          GET_MANA(f->follower), GET_MOVE(f->follower),
+          GET_LEVEL(f->follower), CLASS_ABBR(f->follower));
+        act(buf, FALSE, ch, 0, f->follower, CommTarget::TO_CHAR);
+      }
+    }
+  }
+}
+
 
 
 ACMD(do_quit)
@@ -367,55 +392,6 @@ ACMD(do_title)
   }
 }
 
-
-int perform_group(struct char_data *ch, struct char_data *vict)
-{
-  if (AFF_FLAGGED(vict, AFF_GROUP) || !CAN_SEE(ch, vict))
-    return (0);
-
-  SET_BIT(AFF_FLAGS(vict), AFF_GROUP);
-  if (ch != vict)
-    act("$N is now a member of your group.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
-  act("You are now a member of $n's group.", FALSE, ch, 0, vict, CommTarget::TO_VICT);
-  act("$N is now a member of $n's group.", FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
-  return (1);
-}
-
-
-void print_group(struct char_data *ch)
-{
-  struct char_data *k;
-  struct follow_type *f;
-
-  if (!AFF_FLAGGED(ch, AFF_GROUP))
-    send_to_char(ch, "But you are not the member of a group!\r\n");
-  else {
-    char buf[MAX_STRING_LENGTH];
-
-    send_to_char(ch, "Your group consists of:\r\n");
-
-    k = (ch->master ? ch->master : ch);
-
-    if (AFF_FLAGGED(k, AFF_GROUP)) {
-      snprintf(buf, sizeof(buf), "     [%3dH %3dM %3dV] [%2d %s] $N (Head of group)",
-	      GET_HIT(k), GET_MANA(k), GET_MOVE(k), GET_LEVEL(k), CLASS_ABBR(k));
-      act(buf, FALSE, ch, 0, k, CommTarget::TO_CHAR);
-    }
-
-    for (f = k->followers; f; f = f->next) {
-      if (!AFF_FLAGGED(f->follower, AFF_GROUP))
-	continue;
-
-      snprintf(buf, sizeof(buf), "     [%3dH %3dM %3dV] [%2d %s] $N", GET_HIT(f->follower),
-	      GET_MANA(f->follower), GET_MOVE(f->follower),
-	      GET_LEVEL(f->follower), CLASS_ABBR(f->follower));
-      act(buf, FALSE, ch, 0, f->follower, CommTarget::TO_CHAR);
-    }
-  }
-}
-
-
-
 ACMD(do_group)
 {
   TEMP_ARG_FIX;
@@ -448,7 +424,7 @@ ACMD(do_group)
   }
 
   if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", NOPERSON.c_str());
   else if ((vict->master != ch) && (vict != ch))
     act("$N must follow you to enter your group.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
   else {
@@ -791,7 +767,7 @@ ACMD(do_display)
     }
   }
 
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", OK.c_str());
 }
 
 

@@ -20,7 +20,8 @@
 #include "handler.h"
 #include "comm.h"
 #include "db.h"
-
+#include "config.h"
+#include "act.h"
 
 #define SINFO spell_info[spellnum]
 
@@ -494,7 +495,7 @@ int cast_spell(struct char_data *ch, struct char_data *tch,
     send_to_char(ch, "You can't cast this spell if you're not in a group!\r\n");
     return (0);
   }
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", OK.c_str());
   say_spell(ch, spellnum, tch, tobj);
 
   return (call_magic(ch, tch, tobj, spellnum, GET_LEVEL(ch), CAST_SPELL));

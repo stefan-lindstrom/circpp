@@ -20,7 +20,7 @@
 #include "handler.h"
 #include "spells.h"
 #include "constants.h"
-
+#include "act.h"
 
 /* external globals */
 extern int no_specials;

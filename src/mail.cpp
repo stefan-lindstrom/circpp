@@ -400,7 +400,7 @@ char *read_delete(long recipient)
   position_list_type *position_pointer;
   long mail_address, following_block;
   char *tmstr, buf[MAX_MAIL_SIZE + 256];	/* + header */
-  char *from, *to;
+  const char *from, *to;
 
   if (recipient < 0) {
     basic_mud_log("SYSERR: Mail system -- non-fatal error #6. (recipient: %ld)", recipient);
@@ -451,8 +451,8 @@ char *read_delete(long recipient)
   tmstr = asctime(localtime(&header.header_data.mail_time));
   *(tmstr + strlen(tmstr) - 1) = '\0';
 
-  from = get_name_by_id(header.header_data.from);
-  to = get_name_by_id(recipient);
+  from = get_name_by_id(header.header_data.from).c_str();
+  to = get_name_by_id(recipient).c_str();
 
   snprintf(buf, sizeof(buf),
 	" * * * * Midgaard Mail System * * * *\r\n"

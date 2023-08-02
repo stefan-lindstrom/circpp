@@ -25,9 +25,10 @@
 #include "constants.h"
 #include "class.h"
 #include "config.h"
+#include "act.h"
+
 
 /* Names first */
-
 const char *class_abbrevs[] = {
   "Mu",
   "Cl",

@@ -11,7 +11,6 @@
 #include "conf.h"
 #include "sysdep.h"
 
-
 #include "structs.h"
 #include "utils.h"
 #include "comm.h"
@@ -19,23 +18,53 @@
 #include "handler.h"
 #include "db.h"
 #include "screen.h"
+#include "config.h"
+#include "act.h"
 
-/* extern variables */
-extern int level_can_shout;
-extern int holler_move_cost;
+// Non exported functions
+namespace {
+  void perform_tell(struct char_data *ch, struct char_data *vict, char *arg)
+  {
+    char buf[MAX_STRING_LENGTH];
 
-/* local functions */
-void perform_tell(struct char_data *ch, struct char_data *vict, char *arg);
-int is_tell_ok(struct char_data *ch, struct char_data *vict);
-ACMD(do_say);
-ACMD(do_gsay);
-ACMD(do_tell);
-ACMD(do_reply);
-ACMD(do_spec_comm);
-ACMD(do_write);
-ACMD(do_page);
-ACMD(do_gen_comm);
-ACMD(do_qcomm);
+    send_to_char(vict, "%s", CCRED(vict, C_NRM));
+    snprintf(buf, sizeof(buf), "$n tells you, '%s'", arg);
+    act(buf, FALSE, ch, 0, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
+    send_to_char(vict, "%s", CCNRM(vict, C_NRM));
+
+    if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_NOREPEAT))
+      send_to_char(ch, "%s", OK.c_str());
+    else {
+      send_to_char(ch, "%s", CCRED(ch, C_CMP));
+      snprintf(buf, sizeof(buf), "You tell $N, '%s'", arg);
+      act(buf, FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
+      send_to_char(ch, "%s", CCNRM(ch, C_CMP));
+    }
+
+    if (!IS_NPC(vict) && !IS_NPC(ch))
+      GET_LAST_TELL(vict) = GET_IDNUM(ch);
+  }
+
+  bool is_tell_ok(struct char_data *ch, struct char_data *vict)
+  {
+    if (ch == vict)
+      send_to_char(ch, "You try to tell yourself something.\r\n");
+    else if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_NOTELL))
+      send_to_char(ch, "You can't tell other people while you have notell on.\r\n");
+    else if (ROOM_FLAGGED(IN_ROOM(ch), ROOM_SOUNDPROOF))
+      send_to_char(ch, "The walls seem to absorb your words.\r\n");
+    else if (!IS_NPC(vict) && !vict->desc)        /* linkless */
+      act("$E's linkless at the moment.", FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
+    else if (PLR_FLAGGED(vict, PLR_WRITING))
+      act("$E's writing a message right now; try again later.", FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
+    else if ((!IS_NPC(vict) && PRF_FLAGGED(vict, PRF_NOTELL)) || ROOM_FLAGGED(IN_ROOM(vict), ROOM_SOUNDPROOF))
+      act("$E can't hear you.", FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
+    else
+      return true;
+
+    return false;
+  }
+}
 
 
 ACMD(do_say)
@@ -54,7 +83,7 @@ ACMD(do_say)
     act(buf, FALSE, ch, 0, 0, CommTarget::TO_ROOM);
 
     if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_NOREPEAT))
-      send_to_char(ch, "%s", OK);
+      send_to_char(ch, "%s", OK.c_str());
     else {
       delete_doubledollar(argument);
       send_to_char(ch, "You say, '%s'\r\n", argument);
@@ -96,53 +125,10 @@ ACMD(do_gsay)
 	act(buf, FALSE, ch, 0, f->follower, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
 
     if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-      send_to_char(ch, "%s", OK);
+      send_to_char(ch, "%s", OK.c_str());
     else
       send_to_char(ch, "You tell the group, '%s'\r\n", argument);
   }
-}
-
-
-void perform_tell(struct char_data *ch, struct char_data *vict, char *arg)
-{
-  char buf[MAX_STRING_LENGTH];
-
-  send_to_char(vict, "%s", CCRED(vict, C_NRM));
-  snprintf(buf, sizeof(buf), "$n tells you, '%s'", arg);
-  act(buf, FALSE, ch, 0, vict, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
-  send_to_char(vict, "%s", CCNRM(vict, C_NRM));
-
-  if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_NOREPEAT))
-    send_to_char(ch, "%s", OK);
-  else {
-    send_to_char(ch, "%s", CCRED(ch, C_CMP));
-    snprintf(buf, sizeof(buf), "You tell $N, '%s'", arg);
-    act(buf, FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
-    send_to_char(ch, "%s", CCNRM(ch, C_CMP));
-  }
-
-  if (!IS_NPC(vict) && !IS_NPC(ch))
-    GET_LAST_TELL(vict) = GET_IDNUM(ch);
-}
-
-int is_tell_ok(struct char_data *ch, struct char_data *vict)
-{
-  if (ch == vict)
-    send_to_char(ch, "You try to tell yourself something.\r\n");
-  else if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_NOTELL))
-    send_to_char(ch, "You can't tell other people while you have notell on.\r\n");
-  else if (ROOM_FLAGGED(IN_ROOM(ch), ROOM_SOUNDPROOF))
-    send_to_char(ch, "The walls seem to absorb your words.\r\n");
-  else if (!IS_NPC(vict) && !vict->desc)        /* linkless */
-    act("$E's linkless at the moment.", FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
-  else if (PLR_FLAGGED(vict, PLR_WRITING))
-    act("$E's writing a message right now; try again later.", FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
-  else if ((!IS_NPC(vict) && PRF_FLAGGED(vict, PRF_NOTELL)) || ROOM_FLAGGED(IN_ROOM(vict), ROOM_SOUNDPROOF))
-    act("$E can't hear you.", FALSE, ch, 0, vict, CommTarget::TO_CHAR | CommTarget::TO_SLEEP);
-  else
-    return (TRUE);
-
-  return (FALSE);
 }
 
 /*
@@ -162,9 +148,9 @@ ACMD(do_tell)
   if (!*buf || !*buf2)
     send_to_char(ch, "Who do you wish to tell what??\r\n");
   else if (GET_LEVEL(ch) < LVL_IMMORT && !(vict = get_player_vis(ch, buf, NULL, FIND_CHAR_WORLD)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", NOPERSON.c_str());
   else if (GET_LEVEL(ch) >= LVL_IMMORT && !(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_WORLD)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", NOPERSON.c_str());
   else if (is_tell_ok(ch, vict))
     perform_tell(ch, vict, buf2);
 }
@@ -243,7 +229,7 @@ ACMD(do_spec_comm)
   if (!*buf || !*buf2)
     send_to_char(ch, "Whom do you want to %s.. and what??\r\n", action_sing);
   else if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", NOPERSON.c_str());
   else if (vict == ch)
     send_to_char(ch, "You can't get your mouth close enough to your ear...\r\n");
   else {
@@ -253,7 +239,7 @@ ACMD(do_spec_comm)
     act(buf1, FALSE, ch, 0, vict, CommTarget::TO_VICT);
 
     if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-      send_to_char(ch, "%s", OK);
+      send_to_char(ch, "%s", OK.c_str());
     else
       send_to_char(ch, "You %s %s, '%s'\r\n", action_sing, GET_NAME(vict), buf2);
     act(action_others, FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
@@ -372,7 +358,7 @@ ACMD(do_page)
     if ((vict = get_char_vis(ch, arg, NULL, FIND_CHAR_WORLD)) != NULL) {
       act(buf, FALSE, ch, 0, vict, CommTarget::TO_VICT);
       if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-	send_to_char(ch, "%s", OK);
+	send_to_char(ch, "%s", OK.c_str());
       else
 	act(buf, FALSE, ch, 0, vict, CommTarget::TO_CHAR);
     } else
@@ -479,7 +465,7 @@ ACMD(do_gen_comm)
 
   /* first, set up strings to be given to the communicator */
   if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-    send_to_char(ch, "%s", OK);
+    send_to_char(ch, "%s", OK.c_str());
   else
     send_to_char(ch, "%sYou %s, '%s'%s\r\n", COLOR_LEV(ch) >= C_CMP ? color_on : "", com_msgs[subcmd][1], argument, CCNRM(ch, C_CMP));
 
@@ -522,7 +508,7 @@ ACMD(do_qcomm)
     struct descriptor_data *i;
 
     if (PRF_FLAGGED(ch, PRF_NOREPEAT))
-      send_to_char(ch, "%s", OK);
+      send_to_char(ch, "%s", OK.c_str());
     else if (subcmd == SCMD_QSAY) {
       snprintf(buf, sizeof(buf), "You quest-say, '%s'", argument);
       act(buf, FALSE, ch, 0, argument, CommTarget::TO_CHAR);

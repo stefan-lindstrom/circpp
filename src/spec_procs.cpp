@@ -20,6 +20,8 @@
 #include "spells.h"
 #include "constants.h"
 #include "class.h"
+#include "spec_procs.h"
+#include "act.h"
 
 /*   external vars  */
 extern struct time_info_data time_info;
@@ -35,7 +37,6 @@ ACMD(do_action);
 void sort_spells(void);
 int compare_spells(const void *x, const void *y);
 const char *how_good(int percent);
-void list_skills(struct char_data *ch);
 SPECIAL(guild);
 SPECIAL(dump);
 SPECIAL(mayor);

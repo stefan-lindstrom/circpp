@@ -24,6 +24,8 @@
 #include "handler.h"
 #include "db.h"
 #include "olc.h"
+#include "config.h"
+#include "act.h"
 
 /* OLC command format:
  *
@@ -298,7 +300,7 @@ void olc_string(char **string, size_t maxlen, char *arg)
       if (*string != NULL)
 	free(*string);
       *string = strdup(arg);
-      send_to_char(olc_ch, "%s", OK);
+      send_to_char(olc_ch, "%s", OK.c_str());
     }
   }
 }
