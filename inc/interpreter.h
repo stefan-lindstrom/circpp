@@ -11,9 +11,7 @@
 #ifndef __INTERPRETER_H__
 #define __INTERPRETER_H__
  
-#define ACMD(name) void name(struct char_data *ch, char *argument, int cmd, int subcmd)
 #define TEMP_ARG_FIX do { (void)ch; (void)argument; (void)cmd; (void)subcmd; } while(0)
-ACMD(do_move);
 
 #define CMD_NAME (cmd_info[cmd].command)
 #define CMD_IS(cmd_name) (!strcmp(cmd_name, cmd_info[cmd].command))
@@ -34,6 +32,7 @@ int	is_number(const char *str);
 int	find_command(const char *command);
 void	skip_spaces(char **string);
 char	*delete_doubledollar(char *string);
+int special(struct char_data *ch, int cmd, char *arg);
 
 /* for compatibility with 2.20: */
 #define argument_interpreter(a, b, c) two_arguments(a, b, c)

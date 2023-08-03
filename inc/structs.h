@@ -655,7 +655,6 @@ struct obj_data {
 
   // TODO: make object list a std::list, remove these. 
    struct obj_data *next_content; /* For 'contains' lists             */
-   struct obj_data *next;         /* For the object list              */
 
   // clean this sh*t up later
   obj_data() noexcept {
@@ -679,13 +678,13 @@ struct obj_data {
     action_description = std::string(obj.action_description);
 
     ex_description = obj.ex_description; // should copy
-    in_obj = contains = next_content = next = nullptr; // for now
+    in_obj = contains = next_content = nullptr; // for now
     carried_by = worn_by =  nullptr;
     worn_on = obj.worn_on;
   }
 
   void clear() {
-    in_obj = contains = next_content = next = nullptr;
+    in_obj = contains = next_content =  nullptr;
     worn_by = carried_by = nullptr;
     ex_description.clear();
     name = "";
@@ -1039,13 +1038,12 @@ struct char_data {
 
   struct char_data *next_in_room;     /* For room->people - list         */
   struct char_data *next;             /* For either monster or ppl-list  */
-  struct char_data *next_fighting;    /* For fighting list               */
 
   struct follow_type *followers;        /* List of chars followers       */
   struct char_data *master;             /* Who is char following?        */
   
   char_data() : pfilepos(0), nr(0), in_room(NOWHERE), was_in_room(NOWHERE), wait(0), player_specials(nullptr), 
-    equipment{nullptr}, carrying(nullptr), desc(nullptr), next_in_room(nullptr), next(nullptr), next_fighting(nullptr), 
+    equipment{nullptr}, carrying(nullptr), desc(nullptr), next_in_room(nullptr), next(nullptr), 
     followers(nullptr), master(nullptr) {}
 };
 /* ====================================================================== */

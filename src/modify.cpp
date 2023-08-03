@@ -21,11 +21,12 @@
 #include "spells.h"
 #include "mail.h"
 #include "boards.h"
+#include "config.h"
+#include "act.h"
 
 void show_string(struct descriptor_data *d, char *input);
 
 extern struct spell_info_type spell_info[];
-extern const char *MENU;
 extern const char *unused_spellname;	/* spell_parser.c */
 
 /* local functions */
@@ -158,7 +159,7 @@ void string_add(struct descriptor_data *d, char *str)
       d->mail_to = 0;
     }
     if (STATE(d) == CON_EXDESC) {
-      write_to_output(d, "%s", MENU);
+      write_to_output(d, "%s", MENU.c_str());
       STATE(d) = CON_MENU;
     }
     if (STATE(d) == CON_PLAYING && d->character && !IS_NPC(d->character))
@@ -199,7 +200,7 @@ ACMD(do_skillset)
   }
 
   if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_WORLD))) {
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", NOPERSON.c_str());
     return;
   }
   skip_spaces(&argument);

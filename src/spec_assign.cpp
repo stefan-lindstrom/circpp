@@ -295,13 +295,13 @@ void assign_objects(void)
 /* assign special procedures to rooms */
 void assign_rooms(void)
 {
-  room_rnum i;
+  unsigned long i;
 
   ASSIGNROOM(3030, dump);
   ASSIGNROOM(3031, pet_shops);
 
   if (dts_are_dumps)
-    for (i = 0; i <= top_of_world; i++)
+    for (i = 0; i < world.size(); i++)
       if (ROOM_FLAGGED(i, ROOM_DEATH))
 	world[i].func = dump;
 }

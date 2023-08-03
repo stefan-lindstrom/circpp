@@ -18,7 +18,8 @@
 #include "db.h"
 #include "handler.h"
 #include "interpreter.h"
-
+#include "class.h"
+#include "limits_c.h"
 
 /* external variables */
 extern int max_exp_gain;
@@ -33,12 +34,8 @@ extern int free_rent;
 
 /* local functions */
 int graf(int grafage, int p0, int p1, int p2, int p3, int p4, int p5, int p6);
-void run_autowiz(void);
 
 void Crash_rentsave(struct char_data *ch, int cost);
-int level_exp(int chclass, int level);
-char *title_male(int chclass, int level);
-char *title_female(int chclass, int level);
 void update_char_objects(struct char_data *ch);	/* handler.c */
 void reboot_wizlists(void);
 
@@ -207,16 +204,16 @@ void set_title(struct char_data *ch, char *title)
 {
   if (title == NULL) {
     if (GET_SEX(ch) == SEX_FEMALE)
-      title = title_female(GET_CLASS(ch), GET_LEVEL(ch));
+      GET_TITLE_S(ch) = title_female(GET_CLASS(ch), GET_LEVEL(ch));
     else
-      title = title_male(GET_CLASS(ch), GET_LEVEL(ch));
+      GET_TITLE_S(ch) = title_male(GET_CLASS(ch), GET_LEVEL(ch));
+  } else {
+    if (strlen(title) > MAX_TITLE_LENGTH) {
+      title[MAX_TITLE_LENGTH] = '\0';
+    }
   }
 
-  if (strlen(title) > MAX_TITLE_LENGTH)
-    title[MAX_TITLE_LENGTH] = '\0';
-
-
-  GET_TITLE_S(ch) = title;
+  GET_TITLE_S(ch).clear();
 }
 
 
@@ -402,13 +399,13 @@ void check_idling(struct char_data *ch)
 /* Update PCs, NPCs, and objects */
 void point_update(void)
 {
-  struct char_data *i, *next_char;
-  struct obj_data *j, *next_thing, *jj, *next_thing2;
+  struct char_data *i;
+  struct obj_data *j,  *jj, *next_thing2;
 
   /* characters */
-  for (i = character_list; i; i = next_char) {
-    next_char = i->next;
-	
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    i = *it;
+
     gain_condition(i, FULL, -1);
     gain_condition(i, DRUNK, -1);
     gain_condition(i, THIRST, -1);
@@ -437,39 +434,42 @@ void point_update(void)
   }
 
   /* objects */
-  for (j = object_list; j; j = next_thing) {
-    next_thing = j->next;	/* Next in object list */
+  for (auto it = object_list.begin(); it != object_list.end(); ++it) {
+    j = *it;
 
     /* If this is a corpse */
     if (IS_CORPSE(j)) {
       /* timer count down */
-      if (GET_OBJ_TIMER(j) > 0)
-	GET_OBJ_TIMER(j)--;
+      if (GET_OBJ_TIMER(j) > 0) {
+      	GET_OBJ_TIMER(j)--;
+      }
 
       if (!GET_OBJ_TIMER(j)) {
+        if (j->carried_by)
+          act("$p decays in your hands.", FALSE, j->carried_by, j, 0, CommTarget::TO_CHAR);
+        else if ((IN_ROOM(j) != NOWHERE) && (world[IN_ROOM(j)].people)) {
+          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_ROOM);
+          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_CHAR);
+        }
+        for (jj = j->contains; jj; jj = next_thing2) {
 
-	if (j->carried_by)
-	  act("$p decays in your hands.", FALSE, j->carried_by, j, 0, CommTarget::TO_CHAR);
-	else if ((IN_ROOM(j) != NOWHERE) && (world[IN_ROOM(j)].people)) {
-	  act("A quivering horde of maggots consumes $p.",
-	      TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_ROOM);
-	  act("A quivering horde of maggots consumes $p.",
-	      TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_CHAR);
-	}
-	for (jj = j->contains; jj; jj = next_thing2) {
-	  next_thing2 = jj->next_content;	/* Next in inventory */
-	  obj_from_obj(jj);
+          next_thing2 = jj->next_content;	/* Next in inventory */
+          obj_from_obj(jj);
 
-	  if (j->in_obj)
-	    obj_to_obj(jj, j->in_obj);
-	  else if (j->carried_by)
-	    obj_to_room(jj, IN_ROOM(j->carried_by));
-	  else if (IN_ROOM(j) != NOWHERE)
-	    obj_to_room(jj, IN_ROOM(j));
-	  else
-	    core_dump();
-	}
-	extract_obj(j);
+          if (j->in_obj) {
+            obj_to_obj(jj, j->in_obj);
+          }
+          else if (j->carried_by) {
+            obj_to_room(jj, IN_ROOM(j->carried_by));
+          }
+          else if (IN_ROOM(j) != NOWHERE) {
+            obj_to_room(jj, IN_ROOM(j));
+          }
+          else {
+            core_dump();
+          }
+        }
+        extract_obj(j);
       }
     }
   }

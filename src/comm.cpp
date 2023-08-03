@@ -13,6 +13,8 @@
 #include "conf.h"
 #include "sysdep.h"
 
+#include "act.h"
+
 #if CIRCLE_GNU_LIBC_MEMORY_TRACK
 # include <mcheck.h>
 #endif
@@ -73,7 +75,6 @@
 /* externs */
 extern struct ban_list_element *ban_list;
 extern int num_invalid;
-extern char *GREETINGS;
 extern const char *circlemud_version;
 extern int circle_restrict;
 extern int mini_mud;
@@ -90,7 +91,6 @@ extern int autosave_time;	/* see config.c */
 extern int *cmd_sort_info;
 
 extern struct time_info_data time_info;		/* In db.c */
-extern char *help;
 
 /* local globals */
 struct descriptor_data *descriptor_list = NULL;		/* master desc list */
@@ -160,7 +160,6 @@ void weather_and_time(int mode);
 int perform_alias(struct descriptor_data *d, char *orig, size_t maxlen);
 void clear_free_list(void);
 void Board_clear_all(void);
-void free_social_messages(void);
 void Free_Invalid_List(void);
 
 #ifdef __CXREF__
@@ -328,7 +327,6 @@ int main(int argc, char **argv)
     basic_mud_log("Clearing other memory.");
     free_player_index();	/* db.c */
     clear_free_list();		/* mail.c */
-    free_text_files();		/* db.c */
     Board_clear_all();		/* boards.c */
     free(cmd_sort_info);	/* act.informative.c */
     free_social_messages();	/* act.social.c */
@@ -1376,7 +1374,7 @@ int new_descriptor(socket_t s)
   newd->next = descriptor_list;
   descriptor_list = newd;
 
-  write_to_output(newd, "%s", GREETINGS);
+  write_to_output(newd, "%s", GREETINGS.c_str());
 
   return (0);
 }

@@ -20,14 +20,13 @@
 #include "db.h"
 #include "constants.h"
 #include "interpreter.h"
+#include "config.h"
+#include "act.h"
+#include "fight.h"
 
 /* external functions */
 void clearMemory(struct char_data *ch);
-void weight_change_object(struct obj_data *obj, int weight);
 int mag_savingthrow(struct char_data *ch, int type, int modifier);
-void name_to_drinkcon(struct obj_data *obj, int type);
-void name_from_drinkcon(struct obj_data *obj);
-int compute_armor_class(struct char_data *ch);
 
 /*
  * Special spells appear below.
@@ -86,7 +85,7 @@ ASPELL(spell_teleport)
     return;
 
   do {
-    to_room = rand_number(0, top_of_world);
+    to_room = rand_number(0, world.size() + 1);
   } while (ROOM_FLAGGED(to_room, ROOM_PRIVATE | ROOM_DEATH | ROOM_GODROOM));
 
   act("$n slowly fades out of existence and is gone.",
@@ -166,28 +165,37 @@ ASPELL(spell_locate_object)
   strlcpy(name, fname(obj->name.c_str()), sizeof(name));
   j = level / 2;
 
-  for (i = object_list; i && (j > 0); i = i->next) {
-    if (!isname(name, i->name.c_str()))
+  for (auto it = object_list.begin(); it != object_list.end(); ++it ) {
+    i = *it;
+
+    if (!isname(name, i->name.c_str())) {
       continue;
+    }
 
     send_to_char(ch, "%c%s", UPPER(*i->short_description.c_str()), i->short_description.c_str());
 
-    if (i->carried_by)
+    if (i->carried_by) {
       send_to_char(ch, " is being carried by %s.\r\n", PERS(i->carried_by, ch));
-    else if (IN_ROOM(i) != NOWHERE)
+    }
+    else if (IN_ROOM(i) != NOWHERE) {
       send_to_char(ch, " is in %s.\r\n", world[IN_ROOM(i)].name.c_str());
-    else if (i->in_obj)
+    }
+    else if (i->in_obj) {
       send_to_char(ch, " is in %s.\r\n", i->in_obj->short_description.c_str());
-    else if (i->worn_by)
+    }
+    else if (i->worn_by) {
       send_to_char(ch, " is being worn by %s.\r\n", PERS(i->worn_by, ch));
-    else
+    }
+    else {
       send_to_char(ch, "'s location is uncertain.\r\n");
+    }
 
     j--;
   }
 
-  if (j == level / 2)
+  if (j == level / 2) {
     send_to_char(ch, "You sense nothing.\r\n");
+  }
 }
 
 

@@ -19,26 +19,9 @@
 #include "handler.h"
 #include "db.h"
 #include "spells.h"
-
-/* extern variables */
-extern int pk_allowed;
-
-/* extern functions */
-void raw_kill(struct char_data *ch);
-void check_killer(struct char_data *ch, struct char_data *vict);
-int compute_armor_class(struct char_data *ch);
-
-/* local functions */
-ACMD(do_assist);
-ACMD(do_hit);
-ACMD(do_kill);
-ACMD(do_backstab);
-ACMD(do_order);
-ACMD(do_flee);
-ACMD(do_bash);
-ACMD(do_rescue);
-ACMD(do_kick);
-
+#include "config.h"
+#include "act.h"
+#include "fight.h"
 
 ACMD(do_assist)
 {
@@ -55,7 +38,7 @@ ACMD(do_assist)
   if (!*arg)
     send_to_char(ch, "Whom do you wish to assist?\r\n");
   else if (!(helpee = get_char_vis(ch, arg, NULL, FIND_CHAR_ROOM)))
-    send_to_char(ch, "%s", NOPERSON);
+    send_to_char(ch, "%s", NOPERSON.c_str());
   else if (helpee == ch)
     send_to_char(ch, "You can't help yourself any more than this!\r\n");
   else {
@@ -147,6 +130,7 @@ ACMD(do_kill)
     else if (ch == vict)
       send_to_char(ch, "Your mother would be so sad.. :(\r\n");
     else {
+      basic_mud_log("%s kills %s", GET_NAME(ch), GET_NAME(vict));
       act("You chop $M to pieces!  Ah!  The blood!", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
       act("$N chops you to pieces!", FALSE, vict, 0, ch, CommTarget::TO_CHAR);
       act("$n brutally slays $N!", FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
@@ -243,7 +227,7 @@ ACMD(do_order)
       if ((vict->master != ch) || !AFF_FLAGGED(vict, AFF_CHARM))
 	act("$n has an indifferent look.", FALSE, vict, 0, 0, CommTarget::TO_ROOM);
       else {
-	send_to_char(ch, "%s", OK);
+	send_to_char(ch, "%s", OK.c_str());
 	command_interpreter(vict, message);
       }
     } else {			/* This is order "followers" */
@@ -260,9 +244,9 @@ ACMD(do_order)
 	  }
       }
       if (found)
-	send_to_char(ch, "%s", OK);
+        send_to_char(ch, "%s", OK.c_str());
       else
-	send_to_char(ch, "Nobody here is a loyal subject of yours!\r\n");
+        send_to_char(ch, "Nobody here is a loyal subject of yours!\r\n");
     }
   }
 }

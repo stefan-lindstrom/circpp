@@ -19,11 +19,13 @@
 #include "db.h"
 #include "spells.h"
 #include "constants.h"
+#include "class.h"
+#include "spec_procs.h"
+#include "act.h"
 
 /*   external vars  */
 extern struct time_info_data time_info;
 extern struct spell_info_type spell_info[];
-extern struct guild_info_type guild_info[];
 
 /* extern functions */
 ACMD(do_drop);
@@ -35,7 +37,6 @@ ACMD(do_action);
 void sort_spells(void);
 int compare_spells(const void *x, const void *y);
 const char *how_good(int percent);
-void list_skills(struct char_data *ch);
 SPECIAL(guild);
 SPECIAL(dump);
 SPECIAL(mayor);
@@ -110,9 +111,6 @@ const char *prac_types[] = {
 #define MAX_PER_PRAC	1	/* max percent gain in skill per practice */
 #define MIN_PER_PRAC	2	/* min percent gain in skill per practice */
 #define PRAC_TYPE	3	/* should it say 'spell' or 'skill'?	 */
-
-/* actual prac_params are in class.c */
-extern int prac_params[4][NUM_CLASSES];
 
 #define LEARNED(ch) (prac_params[LEARNED_LEVEL][(int)GET_CLASS(ch)])
 #define MINGAIN(ch) (prac_params[MIN_PER_PRAC][(int)GET_CLASS(ch)])

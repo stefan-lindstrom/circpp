@@ -34,6 +34,8 @@ extern FILE *logfile;
 #define READ_SIZE	256
 
 /* public functions in utils.c */
+struct time_info_data *real_time_passed(time_t t2, time_t t1);
+void prune_crlf(std::string &txt);
 void	basic_mud_log(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 void	basic_mud_vlog(const char *format, va_list args);
 int	touch(const char *path);
@@ -90,18 +92,10 @@ void	add_follower(struct char_data *ch, struct char_data *leader);
 void	stop_follower(struct char_data *ch);
 bool	circle_follow(struct char_data *ch, struct char_data *victim);
 
-/* in act.informative.c */
-void	look_at_room(struct char_data *ch, int mode);
-
-/* in act.movmement.c */
-int	do_simple_move(struct char_data *ch, int dir, int following);
-int	perform_move(struct char_data *ch, int dir, int following);
-
 /* in limits.c */
 int	mana_gain(struct char_data *ch);
 int	hit_gain(struct char_data *ch);
 int	move_gain(struct char_data *ch);
-void	advance_level(struct char_data *ch);
 void	set_title(struct char_data *ch, char *title);
 void	gain_exp(struct char_data *ch, int gain);
 void	gain_exp_regardless(struct char_data *ch, int gain);
@@ -225,8 +219,7 @@ void	update_pos(struct char_data *victim);
  * IS_MOB() acts as a VALID_MOB_RNUM()-like function.
  */
 #define IS_NPC(ch)	(IS_SET(MOB_FLAGS(ch), MOB_ISNPC))
-#define IS_MOB(ch)	(IS_NPC(ch) && GET_MOB_RNUM(ch) <= top_of_mobt && \
-				GET_MOB_RNUM(ch) != NOBODY)
+#define IS_MOB(ch)	(IS_NPC(ch) && static_cast<unsigned long>(GET_MOB_RNUM(ch)) <= (mob_proto.size() + 1) && GET_MOB_RNUM(ch) != NOBODY)
 
 #define MOB_FLAGGED(ch, flag) (IS_NPC(ch) && IS_SET(MOB_FLAGS(ch), (flag)))
 #define PLR_FLAGGED(ch, flag) (!IS_NPC(ch) && IS_SET(PLR_FLAGS(ch), (flag)))
@@ -256,7 +249,7 @@ void	update_pos(struct char_data *victim);
 #define IS_DARK(room)	room_is_dark((room))
 #define IS_LIGHT(room)  (!IS_DARK(room))
 
-#define VALID_ROOM_RNUM(rnum)	((rnum) != NOWHERE && (rnum) <= top_of_world)
+#define VALID_ROOM_RNUM(rnum)	((rnum) != NOWHERE && static_cast<unsigned long>(rnum) <= world.size())
 #define GET_ROOM_VNUM(rnum) \
 	((room_vnum)(VALID_ROOM_RNUM(rnum) ? world[(rnum)].number : NOWHERE))
 #define GET_ROOM_SPEC(room) \
@@ -391,8 +384,7 @@ void	update_pos(struct char_data *victim);
  * If using unsigned types, the top array index will catch everything.
  * If using signed types, NOTHING will catch the majority of bad accesses.
  */
-#define VALID_OBJ_RNUM(obj)	(GET_OBJ_RNUM(obj) <= top_of_objt && \
-				 GET_OBJ_RNUM(obj) != NOTHING)
+#define VALID_OBJ_RNUM(obj)	(static_cast<unsigned long>(GET_OBJ_RNUM(obj)) < obj_proto.size() && GET_OBJ_RNUM(obj) != NOTHING)
 
 #define GET_OBJ_TYPE(obj)	((obj)->obj_flags.type_flag)
 #define GET_OBJ_COST(obj)	((obj)->obj_flags.cost)

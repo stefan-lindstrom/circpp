@@ -20,11 +20,11 @@
 #include "db.h"
 #include "interpreter.h"
 #include "constants.h"
+#include "class.h"
+#include "config.h"
 
 /* external functions */
-byte saving_throws(int class_num, int type, int level); /* class.c */
 void clearMemory(struct char_data *ch);
-void weight_change_object(struct obj_data *obj, int weight);
 
 /* local functions */
 int mag_materials(struct char_data *ch, int item0, int item1, int item2, int extract, int verbose);
@@ -71,7 +71,9 @@ void affect_update(void)
 {
   struct char_data *i;
 
-  for (i = character_list; i; i = i->next) {
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    i = *it;
+
     for (auto af = i->affected.begin(); af != i->affected.end(); ++af) {      
       if (af->duration >= 1) {
         af->duration--;
@@ -350,7 +352,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
 
   case SPELL_CURSE:
     if (mag_savingthrow(victim, savetype, 0)) {
-      send_to_char(ch, "%s", NOEFFECT);
+      send_to_char(ch, "%s", NOEFFECT.c_str());
       return;
     }
 
@@ -414,7 +416,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
 
   case SPELL_POISON:
     if (mag_savingthrow(victim, savetype, 0)) {
-      send_to_char(ch, "%s", NOEFFECT);
+      send_to_char(ch, "%s", NOEFFECT.c_str());
       return;
     }
 
@@ -495,7 +497,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
   if (IS_NPC(victim) && !affected_by_spell(victim, spellnum))
     for (i = 0; i < MAX_SPELL_AFFECTS; i++)
       if (AFF_FLAGGED(victim, af[i].bitvector)) {
-	send_to_char(ch, "%s", NOEFFECT);
+	send_to_char(ch, "%s", NOEFFECT.c_str());
 	return;
       }
 
@@ -504,7 +506,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
    * not have an accumulative effect, then fail the spell.
    */
   if (affected_by_spell(victim,spellnum) && !(accum_duration||accum_affect)) {
-    send_to_char(ch, "%s", NOEFFECT);
+    send_to_char(ch, "%s", NOEFFECT.c_str());
     return;
   }
 
@@ -862,7 +864,7 @@ void mag_unaffects(int level, struct char_data *ch, struct char_data *victim, in
 
   if (!affected_by_spell(victim, spell)) {
     if (msg_not_affected)
-      send_to_char(ch, "%s", NOEFFECT);
+      send_to_char(ch, "%s", NOEFFECT.c_str());
     return;
   }
 
@@ -933,7 +935,7 @@ void mag_alter_objs(int level, struct char_data *ch, struct obj_data *obj, int s
   }
 
   if (to_char == NULL)
-    send_to_char(ch, "%s", NOEFFECT);
+    send_to_char(ch, "%s", NOEFFECT.c_str());
   else
     act(to_char, TRUE, ch, obj, 0, CommTarget::TO_CHAR);
 

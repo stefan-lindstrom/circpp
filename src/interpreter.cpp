@@ -22,21 +22,15 @@
 #include "handler.h"
 #include "mail.h"
 #include "screen.h"
-
+#include "class.h"
+#include "config.h"
+#include "act.h"
 
 /* external variables */
 extern room_rnum r_mortal_start_room;
 extern room_rnum r_immort_start_room;
 extern room_rnum r_frozen_start_room;
-extern const char *class_menu;
-extern char *motd;
-extern char *imotd;
-extern char *background;
-extern char *MENU;
-extern char *WELC_MESSG;
-extern char *START_MESSG;
-extern struct player_index_element *player_table;
-extern int top_of_p_table;
+
 extern int circle_restrict;
 extern int no_specials;
 extern int max_bad_pws;
@@ -44,8 +38,6 @@ extern int max_bad_pws;
 /* external functions */
 void echo_on(struct descriptor_data *d);
 void echo_off(struct descriptor_data *d);
-void do_start(struct char_data *ch);
-int parse_class(char arg);
 int special(struct char_data *ch, int cmd, char *arg);
 int isbanned(char *hostname);
 int Valid_Name(char *newname);
@@ -1142,7 +1134,7 @@ int _parse_name(char *arg, char *name)
 int perform_dupe_check(struct descriptor_data *d)
 {
   struct descriptor_data *k, *next_k;
-  struct char_data *target = NULL, *ch, *next_ch;
+  struct char_data *target = nullptr, *ch;
   int mode = 0;
 
   int id = GET_IDNUM(d->character);
@@ -1200,21 +1192,25 @@ int perform_dupe_check(struct descriptor_data *d)
   * duplicates, though theoretically none should be able to exist).
   */
 
-  for (ch = character_list; ch; ch = next_ch) {
-    next_ch = ch->next;
+  for (auto it = character_list.begin(); it != character_list.end(); ++it) {
+    ch = *it;
 
-    if (IS_NPC(ch))
+    if (IS_NPC(ch)) {
       continue;
-    if (GET_IDNUM(ch) != id)
+    }
+    if (GET_IDNUM(ch) != id) {
       continue;
+    }
 
     /* ignore chars with descriptors (already handled by above step) */
-    if (ch->desc)
+    if (ch->desc) {
       continue;
+    }
 
     /* don't extract the target char we've found one already */
-    if (ch == target)
+    if (ch == target) {
       continue;
+    }
 
     /* we don't already have a target and found a candidate for switching */
     if (!target) {
@@ -1224,15 +1220,16 @@ int perform_dupe_check(struct descriptor_data *d)
     }
 
     /* we've found a duplicate - blow him away, dumping his eq in limbo. */
-    if (IN_ROOM(ch) != NOWHERE)
+    if (IN_ROOM(ch) != NOWHERE) {
       char_from_room(ch);
+    }
     char_to_room(ch, 1);
     extract_char(ch);
   }
 
   /* no target for switching into was found - allow login to continue */
   if (!target)
-    return (0);
+    return 0;
 
   /* Okay, we've found a target.  Connect d to target. */
   free_char(d->character); /* get rid of the old char */
@@ -1264,7 +1261,7 @@ int perform_dupe_check(struct descriptor_data *d)
     break;
   }
 
-  return (1);
+  return 1;
 }
 
 
@@ -1426,9 +1423,9 @@ void nanny(struct descriptor_data *d, char *arg)
 	return;
 
       if (GET_LEVEL(d->character) >= LVL_IMMORT)
-	write_to_output(d, "%s", imotd);
+      	write_to_output(d, "%s", imotd.c_str());
       else
-	write_to_output(d, "%s", motd);
+      	write_to_output(d, "%s", motd.c_str());
 
       mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(d->character)), TRUE, "%s [%s] has connected.", GET_NAME(d->character), d->host);
 
@@ -1479,7 +1476,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_QSEX;
     } else {
       save_char(d->character);
-      write_to_output(d, "\r\nDone.\r\n%s", MENU);
+      write_to_output(d, "\r\nDone.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     }
     break;
@@ -1517,14 +1514,14 @@ void nanny(struct descriptor_data *d, char *arg)
     /* Now GET_NAME() will work properly. */
     init_char(d->character);
     save_char(d->character);
-    write_to_output(d, "%s\r\n*** PRESS RETURN: ", motd);
+    write_to_output(d, "%s\r\n*** PRESS RETURN: ", motd.c_str());
     STATE(d) = CON_RMOTD;
 
     mudlog(NRM, LVL_IMMORT, TRUE, "%s [%s] new player.", GET_NAME(d->character), d->host);
     break;
 
   case CON_RMOTD:		/* read CR after printing motd   */
-    write_to_output(d, "%s", MENU);
+    write_to_output(d, "%s", MENU.c_str());
     STATE(d) = CON_MENU;
     break;
 
@@ -1563,9 +1560,9 @@ void nanny(struct descriptor_data *d, char *arg)
       if (PLR_FLAGGED(d->character, PLR_FROZEN))
         load_room = r_frozen_start_room;
 
-      send_to_char(d->character, "%s", WELC_MESSG);
-      d->character->next = character_list;
-      character_list = d->character;
+      send_to_char(d->character, "%s", WELC_MESSG.c_str());
+      character_list.push_back(d->character);
+
       char_to_room(d->character, load_room);
       load_result = Crash_load(d->character);
 
@@ -1579,7 +1576,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_PLAYING;
       if (GET_LEVEL(d->character) == 0) {
 	do_start(d->character);
-	send_to_char(d->character, "%s", START_MESSG);
+	send_to_char(d->character, "%s", START_MESSG.c_str());
       }
       look_at_room(d->character, 0);
       if (has_mail(GET_IDNUM(d->character)))
@@ -1604,7 +1601,7 @@ void nanny(struct descriptor_data *d, char *arg)
       break;
 
     case '3':
-      page_string(d, background, 0);
+      page_string(d, background);
       STATE(d) = CON_RMOTD;
       break;
 
@@ -1621,7 +1618,7 @@ void nanny(struct descriptor_data *d, char *arg)
       break;
 
     default:
-      write_to_output(d, "\r\nThat's not a menu choice!\r\n%s", MENU);
+      write_to_output(d, "\r\nThat's not a menu choice!\r\n%s", MENU.c_str());
       break;
     }
     break;
@@ -1630,7 +1627,7 @@ void nanny(struct descriptor_data *d, char *arg)
   case CON_CHPWD_GETOLD:
     if (strncmp(CRYPT(arg, GET_PASSWD(d->character)), GET_PASSWD(d->character), MAX_PWD_LENGTH)) {
       echo_on(d);
-      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU);
+      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     } else {
       write_to_output(d, "\r\nEnter a new password: ");
@@ -1641,7 +1638,7 @@ void nanny(struct descriptor_data *d, char *arg)
   case CON_DELCNF1:
     echo_on(d);
     if (strncmp(CRYPT(arg, GET_PASSWD(d->character)), GET_PASSWD(d->character), MAX_PWD_LENGTH)) {
-      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU);
+      write_to_output(d, "\r\nIncorrect password.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     } else {
       write_to_output(d, "\r\nYOU ARE ABOUT TO DELETE THIS CHARACTER PERMANENTLY.\r\n"
@@ -1670,7 +1667,7 @@ void nanny(struct descriptor_data *d, char *arg)
       STATE(d) = CON_CLOSE;
       return;
     } else {
-      write_to_output(d, "\r\nCharacter not deleted.\r\n%s", MENU);
+      write_to_output(d, "\r\nCharacter not deleted.\r\n%s", MENU.c_str());
       STATE(d) = CON_MENU;
     }
     break;

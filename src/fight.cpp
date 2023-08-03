@@ -21,36 +21,29 @@
 #include "spells.h"
 #include "screen.h"
 #include "constants.h"
+#include "class.h"
+#include "fight.h"
+#include "config.h"
+#include "act.h"
 
 #include <algorithm>
 
 /* Structures */
-struct char_data *combat_list = NULL;	/* head of l-list of fighting chars */
-struct char_data *next_combat_list = NULL;
-
-/* External procedures */
-char *fread_action(FILE *fl, int nr);
-ACMD(do_flee);
-int backstab_mult(int level);
-int thaco(int ch_class, int level);
-int ok_damage_shopkeeper(struct char_data *ch, struct char_data *victim);
+struct std::list<char_data *> combat_list;
 
 /* local functions */
 void perform_group_gain(struct char_data *ch, int base, struct char_data *victim);
 void dam_message(int dam, struct char_data *ch, struct char_data *victim, int w_type);
-void appear(struct char_data *ch);
 void load_messages(void);
 void check_killer(struct char_data *ch, struct char_data *vict);
 void make_corpse(struct char_data *ch);
 void change_alignment(struct char_data *ch, struct char_data *victim);
 void death_cry(struct char_data *ch);
 void raw_kill(struct char_data *ch);
-void die(struct char_data *ch);
 void group_gain(struct char_data *ch, struct char_data *victim);
 void solo_gain(struct char_data *ch, struct char_data *victim);
 char *replace_string(const char *str, const char *weapon_singular, const char *weapon_plural);
 void perform_violence(void);
-int compute_armor_class(struct char_data *ch);
 int compute_thaco(struct char_data *ch, struct char_data *vict);
 
 /* Weapon attack texts */
@@ -216,8 +209,9 @@ void set_fighting(struct char_data *ch, struct char_data *vict)
     return;
   }
 
-  ch->next_fighting = combat_list;
-  combat_list = ch;
+
+  combat_list.push_back(ch);
+
 
   if (AFF_FLAGGED(ch, AFF_SLEEP))
     affect_from_char(ch, SPELL_SLEEP);
@@ -234,13 +228,9 @@ void set_fighting(struct char_data *ch, struct char_data *vict)
 /* remove a char from the list of fighting chars */
 void stop_fighting(struct char_data *ch)
 {
-  struct char_data *temp;
+  auto removed = std::remove(combat_list.begin(), combat_list.end(), ch);
+  combat_list.erase(removed, combat_list.end());
 
-  if (ch == next_combat_list)
-    next_combat_list = ch->next_fighting;
-
-  REMOVE_FROM_LIST(ch, combat_list, next_fighting);
-  ch->next_fighting = NULL;
   FIGHTING(ch) = NULL;
   GET_POS(ch) = POS_STANDING;
   update_pos(ch);
@@ -941,8 +931,8 @@ void perform_violence(void)
 {
   struct char_data *ch;
 
-  for (ch = combat_list; ch; ch = next_combat_list) {
-    next_combat_list = ch->next_fighting;
+  for (auto it = combat_list.begin(); it != combat_list.end();  ++it) {
+    ch = *it;
 
     if (FIGHTING(ch) == NULL || IN_ROOM(ch) != IN_ROOM(FIGHTING(ch))) {
       stop_fighting(ch);
@@ -951,13 +941,14 @@ void perform_violence(void)
 
     if (IS_NPC(ch)) {
       if (GET_MOB_WAIT(ch) > 0) {
-	GET_MOB_WAIT(ch) -= PULSE_VIOLENCE;
-	continue;
+        GET_MOB_WAIT(ch) -= PULSE_VIOLENCE;
+        continue;
       }
       GET_MOB_WAIT(ch) = 0;
+
       if (GET_POS(ch) < POS_FIGHTING) {
-	GET_POS(ch) = POS_FIGHTING;
-	act("$n scrambles to $s feet!", TRUE, ch, 0, 0, CommTarget::TO_ROOM);
+        GET_POS(ch) = POS_FIGHTING;
+        act("$n scrambles to $s feet!", TRUE, ch, 0, 0, CommTarget::TO_ROOM);
       }
     }
 

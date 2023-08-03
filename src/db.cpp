@@ -16,8 +16,9 @@
 #include "conf.h"
 #include "sysdep.h"
 
-#include <vector>
 #include <algorithm>
+#include <fstream>
+#include <streambuf>
 
 #include "structs.h"
 #include "utils.h"
@@ -35,36 +36,28 @@
 #include "mob_future.h"
 #include "shop.h"
 #include "shop_future.h"
+#include "class.h"
+#include "config.h"
+#include "act.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
 **************************************************************************/
 
 std::vector<room_data> world;
-room_rnum top_of_world = 0;	/* ref to top element of world	 */
-
-struct char_data *character_list = NULL;	/* global linked list of
-						 * chars	 */
-
+std::list<char_data *> character_list;
 std::vector<index_data> mob_index;
 std::vector<char_data> mob_proto;
-mob_rnum top_of_mobt = 0;	/* top of mobile index table	 */
-
-struct obj_data *object_list = NULL;	/* global linked list of objs	 */
-
+std::list<obj_data *> object_list;
 std::vector<index_data> obj_index;
 std::vector<obj_data> obj_proto;
-obj_rnum top_of_objt = 0;	/* top of object index table	 */
-
 std::vector<zone_data> zone_table;
-zone_rnum top_of_zone_table = 0;/* top element of zone tab	 */
-
 std::vector<message_list> fight_messages;	/* fighting messages	 */
 
-struct player_index_element *player_table = NULL;	/* index to plr file	 */
-FILE *player_fl = NULL;		/* file desc of player file	 */
-int top_of_p_table = 0;		/* ref to top of table		 */
+std::vector<player_index_element> player_table;
+FILE *player_fl = nullptr;		/* file desc of player file	 */
 long top_idnum = 0;		/* highest idnum in use		 */
+
 
 int no_mail = 0;		/* mail disabled?		 */
 int mini_mud = 0;		/* mini-mud mode?		 */
@@ -75,18 +68,18 @@ room_rnum r_mortal_start_room;	/* rnum of mortal start room	 */
 room_rnum r_immort_start_room;	/* rnum of immort start room	 */
 room_rnum r_frozen_start_room;	/* rnum of frozen start room	 */
 
-char *credits = NULL;		/* game credits			 */
-char *news = NULL;		/* mud news			 */
-char *motd = NULL;		/* message of the day - mortals */
-char *imotd = NULL;		/* message of the day - immorts */
-char *GREETINGS = NULL;		/* opening credits screen	*/
-char *help = NULL;		/* help screen			 */
-char *info = NULL;		/* info page			 */
-char *wizlist = NULL;		/* list of higher gods		 */
-char *immlist = NULL;		/* list of peon gods		 */
-char *background = NULL;	/* background story		 */
-char *handbook = NULL;		/* handbook for new immortals	 */
-char *policies = NULL;		/* policies page		 */
+std::string credits;		/* game credits			 */
+std::string news;		/* mud news			 */
+std::string motd;		/* message of the day - mortals */
+std::string imotd;		/* message of the day - immorts */
+std::string GREETINGS;		/* opening credits screen	*/
+std::string help;		/* help screen			 */
+std::string info;		/* info page			 */
+std::string wizlist;		/* list of higher gods		 */
+std::string immlist;		/* list of peon gods		 */
+std::string background;	/* background story		 */
+std::string handbook;		/* handbook for new immortals	 */
+std::string policies;		/* policies page		 */
 
 struct help_index_element *help_table = 0;	/* the help table	 */
 int top_of_helpt = 0;		/* top of help index table	 */
@@ -109,9 +102,10 @@ void assign_objects(void);
 void assign_rooms(void);
 void build_player_index(void);
 int is_empty(zone_rnum zone_nr);
-void reset_zone(zone_rnum zone);
 int file_to_string(const char *name, char *buf);
 int file_to_string_alloc(const char *name, char **buf);
+std::string slurp_file_to_string(const char *filename);
+
 void reboot_wizlists(void);
 ACMD(do_reboot);
 void boot_world(void);
@@ -132,9 +126,7 @@ struct time_info_data *mud_time_passed(time_t t2, time_t t1);
 void load_messages(void);
 void weather_and_time(int mode);
 void mag_assign_spells(void);
-void boot_social_messages(void);
 void update_obj_file(void);	/* In objsave.c */
-void sort_commands(void);
 void sort_spells(void);
 void load_banned(void);
 void Read_Invalid_List(void);
@@ -158,27 +150,9 @@ extern const char *unused_spellname;	/* spell_parser.c */
 /* this is necessary for the autowiz system */
 void reboot_wizlists(void)
 {
-  file_to_string_alloc(WIZLIST_FILE, &wizlist);
-  file_to_string_alloc(IMMLIST_FILE, &immlist);
+  wizlist = slurp_file_to_string(WIZLIST_FILE);
+  immlist = slurp_file_to_string(IMMLIST_FILE);
 }
-
-
-/* Wipe out all the loaded text files, for shutting down. */
-void free_text_files(void)
-{
-  char **textfiles[] = {
-	&wizlist, &immlist, &news, &credits, &motd, &imotd, &help, &info,
-	&policies, &handbook, &background, &GREETINGS, NULL
-  };
-  int rf;
-
-  for (rf = 0; textfiles[rf]; rf++)
-    if (*textfiles[rf]) {
-      free(*textfiles[rf]);
-      *textfiles[rf] = NULL;
-    }
-}
-
 
 /*
  * Too bad it doesn't check the return values to let the user
@@ -195,44 +169,57 @@ ACMD(do_reboot)
   one_argument(argument, arg);
 
   if (!str_cmp(arg, "all") || *arg == '*') {
-    if (file_to_string_alloc(GREETINGS_FILE, &GREETINGS) == 0)
-      prune_crlf(GREETINGS);
-    file_to_string_alloc(WIZLIST_FILE, &wizlist);
-    file_to_string_alloc(IMMLIST_FILE, &immlist);
-    file_to_string_alloc(NEWS_FILE, &news);
-    file_to_string_alloc(CREDITS_FILE, &credits);
-    file_to_string_alloc(MOTD_FILE, &motd);
-    file_to_string_alloc(IMOTD_FILE, &imotd);
-    file_to_string_alloc(HELP_PAGE_FILE, &help);
-    file_to_string_alloc(INFO_FILE, &info);
-    file_to_string_alloc(POLICIES_FILE, &policies);
-    file_to_string_alloc(HANDBOOK_FILE, &handbook);
-    file_to_string_alloc(BACKGROUND_FILE, &background);
-  } else if (!str_cmp(arg, "wizlist"))
-    file_to_string_alloc(WIZLIST_FILE, &wizlist);
-  else if (!str_cmp(arg, "immlist"))
-    file_to_string_alloc(IMMLIST_FILE, &immlist);
-  else if (!str_cmp(arg, "news"))
-    file_to_string_alloc(NEWS_FILE, &news);
-  else if (!str_cmp(arg, "credits"))
-    file_to_string_alloc(CREDITS_FILE, &credits);
-  else if (!str_cmp(arg, "motd"))
-    file_to_string_alloc(MOTD_FILE, &motd);
-  else if (!str_cmp(arg, "imotd"))
-    file_to_string_alloc(IMOTD_FILE, &imotd);
-  else if (!str_cmp(arg, "help"))
-    file_to_string_alloc(HELP_PAGE_FILE, &help);
-  else if (!str_cmp(arg, "info"))
-    file_to_string_alloc(INFO_FILE, &info);
-  else if (!str_cmp(arg, "policy"))
-    file_to_string_alloc(POLICIES_FILE, &policies);
-  else if (!str_cmp(arg, "handbook"))
-    file_to_string_alloc(HANDBOOK_FILE, &handbook);
-  else if (!str_cmp(arg, "background"))
-    file_to_string_alloc(BACKGROUND_FILE, &background);
+    GREETINGS = slurp_file_to_string(GREETINGS_FILE);
+    prune_crlf(GREETINGS);
+
+    wizlist = slurp_file_to_string(WIZLIST_FILE);
+    immlist = slurp_file_to_string(IMMLIST_FILE);
+    news = slurp_file_to_string(NEWS_FILE);
+    credits = slurp_file_to_string(CREDITS_FILE);
+    motd = slurp_file_to_string(MOTD_FILE);
+    imotd = slurp_file_to_string(IMOTD_FILE);
+    help = slurp_file_to_string(HELP_PAGE_FILE);
+    info = slurp_file_to_string(INFO_FILE);
+    policies = slurp_file_to_string(POLICIES_FILE);
+    handbook = slurp_file_to_string(HANDBOOK_FILE);
+    background = slurp_file_to_string(BACKGROUND_FILE);
+
+  } else if (!str_cmp(arg, "wizlist")) {
+    wizlist = slurp_file_to_string(WIZLIST_FILE);
+  }
+  else if (!str_cmp(arg, "immlist")){
+    immlist = slurp_file_to_string(IMMLIST_FILE);
+  }
+  else if (!str_cmp(arg, "news")) {
+    news = slurp_file_to_string(NEWS_FILE);
+  }
+  else if (!str_cmp(arg, "credits")) {
+    credits = slurp_file_to_string(CREDITS_FILE);
+  }
+  else if (!str_cmp(arg, "motd")) {
+    motd = slurp_file_to_string(MOTD_FILE);
+  }
+  else if (!str_cmp(arg, "imotd")) {
+    imotd = slurp_file_to_string(IMOTD_FILE);
+  }
+  else if (!str_cmp(arg, "help")) {
+    help = slurp_file_to_string(HELP_PAGE_FILE);
+  }
+  else if (!str_cmp(arg, "info")) {
+    info = slurp_file_to_string(INFO_FILE);
+  }
+  else if (!str_cmp(arg, "policy")) {
+    policies = slurp_file_to_string(POLICIES_FILE);
+  }
+  else if (!str_cmp(arg, "handbook")) {
+    handbook = slurp_file_to_string(HANDBOOK_FILE);
+      }
+  else if (!str_cmp(arg, "background")) {
+    background = slurp_file_to_string(BACKGROUND_FILE);
+  }
   else if (!str_cmp(arg, "greetings")) {
-    if (file_to_string_alloc(GREETINGS_FILE, &GREETINGS) == 0)
-      prune_crlf(GREETINGS);
+    GREETINGS = slurp_file_to_string(GREETINGS_FILE);
+    prune_crlf(GREETINGS);
   } else if (!str_cmp(arg, "xhelp")) {
     if (help_table)
       free_help();
@@ -242,7 +229,7 @@ ACMD(do_reboot)
     return;
   }
 
-  send_to_char(ch, "%s", OK);
+  send_to_char(ch, "%s", OK.c_str());
 }
 
 
@@ -260,7 +247,6 @@ void boot_world(void)
 
   basic_mud_log("Waiting for completion of zone loading...");
   zone_table = z.items();
-  top_of_zone_table = zone_table.size() - 1;
   basic_mud_log("   %lu zones, %lu bytes.", zone_table.size(), zone_table.size() * sizeof(zone_data));
 
   std::for_each(zone_table.begin(), zone_table.end(), [](zone_data z) {
@@ -274,7 +260,6 @@ void boot_world(void)
 
   basic_mud_log("Waiting for completion of object loading ... then building index.");
   obj_proto = o.items();
-  top_of_objt = obj_proto.size() + 1;
 
   std::for_each(obj_proto.begin(), obj_proto.end(), [](const obj_data &o) {
       index_data oi;
@@ -283,13 +268,12 @@ void boot_world(void)
       oi.func = nullptr;
       obj_index.push_back(oi);
     });
-  basic_mud_log("   %d objs, %lu bytes in index, %lu bytes in prototypes.", top_of_objt, top_of_objt * sizeof(index_data), top_of_objt * sizeof(obj_data));
+  basic_mud_log("   %ld objs, %lu bytes in index, %lu bytes in prototypes.", obj_proto.size(), obj_proto.size() * sizeof(index_data), obj_proto.size() * sizeof(obj_data));
 
   // get rooms.  
   basic_mud_log("Waiting for completion of room loading...");
   world = r.items();
-  top_of_world = world.size() - 1;
-  basic_mud_log("   %d rooms, %lu bytes.", top_of_world, top_of_world * sizeof(room_data));
+  basic_mud_log("   %ld rooms, %lu bytes.", world.size(), world.size() * sizeof(room_data));
 
   basic_mud_log("Renumbering rooms.");
   renum_world();
@@ -304,7 +288,6 @@ void boot_world(void)
 
   basic_mud_log("Waiting for completion of mob loading...");
   mob_proto = mobs.items();
-  top_of_mobt = mob_proto.size() + 1;
 
   std::for_each(mob_proto.begin(), mob_proto.end(), [](const char_data &m) {
       index_data mi;
@@ -314,7 +297,7 @@ void boot_world(void)
       mob_index.push_back(mi);
     });
 
-  basic_mud_log("   %d mobiles, %lu bytes.", top_of_mobt, top_of_mobt * sizeof(char_data));
+  basic_mud_log("   %ld mobiles, %lu bytes.", mob_proto.size(), mob_proto.size() * sizeof(char_data));
 
 
   basic_mud_log("Renumbering zone table.");
@@ -325,7 +308,6 @@ void boot_world(void)
     shop_future s(mini_mud);
     s.parse();
     shop_index = s.items();
-    top_shop = shop_index.size();
   }
 }
 
@@ -350,19 +332,20 @@ void boot_db(void)
   reset_time();
 
   basic_mud_log("Reading news, credits, help, bground, info & motds.");
-  file_to_string_alloc(NEWS_FILE, &news);
-  file_to_string_alloc(CREDITS_FILE, &credits);
-  file_to_string_alloc(MOTD_FILE, &motd);
-  file_to_string_alloc(IMOTD_FILE, &imotd);
-  file_to_string_alloc(HELP_PAGE_FILE, &help);
-  file_to_string_alloc(INFO_FILE, &info);
-  file_to_string_alloc(WIZLIST_FILE, &wizlist);
-  file_to_string_alloc(IMMLIST_FILE, &immlist);
-  file_to_string_alloc(POLICIES_FILE, &policies);
-  file_to_string_alloc(HANDBOOK_FILE, &handbook);
-  file_to_string_alloc(BACKGROUND_FILE, &background);
-  if (file_to_string_alloc(GREETINGS_FILE, &GREETINGS) == 0)
-    prune_crlf(GREETINGS);
+  
+  news = slurp_file_to_string(NEWS_FILE);
+  credits = slurp_file_to_string(CREDITS_FILE);
+  motd = slurp_file_to_string(MOTD_FILE);
+  imotd = slurp_file_to_string(IMOTD_FILE);
+  help = slurp_file_to_string(HELP_PAGE_FILE);
+  info = slurp_file_to_string(INFO_FILE);
+  wizlist = slurp_file_to_string(WIZLIST_FILE);
+  immlist = slurp_file_to_string(IMMLIST_FILE);
+  policies = slurp_file_to_string(POLICIES_FILE);
+  handbook = slurp_file_to_string(HANDBOOK_FILE);
+  background = slurp_file_to_string(BACKGROUND_FILE);
+  GREETINGS = slurp_file_to_string(GREETINGS_FILE);
+  prune_crlf(GREETINGS);
 
   basic_mud_log("Loading spell definitions.");
   mag_assign_spells();
@@ -422,9 +405,8 @@ void boot_db(void)
     House_boot();
   }
 
-  for (i = 0; i <= top_of_zone_table; i++) {
-    basic_mud_log("Resetting #%d: %s (rooms %d-%d).", zone_table[i].number,
-		  zone_table[i].name.c_str(), zone_table[i].bot, zone_table[i].top);
+  for (i = 0; static_cast<unsigned long>(i) < zone_table.size(); i++) {
+    basic_mud_log("Resetting #%d: %s (rooms %d-%d).", zone_table[i].number, zone_table[i].name.c_str(), zone_table[i].bot, zone_table[i].top);
     reset_zone(i);
   }
 
@@ -502,25 +484,17 @@ void save_mud_time(struct time_info_data *when)
 
 void free_player_index(void)
 {
-  int tp;
-
-  if (!player_table)
+  if (player_table.empty())
     return;
 
-  for (tp = 0; tp <= top_of_p_table; tp++)
-    if (player_table[tp].name)
-      free(player_table[tp].name);
-
-  free(player_table);
-  player_table = NULL;
-  top_of_p_table = 0;
+  player_table.clear();
 }
 
 
 /* generate index table for the player file */
 void build_player_index(void)
 {
-  int nr = -1, i;
+  int nr = -1;
   long size, recs;
   struct char_file_u dummy;
 
@@ -532,8 +506,8 @@ void build_player_index(void)
       basic_mud_log("No playerfile.  Creating a new one.");
       touch(PLAYER_FILE);
       if (!(player_fl = fopen(PLAYER_FILE, "r+b"))) {
-	perror("SYSERR: fatal error opening playerfile");
-	exit(1);
+      	perror("SYSERR: fatal error opening playerfile");
+	      exit(1);
       }
     }
   }
@@ -546,10 +520,8 @@ void build_player_index(void)
   recs = size / sizeof(struct char_file_u);
   if (recs) {
     basic_mud_log("   %ld players in database.", recs);
-    player_table = new player_index_element[recs];
   } else {
-    player_table = NULL;
-    top_of_p_table = -1;
+    player_table.clear();
     return;
   }
 
@@ -560,14 +532,19 @@ void build_player_index(void)
 
     /* new record */
     nr++;
-    player_table[nr].name = new char[strlen(dummy.name) + 1];
-    for (i = 0; (*(player_table[nr].name + i) = LOWER(*(dummy.name + i))); i++)
-      ;
-    player_table[nr].id = dummy.char_specials_saved.idnum;
-    top_idnum = MAX(top_idnum, dummy.char_specials_saved.idnum);
-  }
+    player_table.push_back(player_index_element());    
+    player_table[nr].name = std::string(dummy.name);
 
-  top_of_p_table = nr;
+    basic_mud_log("Name before: %s",player_table[nr].name.c_str());
+
+    std::transform(player_table[nr].name.begin(), player_table[nr].name.end(), player_table[nr].name.begin(), [](unsigned char c){ return std::tolower(c); });
+
+//    std::for_each(player_table[nr].name.begin(), player_table[nr].name.end(), [](unsigned char &ch) { return (ch =  std::tolower(ch)); });
+    basic_mud_log("Name after: %s",player_table[nr].name.c_str());
+
+    player_table[nr].id = dummy.char_specials_saved.idnum;
+    top_idnum = std::max(top_idnum, dummy.char_specials_saved.idnum);
+  }
 }
 
 /*
@@ -725,7 +702,7 @@ void renum_world(void)
 {
   int room, door;
 
-  for (room = 0; room <= top_of_world; room++)
+  for (room = 0; static_cast<unsigned long>(room) < world.size(); room++)
     for (door = 0; door < NUM_OF_DIRS; door++)
       if (std::get<1>(world[room].dir_option[door]))
 	if (std::get<0>(world[room].dir_option[door]).to_room != NOWHERE)
@@ -754,7 +731,7 @@ void renum_zone_table(void)
   zone_rnum zone;
   char buf[128];
 
-  for (zone = 0; zone <= top_of_zone_table; zone++)
+  for (zone = 0; static_cast<unsigned long>(zone) < zone_table.size(); zone++)
     for (cmd_no = 0; cmd_no < zone_table[zone].cmd.size(); cmd_no++) {
       a = b = c = 0;
       olda = ZCMD.arg1;
@@ -908,13 +885,16 @@ int hsort(const void *a, const void *b)
 
 int vnum_mobile(char *searchname, struct char_data *ch)
 {
-  int nr, found = 0;
+  unsigned long int nr;
+  int found = 0;
 
-  for (nr = 0; nr <= top_of_mobt; nr++)
-    if (isname(searchname, mob_proto[nr].player.name))
+  for (nr = 0; nr < mob_proto.size(); nr++) {
+    if (isname(searchname, mob_proto[nr].player.name)) {
       send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, mob_index[nr].vnum, mob_proto[nr].player.short_descr.c_str());
+    }
+  }
 
-  return (found);
+  return found;
 }
 
 
@@ -923,7 +903,7 @@ int vnum_object(char *searchname, struct char_data *ch)
 {
   int nr, found = 0;
 
-  for (nr = 0; nr <= top_of_objt; nr++)
+  for (nr = 0; static_cast<unsigned long>(nr) < obj_proto.size(); nr++)
     if (isname(searchname, obj_proto[nr].name.c_str()))
       send_to_char(ch, "%3d. [%5d] %s\r\n", ++found, obj_index[nr].vnum, obj_proto[nr].short_description.c_str());
 
@@ -938,8 +918,6 @@ struct char_data *create_char(void)
 
   ch = new char_data;
   clear_char(ch);
-  ch->next = character_list;
-  character_list = ch;
 
   return (ch);
 }
@@ -954,7 +932,7 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
   if (type == VIRTUAL) {
     if ((i = real_mobile(nr)) == NOBODY) {
       basic_mud_log("WARNING: Mobile vnum %d does not exist in database.", nr);
-      return (NULL);
+      return nullptr;
     }
   } else
     i = nr;
@@ -962,8 +940,7 @@ struct char_data *read_mobile(mob_vnum nr, int type) /* and mob_rnum */
   mob = new char_data;
   clear_char(mob);
   *mob = mob_proto[i];
-  mob->next = character_list;
-  character_list = mob;
+  character_list.push_back(mob);
 
   if (!mob->points.max_hit) {
     mob->points.max_hit = dice(mob->points.hit, mob->points.mana) +
@@ -994,10 +971,9 @@ struct obj_data *create_obj(void)
 
   obj->ex_description = std::list<extra_descr_data>();
   clear_object(obj);
-  obj->next = object_list;
-  object_list = obj;
+  object_list.push_back(obj);
 
-  return (obj);
+  return obj;
 }
 
 
@@ -1007,7 +983,7 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
   struct obj_data *obj;
   obj_rnum i = type == VIRTUAL ? real_object(nr) : nr;
 
-  if (i == NOTHING || i > top_of_objt) {
+  if (i == NOTHING || static_cast<unsigned long>(i) > obj_proto.size()) {
     basic_mud_log("Object (%c) %d does not exist in database.", type == VIRTUAL ? 'V' : 'R', nr);
     return (NULL);
   }
@@ -1018,8 +994,7 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
 
   *obj = obj_proto[i];
 
-  obj->next = object_list;
-  object_list = obj;
+  object_list.push_back(obj);
 
   obj_index[i].number++;
 
@@ -1048,7 +1023,7 @@ void zone_update(void)
     timer = 0;
 
     /* since one minute has passed, increment zone ages */
-    for (i = 0; i <= top_of_zone_table; i++) {
+    for (i = 0; static_cast<unsigned long>(i) < zone_table.size(); i++) {
       if (zone_table[i].age < zone_table[i].lifespan &&
 	  zone_table[i].reset_mode)
 	(zone_table[i].age)++;
@@ -1276,37 +1251,37 @@ int is_empty(zone_rnum zone_nr)
 
 long get_ptable_by_name(const char *name)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i <= top_of_p_table; i++)
-    if (!str_cmp(player_table[i].name, name))
-      return (i);
+  for (i = 0; i < player_table.size(); i++)
+    if (!str_cmp(player_table[i].name.c_str(), name))
+      return i;
 
-  return (-1);
+  return -1;
 }
 
 
 long get_id_by_name(const char *name)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i <= top_of_p_table; i++)
-    if (!str_cmp(player_table[i].name, name))
+  for (i = 0; i < player_table.size(); i++)
+    if (!str_cmp(player_table[i].name.c_str(), name))
       return (player_table[i].id);
 
-  return (-1);
+  return -1;
 }
 
 
-char *get_name_by_id(long id)
+std::string get_name_by_id(long id)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i <= top_of_p_table; i++)
+  for (i = 0; i < player_table.size(); i++)
     if (player_table[i].id == id)
       return (player_table[i].name);
 
-  return (NULL);
+  return std::string();
 }
 
 
@@ -1451,7 +1426,6 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
     auto &aff = ch->affected.front();
     affect_remove(ch, aff);
   }
-  //  std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
 
   if (sz > MAX_AFFECT)
     basic_mud_log("SYSERR: WARNING: OUT OF STORE ROOM FOR AFFECTED TYPES!!!");
@@ -1522,25 +1496,16 @@ void char_to_store(struct char_data *ch, struct char_file_u *st)
  */
 int create_entry(const char *name)
 {
-  int i, pos;
+  int i;
 
-  if (top_of_p_table == -1) {	/* no table */
-    player_table = new player_index_element;
-    pos = top_of_p_table = 0;
-  } else if ((pos = get_ptable_by_name(name)) == -1) {	/* new name */
-    i = ++top_of_p_table + 1;
-
-    RECREATE(player_table, struct player_index_element, i, top_of_p_table);
-    pos = top_of_p_table;
-  }
-
-  player_table[pos].name = new char[strlen(name) + 1];
+  player_table.push_back(player_index_element());
+  player_table.back().name = new char[strlen(name) + 1];
 
   /* copy lowercase equivalent of name to table field */
-  for (i = 0; (player_table[pos].name[i] = LOWER(name[i])); i++)
-	/* Nothing */;
+  for (i = 0; (player_table.back().name[i] = LOWER(name[i])); i++)
+    ;
 
-  return (pos);
+  return (player_table.size() - 1);
 }
 
 
@@ -1610,7 +1575,7 @@ void free_char(struct char_data *ch)
   std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
 
   if (ch->desc)
-    ch->desc->character = NULL;
+    ch->desc->character = nullptr;
 
   free(ch);
 }
@@ -1622,6 +1587,12 @@ void free_obj(struct obj_data *obj)
   delete obj;
 }
 
+
+std::string slurp_file_to_string(const char *filename)
+{
+  std::ifstream t(filename);
+  return std::string((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+}
 
 /*
  * Steps:
@@ -1723,7 +1694,6 @@ void reset_char(struct char_data *ch)
   IN_ROOM(ch) = NOWHERE;
   ch->carrying = NULL;
   ch->next = NULL;
-  ch->next_fighting = NULL;
   ch->next_in_room = NULL;
   FIGHTING(ch) = NULL;
   ch->char_specials.position = POS_STANDING;
@@ -1747,8 +1717,6 @@ void reset_char(struct char_data *ch)
 /* clear ALL the working variables of a char; do NOT free any space alloc'ed */
 void clear_char(struct char_data *ch)
 {
-  //  memset((char *) ch, 0, sizeof(struct char_data));
-
   IN_ROOM(ch) = NOWHERE;
   GET_PFILEPOS(ch) = -1;
   GET_MOB_RNUM(ch) = NOBODY;
@@ -1786,7 +1754,7 @@ void init_char(struct char_data *ch)
     ch->player_specials = new player_special_data;
 
   /* *** if this is our first player --- he be God *** */
-  if (top_of_p_table == 0) {
+  if (player_table.empty()) {
     GET_LEVEL(ch) = LVL_IMPL;
     GET_EXP(ch) = 7000000;
 

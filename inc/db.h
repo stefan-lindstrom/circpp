@@ -13,6 +13,7 @@
 #include "structs.h"
 
 #include <vector>
+#include <list>
 
 #if defined(CIRCLE_MACINTOSH)
 #define LIB_WORLD	":world:"
@@ -101,7 +102,7 @@ int	create_entry(const char *name);
 void	zone_update(void);
 char	*fread_string(FILE *fl, const char *error);
 long	get_id_by_name(const char *name);
-char	*get_name_by_id(long id);
+std::string get_name_by_id(long id);
 void	save_mud_time(struct time_info_data *when);
 void	free_extra_descriptions(struct extra_descr_data *edesc);
 void	free_text_files(void);
@@ -200,7 +201,7 @@ struct reset_q_type {
 
 
 struct player_index_element {
-   char	*name;
+   std::string	name;
    long id;
 };
 
@@ -227,49 +228,43 @@ struct ban_list_element {
    struct ban_list_element *next;
 };
 
+// Exported functions
+void reset_zone(zone_rnum zone);
 
 /* global buffering system */
-
 extern std::vector<room_data> world;
-extern room_rnum top_of_world;
-
 extern std::vector<zone_data> zone_table;
-extern zone_rnum top_of_zone_table;
 
 extern struct descriptor_data *descriptor_list;
-extern struct char_data *character_list;
+extern std::list<char_data *> character_list;
 extern struct player_special_data dummy_mob;
 
 extern std::vector<index_data> mob_index;
 extern std::vector<char_data> mob_proto;
-extern mob_rnum top_of_mobt;
 
 extern std::vector<index_data> obj_index;
 extern std::vector<obj_data> obj_proto;
-extern struct obj_data *object_list;
-extern obj_rnum top_of_objt;
-
-extern char	*OK;
-extern char	*NOPERSON;
-extern char	*NOEFFECT;
+extern std::list<obj_data *> object_list;
 
 extern int top_of_helpt;
 extern struct help_index_element *help_table;
-extern char *help;
 extern struct time_info_data time_info;
 
 
 extern struct time_info_data time_info;
-extern char *credits;
-extern char *news;
-extern char *info;
-extern char *motd;
-extern char *imotd;
-extern char *wizlist;
-extern char *immlist;
-extern char *policies;
-extern char *handbook;
-extern const char *class_abbrevs[];
+
+extern std::string help;
+extern std::string credits;
+extern std::string news;
+extern std::string info;
+extern std::string motd;
+extern std::string imotd;
+extern std::string wizlist;
+extern std::string immlist;
+extern std::string policies;
+extern std::string handbook;
+extern std::string GREETINGS;
+extern std::string background;
 
 extern room_rnum donation_room_1;
 #if 0
@@ -278,11 +273,7 @@ extern room_rnum donation_room_3;  /* uncomment if needed! */
 #endif
 
 extern struct spell_info_type spell_info[];
-extern int free_rent;
-extern int pt_allowed;
 extern int max_filesize;
-extern int nameserver_is_slow;
-extern int auto_save;
 extern int track_through_doors;
 extern int tunnel_size;
 
@@ -291,23 +282,15 @@ extern struct attack_hit_type attack_hit_text[];
 extern time_t boot_time;
 extern int circle_shutdown, circle_reboot;
 extern int circle_restrict;
-extern int load_into_inventory;
 extern int buf_switches, buf_largecount, buf_overflows;
-extern int top_of_p_table;
 extern int mini_mud;
 
-/* for chars */
-extern const char *pc_class_types[];
-
 extern std::vector<message_list> fight_messages;
-extern int pk_allowed;          /* see config.c */
-extern int max_exp_gain;        /* see config.c */
-extern int max_exp_loss;        /* see config.c */
 extern int max_npc_corpse_time, max_pc_corpse_time;
 extern int no_mail;
 extern int crash_file_timeout;
 extern int rent_file_timeout;
-extern struct player_index_element *player_table;
+extern std::vector<player_index_element> player_table;
 extern int max_obj_save;
 extern int min_rent_cost;
 extern room_rnum r_mortal_start_room;

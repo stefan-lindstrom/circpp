@@ -19,6 +19,7 @@
 #include "utils.h"
 #include "house.h"
 #include "constants.h"
+#include "act.h"
 
 /* external functions */
 struct obj_data *Obj_from_store(struct obj_file_elem object, int *location);
@@ -36,7 +37,6 @@ void House_restore_weight(struct obj_data *obj);
 void House_delete_file(room_vnum vnum);
 int find_house(room_vnum vnum);
 void House_save_control(void);
-void hcontrol_list_houses(struct char_data *ch);
 void hcontrol_build_house(struct char_data *ch, char *arg);
 void hcontrol_destroy_house(struct char_data *ch, char *arg);
 void hcontrol_pay_house(struct char_data *ch, char *arg);
@@ -256,7 +256,7 @@ void House_boot(void)
     if (feof(fl))
       break;
 
-    if (get_name_by_id(temp_house.owner) == NULL)
+    if (get_name_by_id(temp_house.owner).empty())
       continue;			/* owner no longer exists -- skip */
 
     if ((real_house = real_room(temp_house.vnum)) == NOWHERE)
@@ -298,7 +298,7 @@ const char *HCONTROL_FORMAT =
 void hcontrol_list_houses(struct char_data *ch)
 {
   int i;
-  char *timestr, *temp;
+  char *timestr;
   char built_on[128], last_pay[128], own_name[MAX_NAME_LENGTH + 1];
 
   if (!num_of_houses) {
@@ -311,7 +311,7 @@ void hcontrol_list_houses(struct char_data *ch)
 
   for (i = 0; i < num_of_houses; i++) {
     /* Avoid seeing <UNDEF> entries from self-deleted people. -gg 6/21/98 */
-    if ((temp = get_name_by_id(house_control[i].owner)) == NULL)
+    if (get_name_by_id(house_control[i].owner).empty())
       continue;
 
     if (house_control[i].built_on) {
@@ -329,7 +329,7 @@ void hcontrol_list_houses(struct char_data *ch)
       strcpy(last_pay, "None");	/* strcpy: OK (for 'strlen("None") < 128') */
 
     /* Now we need a copy of the owner's name to capitalize. -gg 6/21/98 */
-    strcpy(own_name, temp);	/* strcpy: OK (names guaranteed <= MAX_NAME_LENGTH+1) */
+    strcpy(own_name, get_name_by_id(house_control[i].owner).c_str());	/* strcpy: OK (names guaranteed <= MAX_NAME_LENGTH+1) */
     send_to_char(ch, "%7d %7d  %-10s    %2d    %-12s %s\r\n",
 	    house_control[i].vnum, house_control[i].atrium, built_on,
 	    house_control[i].num_of_guests, CAP(own_name), last_pay);
@@ -591,7 +591,6 @@ int House_can_enter(struct char_data *ch, room_vnum house)
 void House_list_guests(struct char_data *ch, int i, int quiet)
 {
   int j, num_printed;
-  char *temp;
 
   if (house_control[i].num_of_guests == 0) {
     if (!quiet)
@@ -603,11 +602,11 @@ void House_list_guests(struct char_data *ch, int i, int quiet)
 
   for (num_printed = j = 0; j < house_control[i].num_of_guests; j++) {
     /* Avoid <UNDEF>. -gg 6/21/98 */
-    if ((temp = get_name_by_id(house_control[i].guests[j])) == NULL)
+    if (get_name_by_id(house_control[i].guests[j]).empty())
       continue;
 
     num_printed++;
-    send_to_char(ch, "%c%s ", UPPER(*temp), temp + 1);
+    send_to_char(ch, "%c%s ", std::toupper(get_name_by_id(house_control[i].guests[j]).front()), get_name_by_id(house_control[i].guests[j]).substr(1).c_str());
   }
 
   if (num_printed == 0)

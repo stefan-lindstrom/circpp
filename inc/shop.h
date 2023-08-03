@@ -13,6 +13,8 @@
 
 #include <list>
 
+#include "structs.h"
+
 struct shop_buy_data {
    int type;
    char *keywords;
@@ -157,9 +159,10 @@ struct stack_data {
 
 // exported functions
 extern void assign_the_shopkeepers(void);
+SPECIAL(shop_keeper);
+void show_shops(struct char_data *ch, char *value);
 
 // exported data
 extern std::vector<shop_data> shop_index;
-extern int top_shop;
 
 #endif

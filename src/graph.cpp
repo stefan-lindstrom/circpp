@@ -19,7 +19,7 @@
 #include "handler.h"
 #include "db.h"
 #include "spells.h"
-
+#include "act.h"
 #include "constants.h"
 
 /* external functions */
@@ -109,7 +109,7 @@ int find_first_step(room_rnum src, room_rnum target)
   int curr_dir;
   room_rnum curr_room;
 
-  if (src == NOWHERE || target == NOWHERE || src > top_of_world || target > top_of_world) {
+  if (src == NOWHERE || target == NOWHERE || static_cast<unsigned long>(src) >= world.size() || static_cast<unsigned long>(target) >= world.size()) {
     basic_mud_log("SYSERR: Illegal value %d or %d passed to find_first_step. (%s)", src, target, __FILE__);
     return (BFS_ERROR);
   }
@@ -117,7 +117,7 @@ int find_first_step(room_rnum src, room_rnum target)
     return (BFS_ALREADY_THERE);
 
   /* clear marks first, some OLC systems will save the mark. */
-  for (curr_room = 0; curr_room <= top_of_world; curr_room++)
+  for (curr_room = 0; static_cast<unsigned long>(curr_room) < world.size(); curr_room++)
     UNMARK(curr_room);
 
   MARK(src);
@@ -215,18 +215,13 @@ ACMD(do_track)
 void hunt_victim(struct char_data *ch)
 {
   int dir;
-  byte found;
-  struct char_data *tmp;
 
   if (!ch || !HUNTING(ch) || FIGHTING(ch))
     return;
 
-  /* make sure the char still exists */
-  for (found = FALSE, tmp = character_list; tmp && !found; tmp = tmp->next)
-    if (HUNTING(ch) == tmp)
-      found = TRUE;
+  auto found = std::find(character_list.begin(), character_list.end(), HUNTING(ch));
 
-  if (!found) {
+  if (found == character_list.end()) {
     char actbuf[MAX_INPUT_LENGTH] = "Damn!  My prey is gone!!";
 
     do_say(ch, actbuf, 0, 0);

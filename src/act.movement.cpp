@@ -21,59 +21,228 @@
 #include "spells.h"
 #include "house.h"
 #include "constants.h"
-
-/* external functions TODO: move to header */
-int special(struct char_data *ch, int cmd, char *arg);
-void death_cry(struct char_data *ch);
-int find_eq_pos(struct char_data *ch, struct obj_data *obj, char *arg);
-
-/* local functions TODO: Make static or anonymous ns */
-int has_boat(struct char_data *ch);
-int find_door(struct char_data *ch, const char *type, char *dir, const char *cmdname);
-int has_key(struct char_data *ch, obj_vnum key);
-void do_doorcmd(struct char_data *ch, struct obj_data *obj, int door, int scmd);
-int ok_pick(struct char_data *ch, obj_vnum keynum, int pickproof, int scmd);
-ACMD(do_gen_door);
-ACMD(do_enter);
-ACMD(do_leave);
-ACMD(do_stand);
-ACMD(do_sit);
-ACMD(do_rest);
-ACMD(do_sleep);
-ACMD(do_wake);
-ACMD(do_follow);
+#include "config.h"
+#include "act.h"
+#include "interpreter.h"
+#include "fight.h"
 
 
-/* simple function to determine if char can walk on water */
-int has_boat(struct char_data *ch)
-{
-  struct obj_data *obj;
-  int i;
+namespace {
+  /* simple function to determine if char can walk on water */
+  int has_boat(struct char_data *ch)
+  {
+    struct obj_data *obj;
+    int i;
 
-/*
-  if (ROOM_IDENTITY(IN_ROOM(ch)) == DEAD_SEA)
-    return (1);
-*/
+  /*
+    if (ROOM_IDENTITY(IN_ROOM(ch)) == DEAD_SEA)
+      return (1);
+  */
 
-  if (GET_LEVEL(ch) > LVL_IMMORT)
-    return (1);
-
-  if (AFF_FLAGGED(ch, AFF_WATERWALK))
-    return (1);
-
-  /* non-wearable boats in inventory will do it */
-  for (obj = ch->carrying; obj; obj = obj->next_content)
-    if (GET_OBJ_TYPE(obj) == ITEM_BOAT && (find_eq_pos(ch, obj, NULL) < 0))
+    if (GET_LEVEL(ch) > LVL_IMMORT)
       return (1);
 
-  /* and any boat you're wearing will do it too */
-  for (i = 0; i < NUM_WEARS; i++)
-    if (GET_EQ(ch, i) && GET_OBJ_TYPE(GET_EQ(ch, i)) == ITEM_BOAT)
+    if (AFF_FLAGGED(ch, AFF_WATERWALK))
       return (1);
 
-  return (0);
-}
+    /* non-wearable boats in inventory will do it */
+    for (obj = ch->carrying; obj; obj = obj->next_content)
+      if (GET_OBJ_TYPE(obj) == ITEM_BOAT && (find_eq_pos(ch, obj, NULL) < 0))
+        return (1);
 
+    /* and any boat you're wearing will do it too */
+    for (i = 0; i < NUM_WEARS; i++)
+      if (GET_EQ(ch, i) && GET_OBJ_TYPE(GET_EQ(ch, i)) == ITEM_BOAT)
+        return (1);
+
+    return (0);
+  }
+
+  int has_key(struct char_data *ch, obj_vnum key)
+  {
+    struct obj_data *o;
+
+    for (o = ch->carrying; o; o = o->next_content)
+      if (GET_OBJ_VNUM(o) == key)
+        return (1);
+
+    if (GET_EQ(ch, WEAR_HOLD))
+      if (GET_OBJ_VNUM(GET_EQ(ch, WEAR_HOLD)) == key)
+        return (1);
+
+    return (0);
+  }
+
+  int find_door(struct char_data *ch, const char *type, char *dir, const char *cmdname)
+  {
+    int door;
+
+    if (*dir) {     /* a direction was specified */
+      if ((door = search_block(dir, dirs, FALSE)) == -1) {  /* Partial Match */
+        send_to_char(ch, "That's not a direction.\r\n");
+        return (-1);
+      }
+      if (EXIT(ch, door)) { /* Braces added according to indent. -gg */
+        if (!GET_EXIT(ch, door).keyword.empty()) {
+    if (isname(type, GET_EXIT(ch, door).keyword.c_str()))
+      return (door);
+    else {
+      send_to_char(ch, "I see no %s there.\r\n", type);
+      return (-1);
+          }
+        } else
+    return (door);
+      } else {
+        send_to_char(ch, "I really don't see how you can %s anything there.\r\n", cmdname);
+        return (-1);
+      }
+    } else {      /* try to locate the keyword */
+      if (!*type) {
+        send_to_char(ch, "What is it you want to %s?\r\n", cmdname);
+        return (-1);
+      }
+      for (door = 0; door < NUM_OF_DIRS; door++)
+        if (EXIT(ch, door))
+          if (!GET_EXIT(ch, door).keyword.empty())
+            if (isname(type, GET_EXIT(ch, door).keyword.c_str()))
+              return (door);
+
+      send_to_char(ch, "There doesn't seem to be %s %s here.\r\n", AN(type), type);
+      return (-1);
+    }
+  }
+
+  #define NEED_OPEN (1 << 0)
+  #define NEED_CLOSED (1 << 1)
+  #define NEED_UNLOCKED (1 << 2)
+  #define NEED_LOCKED (1 << 3)
+
+  const char *cmd_door[] =
+  {
+    "open",
+    "close",
+    "unlock",
+    "lock",
+    "pick"
+  };
+
+  const int flags_door[] =
+  {
+    NEED_CLOSED | NEED_UNLOCKED,
+    NEED_OPEN,
+    NEED_CLOSED | NEED_LOCKED,
+    NEED_CLOSED | NEED_UNLOCKED,
+    NEED_CLOSED | NEED_LOCKED
+  };
+
+
+  #define EXITN(room, door)   (std::get<0>(world[room].dir_option[door]))
+  #define OPEN_DOOR(room, obj, door)  ((obj) ?\
+      (REMOVE_BIT(GET_OBJ_VAL(obj, 1), CONT_CLOSED)) :\
+      (REMOVE_BIT(EXITN(room, door).exit_info, EX_CLOSED)))
+  #define CLOSE_DOOR(room, obj, door) ((obj) ?\
+      (SET_BIT(GET_OBJ_VAL(obj, 1), CONT_CLOSED)) :\
+      (SET_BIT(EXITN(room, door).exit_info, EX_CLOSED)))
+  #define LOCK_DOOR(room, obj, door)  ((obj) ?\
+      (SET_BIT(GET_OBJ_VAL(obj, 1), CONT_LOCKED)) :\
+      (SET_BIT(EXITN(room, door).exit_info, EX_LOCKED)))
+  #define UNLOCK_DOOR(room, obj, door)  ((obj) ?\
+      (REMOVE_BIT(GET_OBJ_VAL(obj, 1), CONT_LOCKED)) :\
+      (REMOVE_BIT(EXITN(room, door).exit_info, EX_LOCKED)))
+  #define TOGGLE_LOCK(room, obj, door)  ((obj) ?\
+      (TOGGLE_BIT(GET_OBJ_VAL(obj, 1), CONT_LOCKED)) :\
+      (TOGGLE_BIT(EXITN(room, door).exit_info, EX_LOCKED)))
+
+  void do_doorcmd(struct char_data *ch, struct obj_data *obj, int door, int scmd)
+  {
+    char buf[MAX_STRING_LENGTH];
+    size_t len;
+    room_rnum other_room = NOWHERE;
+    struct room_direction_data *back = nullptr;
+
+    len = snprintf(buf, sizeof(buf), "$n %ss ", cmd_door[scmd]);
+    if (!obj && ((other_room = GET_EXIT(ch, door).to_room) != NOWHERE))
+      if (std::get<1>(world[other_room].dir_option[rev_dir[door]])) {
+        back = &std::get<0>(world[other_room].dir_option[rev_dir[door]]);
+        if (back->to_room != IN_ROOM(ch)) {
+    back = nullptr;
+        }
+      }
+
+    switch (scmd) {
+    case SCMD_OPEN:
+      OPEN_DOOR(IN_ROOM(ch), obj, door);
+      if (back)
+        OPEN_DOOR(other_room, obj, rev_dir[door]);
+      send_to_char(ch, "%s", OK.c_str());
+      break;
+
+    case SCMD_CLOSE:
+      CLOSE_DOOR(IN_ROOM(ch), obj, door);
+      if (back)
+        CLOSE_DOOR(other_room, obj, rev_dir[door]);
+      send_to_char(ch, "%s", OK.c_str());
+      break;
+
+    case SCMD_LOCK:
+      LOCK_DOOR(IN_ROOM(ch), obj, door);
+      if (back)
+        LOCK_DOOR(other_room, obj, rev_dir[door]);
+      send_to_char(ch, "*Click*\r\n");
+      break;
+
+    case SCMD_UNLOCK:
+      UNLOCK_DOOR(IN_ROOM(ch), obj, door);
+      if (back)
+        UNLOCK_DOOR(other_room, obj, rev_dir[door]);
+      send_to_char(ch, "*Click*\r\n");
+      break;
+
+    case SCMD_PICK:
+      TOGGLE_LOCK(IN_ROOM(ch), obj, door);
+      if (back)
+        TOGGLE_LOCK(other_room, obj, rev_dir[door]);
+      send_to_char(ch, "The lock quickly yields to your skills.\r\n");
+      len = strlcpy(buf, "$n skillfully picks the lock on ", sizeof(buf));
+      break;
+    }
+
+    /* Notify the room. */
+    if (len < sizeof(buf))
+      snprintf(buf + len, sizeof(buf) - len, "%s%s.",
+         obj ? "" : "the ", obj ? "$p" : !GET_EXIT(ch, door).keyword.empty() ? "$F" : "door");
+    if (!obj || IN_ROOM(obj) != NOWHERE)
+      act(buf, FALSE, ch, obj, obj ? 0 : GET_EXIT(ch, door).keyword.c_str(), CommTarget::TO_ROOM);
+
+    /* Notify the other room */
+    if (back && (scmd == SCMD_OPEN || scmd == SCMD_CLOSE))
+        send_to_room(GET_EXIT(ch, door).to_room, "The %s is %s%s from the other side.",
+         !back->keyword.empty() ? fname(back->keyword.c_str()) : "door", cmd_door[scmd],
+         scmd == SCMD_CLOSE ? "d" : "ed");
+  }
+
+  int ok_pick(struct char_data *ch, obj_vnum keynum, int pickproof, int scmd)
+  {
+    int percent, skill_lvl;
+
+    if (scmd != SCMD_PICK)
+      return (1);
+
+    percent = rand_number(1, 101);
+    skill_lvl = GET_SKILL(ch, SKILL_PICK_LOCK) + dex_app_skill[GET_DEX(ch)].p_locks;
+
+    if (keynum == NOTHING)
+      send_to_char(ch, "Odd - you can't seem to find a keyhole.\r\n");
+    else if (pickproof)
+      send_to_char(ch, "It resists your attempts to pick it.\r\n");
+    else if (percent > skill_lvl)
+      send_to_char(ch, "You failed to pick the lock.\r\n");
+    else
+      return (1);
+
+    return (0);
+  }
+} // anonymous namespace
   
 
 /* do_simple_move assumes
@@ -222,196 +391,6 @@ ACMD(do_move)
    * by other functions which do not require the remapping.
    */
   perform_move(ch, subcmd - 1, 0);
-}
-
-
-int find_door(struct char_data *ch, const char *type, char *dir, const char *cmdname)
-{
-  int door;
-
-  if (*dir) {			/* a direction was specified */
-    if ((door = search_block(dir, dirs, FALSE)) == -1) {	/* Partial Match */
-      send_to_char(ch, "That's not a direction.\r\n");
-      return (-1);
-    }
-    if (EXIT(ch, door)) {	/* Braces added according to indent. -gg */
-      if (!GET_EXIT(ch, door).keyword.empty()) {
-	if (isname(type, GET_EXIT(ch, door).keyword.c_str()))
-	  return (door);
-	else {
-	  send_to_char(ch, "I see no %s there.\r\n", type);
-	  return (-1);
-        }
-      } else
-	return (door);
-    } else {
-      send_to_char(ch, "I really don't see how you can %s anything there.\r\n", cmdname);
-      return (-1);
-    }
-  } else {			/* try to locate the keyword */
-    if (!*type) {
-      send_to_char(ch, "What is it you want to %s?\r\n", cmdname);
-      return (-1);
-    }
-    for (door = 0; door < NUM_OF_DIRS; door++)
-      if (EXIT(ch, door))
-	if (!GET_EXIT(ch, door).keyword.empty())
-	  if (isname(type, GET_EXIT(ch, door).keyword.c_str()))
-	    return (door);
-
-    send_to_char(ch, "There doesn't seem to be %s %s here.\r\n", AN(type), type);
-    return (-1);
-  }
-}
-
-
-int has_key(struct char_data *ch, obj_vnum key)
-{
-  struct obj_data *o;
-
-  for (o = ch->carrying; o; o = o->next_content)
-    if (GET_OBJ_VNUM(o) == key)
-      return (1);
-
-  if (GET_EQ(ch, WEAR_HOLD))
-    if (GET_OBJ_VNUM(GET_EQ(ch, WEAR_HOLD)) == key)
-      return (1);
-
-  return (0);
-}
-
-
-
-#define NEED_OPEN	(1 << 0)
-#define NEED_CLOSED	(1 << 1)
-#define NEED_UNLOCKED	(1 << 2)
-#define NEED_LOCKED	(1 << 3)
-
-const char *cmd_door[] =
-{
-  "open",
-  "close",
-  "unlock",
-  "lock",
-  "pick"
-};
-
-const int flags_door[] =
-{
-  NEED_CLOSED | NEED_UNLOCKED,
-  NEED_OPEN,
-  NEED_CLOSED | NEED_LOCKED,
-  NEED_CLOSED | NEED_UNLOCKED,
-  NEED_CLOSED | NEED_LOCKED
-};
-
-
-#define EXITN(room, door)		(std::get<0>(world[room].dir_option[door]))
-#define OPEN_DOOR(room, obj, door)	((obj) ?\
-		(REMOVE_BIT(GET_OBJ_VAL(obj, 1), CONT_CLOSED)) :\
-		(REMOVE_BIT(EXITN(room, door).exit_info, EX_CLOSED)))
-#define CLOSE_DOOR(room, obj, door)	((obj) ?\
-		(SET_BIT(GET_OBJ_VAL(obj, 1), CONT_CLOSED)) :\
-		(SET_BIT(EXITN(room, door).exit_info, EX_CLOSED)))
-#define LOCK_DOOR(room, obj, door)	((obj) ?\
-		(SET_BIT(GET_OBJ_VAL(obj, 1), CONT_LOCKED)) :\
-		(SET_BIT(EXITN(room, door).exit_info, EX_LOCKED)))
-#define UNLOCK_DOOR(room, obj, door)	((obj) ?\
-		(REMOVE_BIT(GET_OBJ_VAL(obj, 1), CONT_LOCKED)) :\
-		(REMOVE_BIT(EXITN(room, door).exit_info, EX_LOCKED)))
-#define TOGGLE_LOCK(room, obj, door)	((obj) ?\
-		(TOGGLE_BIT(GET_OBJ_VAL(obj, 1), CONT_LOCKED)) :\
-		(TOGGLE_BIT(EXITN(room, door).exit_info, EX_LOCKED)))
-
-void do_doorcmd(struct char_data *ch, struct obj_data *obj, int door, int scmd)
-{
-  char buf[MAX_STRING_LENGTH];
-  size_t len;
-  room_rnum other_room = NOWHERE;
-  struct room_direction_data *back = nullptr;
-
-  len = snprintf(buf, sizeof(buf), "$n %ss ", cmd_door[scmd]);
-  if (!obj && ((other_room = GET_EXIT(ch, door).to_room) != NOWHERE))
-    if (std::get<1>(world[other_room].dir_option[rev_dir[door]])) {
-      back = &std::get<0>(world[other_room].dir_option[rev_dir[door]]);
-      if (back->to_room != IN_ROOM(ch)) {
-	back = nullptr;
-      }
-    }
-
-  switch (scmd) {
-  case SCMD_OPEN:
-    OPEN_DOOR(IN_ROOM(ch), obj, door);
-    if (back)
-      OPEN_DOOR(other_room, obj, rev_dir[door]);
-    send_to_char(ch, "%s", OK);
-    break;
-
-  case SCMD_CLOSE:
-    CLOSE_DOOR(IN_ROOM(ch), obj, door);
-    if (back)
-      CLOSE_DOOR(other_room, obj, rev_dir[door]);
-    send_to_char(ch, "%s", OK);
-    break;
-
-  case SCMD_LOCK:
-    LOCK_DOOR(IN_ROOM(ch), obj, door);
-    if (back)
-      LOCK_DOOR(other_room, obj, rev_dir[door]);
-    send_to_char(ch, "*Click*\r\n");
-    break;
-
-  case SCMD_UNLOCK:
-    UNLOCK_DOOR(IN_ROOM(ch), obj, door);
-    if (back)
-      UNLOCK_DOOR(other_room, obj, rev_dir[door]);
-    send_to_char(ch, "*Click*\r\n");
-    break;
-
-  case SCMD_PICK:
-    TOGGLE_LOCK(IN_ROOM(ch), obj, door);
-    if (back)
-      TOGGLE_LOCK(other_room, obj, rev_dir[door]);
-    send_to_char(ch, "The lock quickly yields to your skills.\r\n");
-    len = strlcpy(buf, "$n skillfully picks the lock on ", sizeof(buf));
-    break;
-  }
-
-  /* Notify the room. */
-  if (len < sizeof(buf))
-    snprintf(buf + len, sizeof(buf) - len, "%s%s.",
-	     obj ? "" : "the ", obj ? "$p" : !GET_EXIT(ch, door).keyword.empty() ? "$F" : "door");
-  if (!obj || IN_ROOM(obj) != NOWHERE)
-    act(buf, FALSE, ch, obj, obj ? 0 : GET_EXIT(ch, door).keyword.c_str(), CommTarget::TO_ROOM);
-
-  /* Notify the other room */
-  if (back && (scmd == SCMD_OPEN || scmd == SCMD_CLOSE))
-      send_to_room(GET_EXIT(ch, door).to_room, "The %s is %s%s from the other side.",
-		   !back->keyword.empty() ? fname(back->keyword.c_str()) : "door", cmd_door[scmd],
-		   scmd == SCMD_CLOSE ? "d" : "ed");
-}
-
-
-int ok_pick(struct char_data *ch, obj_vnum keynum, int pickproof, int scmd)
-{
-  int percent, skill_lvl;
-
-  if (scmd != SCMD_PICK)
-    return (1);
-
-  percent = rand_number(1, 101);
-  skill_lvl = GET_SKILL(ch, SKILL_PICK_LOCK) + dex_app_skill[GET_DEX(ch)].p_locks;
-
-  if (keynum == NOTHING)
-    send_to_char(ch, "Odd - you can't seem to find a keyhole.\r\n");
-  else if (pickproof)
-    send_to_char(ch, "It resists your attempts to pick it.\r\n");
-  else if (percent > skill_lvl)
-    send_to_char(ch, "You failed to pick the lock.\r\n");
-  else
-    return (1);
-
-  return (0);
 }
 
 
@@ -679,7 +658,7 @@ ACMD(do_wake)
     if (GET_POS(ch) == POS_SLEEPING)
       send_to_char(ch, "Maybe you should wake yourself up first.\r\n");
     else if ((vict = get_char_vis(ch, arg, NULL, FIND_CHAR_ROOM)) == NULL)
-      send_to_char(ch, "%s", NOPERSON);
+      send_to_char(ch, "%s", NOPERSON.c_str());
     else if (vict == ch)
       self = 1;
     else if (AWAKE(vict))
@@ -718,7 +697,7 @@ ACMD(do_follow)
 
   if (*buf) {
     if (!(leader = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM))) {
-      send_to_char(ch, "%s", NOPERSON);
+      send_to_char(ch, "%s", NOPERSON.c_str());
       return;
     }
   } else {

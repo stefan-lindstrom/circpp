@@ -20,63 +20,465 @@
 #include "db.h"
 #include "spells.h"
 #include "constants.h"
+#include "config.h"
+#include "act.h"
 
-/* local functions */
-int can_take_obj(struct char_data *ch, struct obj_data *obj);
-void get_check_money(struct char_data *ch, struct obj_data *obj);
-int perform_get_from_room(struct char_data *ch, struct obj_data *obj);
-void get_from_room(struct char_data *ch, char *arg, int amount);
-void perform_give_gold(struct char_data *ch, struct char_data *vict, int amount);
-void perform_give(struct char_data *ch, struct char_data *vict, struct obj_data *obj);
-int perform_drop(struct char_data *ch, struct obj_data *obj, byte mode, const char *sname, room_rnum RDR);
-void perform_drop_gold(struct char_data *ch, int amount, byte mode, room_rnum RDR);
-struct char_data *give_find_vict(struct char_data *ch, char *arg);
-void weight_change_object(struct obj_data *obj, int weight);
-void perform_put(struct char_data *ch, struct obj_data *obj, struct obj_data *cont);
-void name_from_drinkcon(struct obj_data *obj);
-void get_from_container(struct char_data *ch, struct obj_data *cont, char *arg, int mode, int amount);
-void name_to_drinkcon(struct obj_data *obj, int type);
-void wear_message(struct char_data *ch, struct obj_data *obj, int where);
-void perform_wear(struct char_data *ch, struct obj_data *obj, int where);
-int find_eq_pos(struct char_data *ch, struct obj_data *obj, char *arg);
-void perform_get_from_container(struct char_data *ch, struct obj_data *obj, struct obj_data *cont, int mode);
-void perform_remove(struct char_data *ch, int pos);
-ACMD(do_remove);
-ACMD(do_put);
-ACMD(do_get);
-ACMD(do_drop);
-ACMD(do_give);
-ACMD(do_drink);
-ACMD(do_eat);
-ACMD(do_pour);
-ACMD(do_wear);
-ACMD(do_wield);
-ACMD(do_grab);
+namespace {
+  void perform_put(struct char_data *ch, struct obj_data *obj, struct obj_data *cont)
+  {
+    if (GET_OBJ_WEIGHT(cont) + GET_OBJ_WEIGHT(obj) > GET_OBJ_VAL(cont, 0))
+      act("$p won't fit in $P.", FALSE, ch, obj, cont, CommTarget::TO_CHAR);
+    else if (OBJ_FLAGGED(obj, ITEM_NODROP) && IN_ROOM(cont) != NOWHERE)
+      act("You can't get $p out of your hand.", FALSE, ch, obj, NULL, CommTarget::TO_CHAR);
+    else {
+      obj_from_char(obj);
+      obj_to_obj(obj, cont);
 
+      act("$n puts $p in $P.", TRUE, ch, obj, cont, CommTarget::TO_ROOM);
 
-void perform_put(struct char_data *ch, struct obj_data *obj,
-		      struct obj_data *cont)
-{
-  if (GET_OBJ_WEIGHT(cont) + GET_OBJ_WEIGHT(obj) > GET_OBJ_VAL(cont, 0))
-    act("$p won't fit in $P.", FALSE, ch, obj, cont, CommTarget::TO_CHAR);
-  else if (OBJ_FLAGGED(obj, ITEM_NODROP) && IN_ROOM(cont) != NOWHERE)
-    act("You can't get $p out of your hand.", FALSE, ch, obj, NULL, CommTarget::TO_CHAR);
-  else {
-    obj_from_char(obj);
-    obj_to_obj(obj, cont);
-
-    act("$n puts $p in $P.", TRUE, ch, obj, cont, CommTarget::TO_ROOM);
-
-    /* Yes, I realize this is strange until we have auto-equip on rent. -gg */
-    if (OBJ_FLAGGED(obj, ITEM_NODROP) && !OBJ_FLAGGED(cont, ITEM_NODROP)) {
-      SET_BIT(GET_OBJ_EXTRA(cont), ITEM_NODROP);
-      act("You get a strange feeling as you put $p in $P.", FALSE,
-                ch, obj, cont, CommTarget::TO_CHAR);
-    } else
-      act("You put $p in $P.", FALSE, ch, obj, cont, CommTarget::TO_CHAR);
+      /* Yes, I realize this is strange until we have auto-equip on rent. -gg */
+      if (OBJ_FLAGGED(obj, ITEM_NODROP) && !OBJ_FLAGGED(cont, ITEM_NODROP)) {
+        SET_BIT(GET_OBJ_EXTRA(cont), ITEM_NODROP);
+        act("You get a strange feeling as you put $p in $P.", FALSE,
+                  ch, obj, cont, CommTarget::TO_CHAR);
+      } else
+        act("You put $p in $P.", FALSE, ch, obj, cont, CommTarget::TO_CHAR);
+    }
   }
-}
 
+  int can_take_obj(struct char_data *ch, struct obj_data *obj)
+  {
+    if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch)) {
+      act("$p: you can't carry that many items.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      return (0);
+    } else if ((IS_CARRYING_W(ch) + GET_OBJ_WEIGHT(obj)) > CAN_CARRY_W(ch)) {
+      act("$p: you can't carry that much weight.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      return (0);
+    } else if (!(CAN_WEAR(obj, ITEM_WEAR_TAKE))) {
+      act("$p: you can't take that!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      return (0);
+    }
+    return (1);
+  }
+
+  void get_check_money(struct char_data *ch, struct obj_data *obj)
+  {
+    int value = GET_OBJ_VAL(obj, 0);
+
+    if (GET_OBJ_TYPE(obj) != ITEM_MONEY || value <= 0)
+      return;
+
+    extract_obj(obj);
+
+    GET_GOLD(ch) += value;
+
+    if (value == 1)
+      send_to_char(ch, "There was 1 coin.\r\n");
+    else
+      send_to_char(ch, "There were %d coins.\r\n", value);
+  }
+
+  int perform_get_from_room(struct char_data *ch, struct obj_data *obj)
+  {
+    if (can_take_obj(ch, obj)) {
+      obj_from_room(obj);
+      obj_to_char(obj, ch);
+      act("You get $p.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      act("$n gets $p.", TRUE, ch, obj, 0, CommTarget::TO_ROOM);
+      get_check_money(ch, obj);
+      return (1);
+    }
+    return (0);
+  }
+
+
+  void get_from_room(struct char_data *ch, char *arg, int howmany)
+  {
+    struct obj_data *obj, *next_obj;
+    int dotmode, found = 0;
+
+    dotmode = find_all_dots(arg);
+
+    if (dotmode == FIND_INDIV) {
+      if (!(obj = get_obj_in_list_vis(ch, arg, NULL, world[IN_ROOM(ch)].contents)))
+        send_to_char(ch, "You don't see %s %s here.\r\n", AN(arg), arg);
+      else {
+        struct obj_data *obj_next;
+        while(obj && howmany--) {
+    obj_next = obj->next_content;
+          perform_get_from_room(ch, obj);
+          obj = get_obj_in_list_vis(ch, arg, NULL, obj_next);
+        }
+      }
+    } else {
+      if (dotmode == FIND_ALLDOT && !*arg) {
+        send_to_char(ch, "Get all of what?\r\n");
+        return;
+      }
+      for (obj = world[IN_ROOM(ch)].contents; obj; obj = next_obj) {
+        next_obj = obj->next_content;
+        if (CAN_SEE_OBJ(ch, obj) &&
+      (dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
+    found = 1;
+    perform_get_from_room(ch, obj);
+        }
+      }
+      if (!found) {
+        if (dotmode == FIND_ALL)
+    send_to_char(ch, "There doesn't seem to be anything here.\r\n");
+        else
+    send_to_char(ch, "You don't see any %ss here.\r\n", arg);
+      }
+    }
+  }
+
+  /* utility function for give */
+  struct char_data *give_find_vict(struct char_data *ch, char *arg)
+  {
+    struct char_data *vict;
+
+    skip_spaces(&arg);
+    if (!*arg)
+      send_to_char(ch, "To who?\r\n");
+    else if (!(vict = get_char_vis(ch, arg, NULL, FIND_CHAR_ROOM)))
+      send_to_char(ch, "%s", NOPERSON.c_str());
+    else if (vict == ch)
+      send_to_char(ch, "What's the point of that?\r\n");
+    else
+      return vict;
+
+    return nullptr;
+  }
+
+  void perform_give_gold(struct char_data *ch, struct char_data *vict, int amount)
+  {
+    char buf[MAX_STRING_LENGTH];
+
+    if (amount <= 0) {
+      send_to_char(ch, "Heh heh heh ... we are jolly funny today, eh?\r\n");
+      return;
+    }
+    if ((GET_GOLD(ch) < amount) && (IS_NPC(ch) || (GET_LEVEL(ch) < LVL_GOD))) {
+      send_to_char(ch, "You don't have that many coins!\r\n");
+      return;
+    }
+    send_to_char(ch, "%s", OK.c_str());
+
+    snprintf(buf, sizeof(buf), "$n gives you %d gold coin%s.", amount, amount == 1 ? "" : "s");
+    act(buf, FALSE, ch, 0, vict, CommTarget::TO_VICT);
+
+    snprintf(buf, sizeof(buf), "$n gives %s to $N.", money_desc(amount));
+    act(buf, TRUE, ch, 0, vict, CommTarget::TO_NOTVICT);
+
+    if (IS_NPC(ch) || (GET_LEVEL(ch) < LVL_GOD))
+      GET_GOLD(ch) -= amount;
+    GET_GOLD(vict) += amount;
+  }
+
+  void perform_give(struct char_data *ch, struct char_data *vict, struct obj_data *obj)
+  {
+    if (OBJ_FLAGGED(obj, ITEM_NODROP)) {
+      act("You can't let go of $p!!  Yeech!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      return;
+    }
+    if (IS_CARRYING_N(vict) >= CAN_CARRY_N(vict)) {
+      act("$N seems to have $S hands full.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
+      return;
+    }
+    if (GET_OBJ_WEIGHT(obj) + IS_CARRYING_W(vict) > CAN_CARRY_W(vict)) {
+      act("$E can't carry that much weight.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
+      return;
+    }
+    obj_from_char(obj);
+    obj_to_char(obj, vict);
+    act("You give $p to $N.", FALSE, ch, obj, vict, CommTarget::TO_CHAR);
+    act("$n gives you $p.", FALSE, ch, obj, vict, CommTarget::TO_VICT);
+    act("$n gives $p to $N.", TRUE, ch, obj, vict, CommTarget::TO_NOTVICT);
+  }
+
+  void perform_drop_gold(struct char_data *ch, int amount, byte mode, room_rnum RDR)
+  {
+    struct obj_data *obj;
+
+    if (amount <= 0)
+      send_to_char(ch, "Heh heh heh.. we are jolly funny today, eh?\r\n");
+    else if (GET_GOLD(ch) < amount)
+      send_to_char(ch, "You don't have that many coins!\r\n");
+    else {
+      if (mode != SCMD_JUNK) {
+        WAIT_STATE(ch, PULSE_VIOLENCE); /* to prevent coin-bombing */
+        obj = 
+        create_money(amount);
+        if (mode == SCMD_DONATE) {
+    send_to_char(ch, "You throw some gold into the air where it disappears in a puff of smoke!\r\n");
+    act("$n throws some gold into the air where it disappears in a puff of smoke!",
+        FALSE, ch, 0, 0, CommTarget::TO_ROOM);
+    obj_to_room(obj, RDR);
+    act("$p suddenly appears in a puff of orange smoke!", 0, 0, obj, 0, CommTarget::TO_ROOM);
+        } else {
+          char buf[MAX_STRING_LENGTH];
+
+    snprintf(buf, sizeof(buf), "$n drops %s.", money_desc(amount));
+    act(buf, TRUE, ch, 0, 0, CommTarget::TO_ROOM);
+
+    send_to_char(ch, "You drop some gold.\r\n");
+    obj_to_room(obj, IN_ROOM(ch));
+        }
+      } else {
+        char buf[MAX_STRING_LENGTH];
+
+        snprintf(buf, sizeof(buf), "$n drops %s which disappears in a puff of smoke!", money_desc(amount));
+        act(buf, FALSE, ch, 0, 0, CommTarget::TO_ROOM);
+
+        send_to_char(ch, "You drop some gold which disappears in a puff of smoke!\r\n");
+      }
+      GET_GOLD(ch) -= amount;
+    }
+  }
+
+  void perform_get_from_container(struct char_data *ch, struct obj_data *obj, struct obj_data *cont, int mode)
+  {
+    if (mode == FIND_OBJ_INV || can_take_obj(ch, obj)) {
+      if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
+        act("$p: you can't hold any more items.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      else {
+        obj_from_obj(obj);
+        obj_to_char(obj, ch);
+        act("You get $p from $P.", FALSE, ch, obj, cont, CommTarget::TO_CHAR);
+        act("$n gets $p from $P.", TRUE, ch, obj, cont, CommTarget::TO_ROOM);
+        get_check_money(ch, obj);
+      }
+    }
+  }
+
+  void get_from_container(struct char_data *ch, struct obj_data *cont, char *arg, int mode, int howmany)
+  {
+    struct obj_data *obj, *next_obj;
+    int obj_dotmode, found = 0;
+
+    obj_dotmode = find_all_dots(arg);
+
+    if (OBJVAL_FLAGGED(cont, CONT_CLOSED))
+      act("$p is closed.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
+    else if (obj_dotmode == FIND_INDIV) {
+      if (!(obj = get_obj_in_list_vis(ch, arg, NULL, cont->contains))) {
+        char buf[MAX_STRING_LENGTH];
+
+        snprintf(buf, sizeof(buf), "There doesn't seem to be %s %s in $p.", AN(arg), arg);
+        act(buf, FALSE, ch, cont, 0, CommTarget::TO_CHAR);
+      } else {
+        struct obj_data *obj_next;
+        while (obj && howmany--) {
+          obj_next = obj->next_content;
+          perform_get_from_container(ch, obj, cont, mode);
+          obj = get_obj_in_list_vis(ch, arg, NULL, obj_next);
+        }
+      }
+    } else {
+      if (obj_dotmode == FIND_ALLDOT && !*arg) {
+        send_to_char(ch, "Get all of what?\r\n");
+        return;
+      }
+      for (obj = cont->contains; obj; obj = next_obj) {
+        next_obj = obj->next_content;
+        if (CAN_SEE_OBJ(ch, obj) &&
+      (obj_dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
+    found = 1;
+    perform_get_from_container(ch, obj, cont, mode);
+        }
+      }
+      if (!found) {
+        if (obj_dotmode == FIND_ALL)
+    act("$p seems to be empty.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
+        else {
+          char buf[MAX_STRING_LENGTH];
+
+    snprintf(buf, sizeof(buf), "You can't seem to find any %ss in $p.", arg);
+    act(buf, FALSE, ch, cont, 0, CommTarget::TO_CHAR);
+        }
+      }
+    }
+  }
+
+  void wear_message(struct char_data *ch, struct obj_data *obj, int where)
+  {
+    const char *wear_messages[][2] = {
+      {"$n lights $p and holds it.",
+      "You light $p and hold it."},
+
+      {"$n slides $p on to $s right ring finger.",
+      "You slide $p on to your right ring finger."},
+
+      {"$n slides $p on to $s left ring finger.",
+      "You slide $p on to your left ring finger."},
+
+      {"$n wears $p around $s neck.",
+      "You wear $p around your neck."},
+
+      {"$n wears $p around $s neck.",
+      "You wear $p around your neck."},
+
+      {"$n wears $p on $s body.",
+      "You wear $p on your body."},
+
+      {"$n wears $p on $s head.",
+      "You wear $p on your head."},
+
+      {"$n puts $p on $s legs.",
+      "You put $p on your legs."},
+
+      {"$n wears $p on $s feet.",
+      "You wear $p on your feet."},
+
+      {"$n puts $p on $s hands.",
+      "You put $p on your hands."},
+
+      {"$n wears $p on $s arms.",
+      "You wear $p on your arms."},
+
+      {"$n straps $p around $s arm as a shield.",
+      "You start to use $p as a shield."},
+
+      {"$n wears $p about $s body.",
+      "You wear $p around your body."},
+
+      {"$n wears $p around $s waist.",
+      "You wear $p around your waist."},
+
+      {"$n puts $p on around $s right wrist.",
+      "You put $p on around your right wrist."},
+
+      {"$n puts $p on around $s left wrist.",
+      "You put $p on around your left wrist."},
+
+      {"$n wields $p.",
+      "You wield $p."},
+
+      {"$n grabs $p.",
+      "You grab $p."}
+    };
+
+    act(wear_messages[where][0], TRUE, ch, obj, 0, CommTarget::TO_ROOM);
+    act(wear_messages[where][1], FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+  }
+
+  void perform_wear(struct char_data *ch, struct obj_data *obj, int where)
+  {
+    /*
+     * ITEM_WEAR_TAKE is used for objects that do not require special bits
+     * to be put into that position (e.g. you can hold any object, not just
+     * an object with a HOLD bit.)
+     */
+
+    int wear_bitvectors[] = {
+      ITEM_WEAR_TAKE, ITEM_WEAR_FINGER, ITEM_WEAR_FINGER, ITEM_WEAR_NECK,
+      ITEM_WEAR_NECK, ITEM_WEAR_BODY, ITEM_WEAR_HEAD, ITEM_WEAR_LEGS,
+      ITEM_WEAR_FEET, ITEM_WEAR_HANDS, ITEM_WEAR_ARMS, ITEM_WEAR_SHIELD,
+      ITEM_WEAR_ABOUT, ITEM_WEAR_WAIST, ITEM_WEAR_WRIST, ITEM_WEAR_WRIST,
+      ITEM_WEAR_WIELD, ITEM_WEAR_TAKE
+    };
+
+    const char *already_wearing[] = {
+      "You're already using a light.\r\n",
+      "YOU SHOULD NEVER SEE THIS MESSAGE.  PLEASE REPORT.\r\n",
+      "You're already wearing something on both of your ring fingers.\r\n",
+      "YOU SHOULD NEVER SEE THIS MESSAGE.  PLEASE REPORT.\r\n",
+      "You can't wear anything else around your neck.\r\n",
+      "You're already wearing something on your body.\r\n",
+      "You're already wearing something on your head.\r\n",
+      "You're already wearing something on your legs.\r\n",
+      "You're already wearing something on your feet.\r\n",
+      "You're already wearing something on your hands.\r\n",
+      "You're already wearing something on your arms.\r\n",
+      "You're already using a shield.\r\n",
+      "You're already wearing something about your body.\r\n",
+      "You already have something around your waist.\r\n",
+      "YOU SHOULD NEVER SEE THIS MESSAGE.  PLEASE REPORT.\r\n",
+      "You're already wearing something around both of your wrists.\r\n",
+      "You're already wielding a weapon.\r\n",
+      "You're already holding something.\r\n"
+    };
+
+    /* first, make sure that the wear position is valid. */
+    if (!CAN_WEAR(obj, wear_bitvectors[where])) {
+      act("You can't wear $p there.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      return;
+    }
+    /* for neck, finger, and wrist, try pos 2 if pos 1 is already full */
+    if ((where == WEAR_FINGER_R) || (where == WEAR_NECK_1) || (where == WEAR_WRIST_R))
+      if (GET_EQ(ch, where))
+        where++;
+
+    if (GET_EQ(ch, where)) {
+      send_to_char(ch, "%s", already_wearing[where]);
+      return;
+    }
+    wear_message(ch, obj, where);
+    obj_from_char(obj);
+    equip_char(ch, obj, where);
+  }
+
+  void perform_remove(struct char_data *ch, int pos)
+  {
+    struct obj_data *obj;
+
+    if (!(obj = GET_EQ(ch, pos)))
+      basic_mud_log("SYSERR: perform_remove: bad pos %d passed.", pos);
+    else if (OBJ_FLAGGED(obj, ITEM_NODROP))
+      act("You can't remove $p, it must be CURSED!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+    else if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
+      act("$p: you can't carry that many items!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+    else {
+      obj_to_char(unequip_char(ch, pos), ch);
+      act("You stop using $p.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      act("$n stops using $p.", TRUE, ch, obj, 0, CommTarget::TO_ROOM);
+    }
+  }
+
+  #define VANISH(mode) ((mode == SCMD_DONATE || mode == SCMD_JUNK) ? "  It vanishes in a puff of smoke!" : "")
+  int perform_drop(struct char_data *ch, struct obj_data *obj, byte mode, const char *sname, room_rnum RDR)
+  {
+    char buf[MAX_STRING_LENGTH];
+    int value;
+
+    if (OBJ_FLAGGED(obj, ITEM_NODROP)) {
+      snprintf(buf, sizeof(buf), "You can't %s $p, it must be CURSED!", sname);
+      act(buf, FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+      return (0);
+    }
+
+    snprintf(buf, sizeof(buf), "You %s $p.%s", sname, VANISH(mode));
+    act(buf, FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+
+    snprintf(buf, sizeof(buf), "$n %ss $p.%s", sname, VANISH(mode));
+    act(buf, TRUE, ch, obj, 0, CommTarget::TO_ROOM);
+
+    obj_from_char(obj);
+
+    if ((mode == SCMD_DONATE) && OBJ_FLAGGED(obj, ITEM_NODONATE))
+      mode = SCMD_JUNK;
+
+    switch (mode) {
+    case SCMD_DROP:
+      obj_to_room(obj, IN_ROOM(ch));
+      return (0);
+    case SCMD_DONATE:
+      obj_to_room(obj, RDR);
+      act("$p suddenly appears in a puff a smoke!", FALSE, 0, obj, 0, CommTarget::TO_ROOM);
+      return (0);
+    case SCMD_JUNK:
+      value = MAX(1, MIN(200, GET_OBJ_COST(obj) / 16));
+      extract_obj(obj);
+      return (value);
+    default:
+      basic_mud_log("SYSERR: Incorrect argument %d passed to perform_drop.", mode);
+      break;
+    }
+
+    return (0);
+  }
+
+} // anonymous namespace
 
 /* The following put modes are supported by the code below:
 
@@ -163,165 +565,6 @@ ACMD(do_put)
 }
 
 
-
-int can_take_obj(struct char_data *ch, struct obj_data *obj)
-{
-  if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch)) {
-    act("$p: you can't carry that many items.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    return (0);
-  } else if ((IS_CARRYING_W(ch) + GET_OBJ_WEIGHT(obj)) > CAN_CARRY_W(ch)) {
-    act("$p: you can't carry that much weight.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    return (0);
-  } else if (!(CAN_WEAR(obj, ITEM_WEAR_TAKE))) {
-    act("$p: you can't take that!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    return (0);
-  }
-  return (1);
-}
-
-
-void get_check_money(struct char_data *ch, struct obj_data *obj)
-{
-  int value = GET_OBJ_VAL(obj, 0);
-
-  if (GET_OBJ_TYPE(obj) != ITEM_MONEY || value <= 0)
-    return;
-
-  extract_obj(obj);
-
-  GET_GOLD(ch) += value;
-
-  if (value == 1)
-    send_to_char(ch, "There was 1 coin.\r\n");
-  else
-    send_to_char(ch, "There were %d coins.\r\n", value);
-}
-
-
-void perform_get_from_container(struct char_data *ch, struct obj_data *obj,
-				     struct obj_data *cont, int mode)
-{
-  if (mode == FIND_OBJ_INV || can_take_obj(ch, obj)) {
-    if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
-      act("$p: you can't hold any more items.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    else {
-      obj_from_obj(obj);
-      obj_to_char(obj, ch);
-      act("You get $p from $P.", FALSE, ch, obj, cont, CommTarget::TO_CHAR);
-      act("$n gets $p from $P.", TRUE, ch, obj, cont, CommTarget::TO_ROOM);
-      get_check_money(ch, obj);
-    }
-  }
-}
-
-
-void get_from_container(struct char_data *ch, struct obj_data *cont,
-			     char *arg, int mode, int howmany)
-{
-  struct obj_data *obj, *next_obj;
-  int obj_dotmode, found = 0;
-
-  obj_dotmode = find_all_dots(arg);
-
-  if (OBJVAL_FLAGGED(cont, CONT_CLOSED))
-    act("$p is closed.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
-  else if (obj_dotmode == FIND_INDIV) {
-    if (!(obj = get_obj_in_list_vis(ch, arg, NULL, cont->contains))) {
-      char buf[MAX_STRING_LENGTH];
-
-      snprintf(buf, sizeof(buf), "There doesn't seem to be %s %s in $p.", AN(arg), arg);
-      act(buf, FALSE, ch, cont, 0, CommTarget::TO_CHAR);
-    } else {
-      struct obj_data *obj_next;
-      while (obj && howmany--) {
-        obj_next = obj->next_content;
-        perform_get_from_container(ch, obj, cont, mode);
-        obj = get_obj_in_list_vis(ch, arg, NULL, obj_next);
-      }
-    }
-  } else {
-    if (obj_dotmode == FIND_ALLDOT && !*arg) {
-      send_to_char(ch, "Get all of what?\r\n");
-      return;
-    }
-    for (obj = cont->contains; obj; obj = next_obj) {
-      next_obj = obj->next_content;
-      if (CAN_SEE_OBJ(ch, obj) &&
-	  (obj_dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
-	found = 1;
-	perform_get_from_container(ch, obj, cont, mode);
-      }
-    }
-    if (!found) {
-      if (obj_dotmode == FIND_ALL)
-	act("$p seems to be empty.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
-      else {
-        char buf[MAX_STRING_LENGTH];
-
-	snprintf(buf, sizeof(buf), "You can't seem to find any %ss in $p.", arg);
-	act(buf, FALSE, ch, cont, 0, CommTarget::TO_CHAR);
-      }
-    }
-  }
-}
-
-
-int perform_get_from_room(struct char_data *ch, struct obj_data *obj)
-{
-  if (can_take_obj(ch, obj)) {
-    obj_from_room(obj);
-    obj_to_char(obj, ch);
-    act("You get $p.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    act("$n gets $p.", TRUE, ch, obj, 0, CommTarget::TO_ROOM);
-    get_check_money(ch, obj);
-    return (1);
-  }
-  return (0);
-}
-
-
-void get_from_room(struct char_data *ch, char *arg, int howmany)
-{
-  struct obj_data *obj, *next_obj;
-  int dotmode, found = 0;
-
-  dotmode = find_all_dots(arg);
-
-  if (dotmode == FIND_INDIV) {
-    if (!(obj = get_obj_in_list_vis(ch, arg, NULL, world[IN_ROOM(ch)].contents)))
-      send_to_char(ch, "You don't see %s %s here.\r\n", AN(arg), arg);
-    else {
-      struct obj_data *obj_next;
-      while(obj && howmany--) {
-	obj_next = obj->next_content;
-        perform_get_from_room(ch, obj);
-        obj = get_obj_in_list_vis(ch, arg, NULL, obj_next);
-      }
-    }
-  } else {
-    if (dotmode == FIND_ALLDOT && !*arg) {
-      send_to_char(ch, "Get all of what?\r\n");
-      return;
-    }
-    for (obj = world[IN_ROOM(ch)].contents; obj; obj = next_obj) {
-      next_obj = obj->next_content;
-      if (CAN_SEE_OBJ(ch, obj) &&
-	  (dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
-	found = 1;
-	perform_get_from_room(ch, obj);
-      }
-    }
-    if (!found) {
-      if (dotmode == FIND_ALL)
-	send_to_char(ch, "There doesn't seem to be anything here.\r\n");
-      else
-	send_to_char(ch, "You don't see any %ss here.\r\n", arg);
-    }
-  }
-}
-
-
-
 ACMD(do_get)
 { 
   TEMP_ARG_FIX;
@@ -392,94 +635,6 @@ ACMD(do_get)
       }
     }
   }
-}
-
-
-void perform_drop_gold(struct char_data *ch, int amount, byte mode, room_rnum RDR)
-{
-  struct obj_data *obj;
-
-  if (amount <= 0)
-    send_to_char(ch, "Heh heh heh.. we are jolly funny today, eh?\r\n");
-  else if (GET_GOLD(ch) < amount)
-    send_to_char(ch, "You don't have that many coins!\r\n");
-  else {
-    if (mode != SCMD_JUNK) {
-      WAIT_STATE(ch, PULSE_VIOLENCE);	/* to prevent coin-bombing */
-      obj = 
-      create_money(amount);
-      if (mode == SCMD_DONATE) {
-	send_to_char(ch, "You throw some gold into the air where it disappears in a puff of smoke!\r\n");
-	act("$n throws some gold into the air where it disappears in a puff of smoke!",
-	    FALSE, ch, 0, 0, CommTarget::TO_ROOM);
-	obj_to_room(obj, RDR);
-	act("$p suddenly appears in a puff of orange smoke!", 0, 0, obj, 0, CommTarget::TO_ROOM);
-      } else {
-        char buf[MAX_STRING_LENGTH];
-
-	snprintf(buf, sizeof(buf), "$n drops %s.", money_desc(amount));
-	act(buf, TRUE, ch, 0, 0, CommTarget::TO_ROOM);
-
-	send_to_char(ch, "You drop some gold.\r\n");
-	obj_to_room(obj, IN_ROOM(ch));
-      }
-    } else {
-      char buf[MAX_STRING_LENGTH];
-
-      snprintf(buf, sizeof(buf), "$n drops %s which disappears in a puff of smoke!", money_desc(amount));
-      act(buf, FALSE, ch, 0, 0, CommTarget::TO_ROOM);
-
-      send_to_char(ch, "You drop some gold which disappears in a puff of smoke!\r\n");
-    }
-    GET_GOLD(ch) -= amount;
-  }
-}
-
-
-#define VANISH(mode) ((mode == SCMD_DONATE || mode == SCMD_JUNK) ? \
-		      "  It vanishes in a puff of smoke!" : "")
-
-int perform_drop(struct char_data *ch, struct obj_data *obj,
-		     byte mode, const char *sname, room_rnum RDR)
-{
-  char buf[MAX_STRING_LENGTH];
-  int value;
-
-  if (OBJ_FLAGGED(obj, ITEM_NODROP)) {
-    snprintf(buf, sizeof(buf), "You can't %s $p, it must be CURSED!", sname);
-    act(buf, FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    return (0);
-  }
-
-  snprintf(buf, sizeof(buf), "You %s $p.%s", sname, VANISH(mode));
-  act(buf, FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-
-  snprintf(buf, sizeof(buf), "$n %ss $p.%s", sname, VANISH(mode));
-  act(buf, TRUE, ch, obj, 0, CommTarget::TO_ROOM);
-
-  obj_from_char(obj);
-
-  if ((mode == SCMD_DONATE) && OBJ_FLAGGED(obj, ITEM_NODONATE))
-    mode = SCMD_JUNK;
-
-  switch (mode) {
-  case SCMD_DROP:
-    obj_to_room(obj, IN_ROOM(ch));
-    return (0);
-  case SCMD_DONATE:
-    obj_to_room(obj, RDR);
-    act("$p suddenly appears in a puff a smoke!", FALSE, 0, obj, 0, CommTarget::TO_ROOM);
-    return (0);
-  case SCMD_JUNK:
-    value = MAX(1, MIN(200, GET_OBJ_COST(obj) / 16));
-    extract_obj(obj);
-    return (value);
-  default:
-    basic_mud_log("SYSERR: Incorrect argument %d passed to perform_drop.", mode);
-    break;
-  }
-
-  return (0);
 }
 
 
@@ -594,75 +749,6 @@ ACMD(do_drop)
   }
 }
 
-
-void perform_give(struct char_data *ch, struct char_data *vict,
-		       struct obj_data *obj)
-{
-  if (OBJ_FLAGGED(obj, ITEM_NODROP)) {
-    act("You can't let go of $p!!  Yeech!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    return;
-  }
-  if (IS_CARRYING_N(vict) >= CAN_CARRY_N(vict)) {
-    act("$N seems to have $S hands full.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
-    return;
-  }
-  if (GET_OBJ_WEIGHT(obj) + IS_CARRYING_W(vict) > CAN_CARRY_W(vict)) {
-    act("$E can't carry that much weight.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
-    return;
-  }
-  obj_from_char(obj);
-  obj_to_char(obj, vict);
-  act("You give $p to $N.", FALSE, ch, obj, vict, CommTarget::TO_CHAR);
-  act("$n gives you $p.", FALSE, ch, obj, vict, CommTarget::TO_VICT);
-  act("$n gives $p to $N.", TRUE, ch, obj, vict, CommTarget::TO_NOTVICT);
-}
-
-/* utility function for give */
-struct char_data *give_find_vict(struct char_data *ch, char *arg)
-{
-  struct char_data *vict;
-
-  skip_spaces(&arg);
-  if (!*arg)
-    send_to_char(ch, "To who?\r\n");
-  else if (!(vict = get_char_vis(ch, arg, NULL, FIND_CHAR_ROOM)))
-    send_to_char(ch, "%s", NOPERSON);
-  else if (vict == ch)
-    send_to_char(ch, "What's the point of that?\r\n");
-  else
-    return (vict);
-
-  return (NULL);
-}
-
-
-void perform_give_gold(struct char_data *ch, struct char_data *vict,
-		            int amount)
-{
-  char buf[MAX_STRING_LENGTH];
-
-  if (amount <= 0) {
-    send_to_char(ch, "Heh heh heh ... we are jolly funny today, eh?\r\n");
-    return;
-  }
-  if ((GET_GOLD(ch) < amount) && (IS_NPC(ch) || (GET_LEVEL(ch) < LVL_GOD))) {
-    send_to_char(ch, "You don't have that many coins!\r\n");
-    return;
-  }
-  send_to_char(ch, "%s", OK);
-
-  snprintf(buf, sizeof(buf), "$n gives you %d gold coin%s.", amount, amount == 1 ? "" : "s");
-  act(buf, FALSE, ch, 0, vict, CommTarget::TO_VICT);
-
-  snprintf(buf, sizeof(buf), "$n gives %s to $N.", money_desc(amount));
-  act(buf, TRUE, ch, 0, vict, CommTarget::TO_NOTVICT);
-
-  if (IS_NPC(ch) || (GET_LEVEL(ch) < LVL_GOD))
-    GET_GOLD(ch) -= amount;
-  GET_GOLD(vict) += amount;
-}
-
-
 ACMD(do_give)
 {
   TEMP_ARG_FIX;
@@ -727,7 +813,6 @@ ACMD(do_give)
 }
 
 
-
 void weight_change_object(struct obj_data *obj, int weight)
 {
   struct obj_data *tmp_obj;
@@ -747,8 +832,6 @@ void weight_change_object(struct obj_data *obj, int weight)
     basic_mud_log("SYSERR: Unknown attempt to subtract weight from an object.");
   }
 }
-
-
 
 void name_from_drinkcon(struct obj_data *obj)
 {
@@ -1122,130 +1205,6 @@ ACMD(do_pour)
   weight_change_object(to_obj, amount);	/* Add weight */
 }
 
-
-
-void wear_message(struct char_data *ch, struct obj_data *obj, int where)
-{
-  const char *wear_messages[][2] = {
-    {"$n lights $p and holds it.",
-    "You light $p and hold it."},
-
-    {"$n slides $p on to $s right ring finger.",
-    "You slide $p on to your right ring finger."},
-
-    {"$n slides $p on to $s left ring finger.",
-    "You slide $p on to your left ring finger."},
-
-    {"$n wears $p around $s neck.",
-    "You wear $p around your neck."},
-
-    {"$n wears $p around $s neck.",
-    "You wear $p around your neck."},
-
-    {"$n wears $p on $s body.",
-    "You wear $p on your body."},
-
-    {"$n wears $p on $s head.",
-    "You wear $p on your head."},
-
-    {"$n puts $p on $s legs.",
-    "You put $p on your legs."},
-
-    {"$n wears $p on $s feet.",
-    "You wear $p on your feet."},
-
-    {"$n puts $p on $s hands.",
-    "You put $p on your hands."},
-
-    {"$n wears $p on $s arms.",
-    "You wear $p on your arms."},
-
-    {"$n straps $p around $s arm as a shield.",
-    "You start to use $p as a shield."},
-
-    {"$n wears $p about $s body.",
-    "You wear $p around your body."},
-
-    {"$n wears $p around $s waist.",
-    "You wear $p around your waist."},
-
-    {"$n puts $p on around $s right wrist.",
-    "You put $p on around your right wrist."},
-
-    {"$n puts $p on around $s left wrist.",
-    "You put $p on around your left wrist."},
-
-    {"$n wields $p.",
-    "You wield $p."},
-
-    {"$n grabs $p.",
-    "You grab $p."}
-  };
-
-  act(wear_messages[where][0], TRUE, ch, obj, 0, CommTarget::TO_ROOM);
-  act(wear_messages[where][1], FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-}
-
-
-
-void perform_wear(struct char_data *ch, struct obj_data *obj, int where)
-{
-  /*
-   * ITEM_WEAR_TAKE is used for objects that do not require special bits
-   * to be put into that position (e.g. you can hold any object, not just
-   * an object with a HOLD bit.)
-   */
-
-  int wear_bitvectors[] = {
-    ITEM_WEAR_TAKE, ITEM_WEAR_FINGER, ITEM_WEAR_FINGER, ITEM_WEAR_NECK,
-    ITEM_WEAR_NECK, ITEM_WEAR_BODY, ITEM_WEAR_HEAD, ITEM_WEAR_LEGS,
-    ITEM_WEAR_FEET, ITEM_WEAR_HANDS, ITEM_WEAR_ARMS, ITEM_WEAR_SHIELD,
-    ITEM_WEAR_ABOUT, ITEM_WEAR_WAIST, ITEM_WEAR_WRIST, ITEM_WEAR_WRIST,
-    ITEM_WEAR_WIELD, ITEM_WEAR_TAKE
-  };
-
-  const char *already_wearing[] = {
-    "You're already using a light.\r\n",
-    "YOU SHOULD NEVER SEE THIS MESSAGE.  PLEASE REPORT.\r\n",
-    "You're already wearing something on both of your ring fingers.\r\n",
-    "YOU SHOULD NEVER SEE THIS MESSAGE.  PLEASE REPORT.\r\n",
-    "You can't wear anything else around your neck.\r\n",
-    "You're already wearing something on your body.\r\n",
-    "You're already wearing something on your head.\r\n",
-    "You're already wearing something on your legs.\r\n",
-    "You're already wearing something on your feet.\r\n",
-    "You're already wearing something on your hands.\r\n",
-    "You're already wearing something on your arms.\r\n",
-    "You're already using a shield.\r\n",
-    "You're already wearing something about your body.\r\n",
-    "You already have something around your waist.\r\n",
-    "YOU SHOULD NEVER SEE THIS MESSAGE.  PLEASE REPORT.\r\n",
-    "You're already wearing something around both of your wrists.\r\n",
-    "You're already wielding a weapon.\r\n",
-    "You're already holding something.\r\n"
-  };
-
-  /* first, make sure that the wear position is valid. */
-  if (!CAN_WEAR(obj, wear_bitvectors[where])) {
-    act("You can't wear $p there.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    return;
-  }
-  /* for neck, finger, and wrist, try pos 2 if pos 1 is already full */
-  if ((where == WEAR_FINGER_R) || (where == WEAR_NECK_1) || (where == WEAR_WRIST_R))
-    if (GET_EQ(ch, where))
-      where++;
-
-  if (GET_EQ(ch, where)) {
-    send_to_char(ch, "%s", already_wearing[where]);
-    return;
-  }
-  wear_message(ch, obj, where);
-  obj_from_char(obj);
-  equip_char(ch, obj, where);
-}
-
-
-
 int find_eq_pos(struct char_data *ch, struct obj_data *obj, char *arg)
 {
   int where = -1;
@@ -1402,27 +1361,6 @@ ACMD(do_grab)
     }
   }
 }
-
-
-
-void perform_remove(struct char_data *ch, int pos)
-{
-  struct obj_data *obj;
-
-  if (!(obj = GET_EQ(ch, pos)))
-    basic_mud_log("SYSERR: perform_remove: bad pos %d passed.", pos);
-  else if (OBJ_FLAGGED(obj, ITEM_NODROP))
-    act("You can't remove $p, it must be CURSED!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-  else if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
-    act("$p: you can't carry that many items!", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-  else {
-    obj_to_char(unequip_char(ch, pos), ch);
-    act("You stop using $p.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-    act("$n stops using $p.", TRUE, ch, obj, 0, CommTarget::TO_ROOM);
-  }
-}
-
-
 
 ACMD(do_remove)
 {

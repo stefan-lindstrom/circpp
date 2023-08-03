@@ -117,6 +117,14 @@ char *strdup(const char *source)
 }
 #endif
 
+void prune_crlf(std::string &txt) {
+  if (txt.back() == '\n') {
+    txt.pop_back();
+  }
+  if (txt.back() == '\r') {
+    txt.pop_back();
+  }
+}
 
 /*
  * Strips \r\n from end of string.
@@ -657,7 +665,7 @@ void core_dump_real(const char *who, int line)
 int room_is_dark(room_rnum room)
 {
   if (!VALID_ROOM_RNUM(room)) {
-    basic_mud_log("room_is_dark: Invalid room rnum %d. (0-%d)", room, top_of_world);
+    basic_mud_log("room_is_dark: Invalid room rnum %d. (0-%ld)", room, world.size() - 1);
     return (FALSE);
   }
 

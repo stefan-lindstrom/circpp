@@ -23,21 +23,17 @@
 #include "utils.h"
 #include "shop.h"
 #include "constants.h"
+#include "act.h"
 
 /* External variables */
 extern struct time_info_data time_info;
 
 /* Forward/External function declarations */
-ACMD(do_tell);
-ACMD(do_action);
-ACMD(do_echo);
-ACMD(do_say);
 void sort_keeper_objs(struct char_data *keeper, int shop_nr);
 
 
 // exported
 std::vector<shop_data> shop_index;
-int top_shop = -1;
 
 /* Local variables */
 int cmd_say, cmd_tell, cmd_emote, cmd_slap, cmd_puke;
@@ -56,7 +52,6 @@ struct obj_data *get_slide_obj_vis(struct char_data *ch, char *name, struct obj_
 char *customer_string(int shop_nr, int detailed);
 void list_all_shops(struct char_data *ch);
 void list_detailed_shop(struct char_data *ch, int shop_nr);
-void show_shops(struct char_data *ch, char *arg);
 int is_ok_char(struct char_data *keeper, struct char_data *ch, int shop_nr);
 int is_open(struct char_data *keeper, int shop_nr, int msg);
 int is_ok(struct char_data *keeper, struct char_data *ch, int shop_nr);
@@ -940,11 +935,11 @@ SPECIAL(shop_keeper)
   struct char_data *keeper = (struct char_data *)me;
   int shop_nr;
 
-  for (shop_nr = 0; shop_nr <= top_shop; shop_nr++)
+  for (shop_nr = 0; static_cast<unsigned long>(shop_nr) < shop_index.size(); shop_nr++)
     if (SHOP_KEEPER(shop_nr) == keeper->nr)
       break;
 
-  if (shop_nr > top_shop)
+  if (static_cast<unsigned long>(shop_nr) >= shop_index.size())
     return (FALSE);
 
   if (SHOP_FUNC(shop_nr))	/* Check secondary function */
@@ -1000,7 +995,7 @@ int ok_damage_shopkeeper(struct char_data *ch, struct char_data *victim)
   if (AFF_FLAGGED(victim, AFF_CHARM))
     return (TRUE);
 
-  for (sindex = 0; sindex <= top_shop; sindex++)
+  for (sindex = 0; static_cast<unsigned long>(sindex) < shop_index.size(); sindex++)
     if (GET_MOB_RNUM(victim) == SHOP_KEEPER(sindex) && !SHOP_KILL_CHARS(sindex)) {
       char buf[MAX_INPUT_LENGTH];
 
@@ -1050,7 +1045,7 @@ void read_line(FILE *shop_f, const char *string, void *data)
   char buf[READ_SIZE];
 
   if (!get_line(shop_f, buf) || !sscanf(buf, string, data)) {
-    basic_mud_log("SYSERR: Error in shop #%d, near '%s' with '%s'", SHOP_NUM(top_shop), buf, string);
+    basic_mud_log("SYSERR: Error in shop #%d, near '%s' with '%s'", SHOP_NUM(shop_index.size() - 1), buf, string);
     exit(1);
   }
 }
@@ -1124,7 +1119,7 @@ void list_all_shops(struct char_data *ch)
   char buf[MAX_STRING_LENGTH], buf1[16];
 
   *buf = '\0';
-  for (shop_nr = 0; shop_nr <= top_shop && len < sizeof(buf); shop_nr++) {
+  for (shop_nr = 0; static_cast<unsigned long>(shop_nr) < shop_index.size() && len < sizeof(buf); shop_nr++) {
     /* New page in page_string() mechanism, print the header again. */
     if (!(shop_nr % (PAGE_LENGTH - 2))) {
       /*
@@ -1296,20 +1291,20 @@ void show_shops(struct char_data *ch, char *arg)
     list_all_shops(ch);
   else {
     if (!str_cmp(arg, ".")) {
-      for (shop_nr = 0; shop_nr <= top_shop; shop_nr++)
+      for (shop_nr = 0; static_cast<unsigned long>(shop_nr) < shop_index.size(); shop_nr++)
 	if (ok_shop_room(shop_nr, GET_ROOM_VNUM(IN_ROOM(ch))))
 	  break;
 
-      if (shop_nr > top_shop) {
-	send_to_char(ch, "This isn't a shop!\r\n");
-	return;
+      if (static_cast<unsigned long>(shop_nr) >= shop_index.size()) {
+        send_to_char(ch, "This isn't a shop!\r\n");
+        return;
       }
     } else if (is_number(arg))
       shop_nr = atoi(arg) - 1;
     else
       shop_nr = -1;
 
-    if (shop_nr < 0 || shop_nr > top_shop) {
+    if (shop_nr < 0 || static_cast<unsigned long>(shop_nr) >= shop_index.size()) {
       send_to_char(ch, "Illegal shop number.\r\n");
       return;
     }
