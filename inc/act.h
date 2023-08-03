@@ -1,6 +1,8 @@
 #ifndef __ACT_H__
 #define __ACT_H__
 
+#include <string>
+
 #define ACMD(name) void name(struct char_data *ch, char *argument, int cmd, int subcmd)
 
 // ACMDs
@@ -126,9 +128,8 @@ void look_at_room(struct char_data *ch, int mode);
 int do_simple_move(struct char_data *ch, int dir, int following);
 int perform_move(struct char_data *ch, int dir, int following);
 void perform_immort_vis(struct char_data *ch);
-char *fread_action(FILE *fl, int nr);
+std::string fread_action(FILE *fl, int nr);
 void boot_social_messages(void);
-void free_social_messages(void);
 void snoop_check(struct char_data *ch);
 
 // exported Data

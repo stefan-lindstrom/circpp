@@ -329,7 +329,6 @@ int main(int argc, char **argv)
     clear_free_list();		/* mail.c */
     Board_clear_all();		/* boards.c */
     free(cmd_sort_info);	/* act.informative.c */
-    free_social_messages();	/* act.social.c */
     free_help();		/* db.c */
     Free_Invalid_List();	/* ban.c */
   }

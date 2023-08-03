@@ -70,21 +70,6 @@ struct attack_hit_type attack_hit_text[] =
 
 /* The Fight related routines */
 
-static std::string __fread_action(FILE *fl, int nr)
-{
-  // for now
-  auto val = fread_action(fl, nr);
-  std::string rc;
-
-  if (nullptr != val) {
-    rc = val;
-    free(val);
-  }
-
-  return rc;
-}
-
-
 void appear(struct char_data *ch)
 {
   if (affected_by_spell(ch, SPELL_INVISIBLE))
@@ -143,18 +128,18 @@ void load_messages(void)
     message_type messages;
     fight_messages[i].a_type = type;
 
-    messages.die_msg.attacker_msg = __fread_action(fl, i);
-    messages.die_msg.victim_msg = __fread_action(fl, i);
-    messages.die_msg.room_msg = __fread_action(fl, i);
-    messages.miss_msg.attacker_msg = __fread_action(fl, i);
-    messages.miss_msg.victim_msg = __fread_action(fl, i);
-    messages.miss_msg.room_msg = __fread_action(fl, i);
-    messages.hit_msg.attacker_msg = __fread_action(fl, i);
-    messages.hit_msg.victim_msg = __fread_action(fl, i);
-    messages.hit_msg.room_msg = __fread_action(fl, i);
-    messages.god_msg.attacker_msg = __fread_action(fl, i);
-    messages.god_msg.victim_msg = __fread_action(fl, i);
-    messages.god_msg.room_msg = __fread_action(fl, i);
+    messages.die_msg.attacker_msg = fread_action(fl, i);
+    messages.die_msg.victim_msg = fread_action(fl, i);
+    messages.die_msg.room_msg = fread_action(fl, i);
+    messages.miss_msg.attacker_msg = fread_action(fl, i);
+    messages.miss_msg.victim_msg = fread_action(fl, i);
+    messages.miss_msg.room_msg = fread_action(fl, i);
+    messages.hit_msg.attacker_msg = fread_action(fl, i);
+    messages.hit_msg.victim_msg = fread_action(fl, i);
+    messages.hit_msg.room_msg = fread_action(fl, i);
+    messages.god_msg.attacker_msg = fread_action(fl, i);
+    messages.god_msg.victim_msg = fread_action(fl, i);
+    messages.god_msg.room_msg = fread_action(fl, i);
 
     fight_messages[i].msg.push_back(messages);
 
