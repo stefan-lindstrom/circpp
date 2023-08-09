@@ -443,15 +443,18 @@ namespace {
   {
     struct char_data *tch;
 
-    for (tch = world[IN_ROOM(ch)].people; tch; tch = tch->next_in_room) {
-      if (tch == ch)
+    for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); it++) {
+      tch = *it;
+
+      if (tch == ch) {
         continue;
-      if (GET_LEVEL(tch) >= GET_INVIS_LEV(ch) && GET_LEVEL(tch) < level)
-        act("You blink and suddenly realize that $n is gone.", FALSE, ch, 0,
-      tch, CommTarget::TO_VICT);
-      if (GET_LEVEL(tch) < GET_INVIS_LEV(ch) && GET_LEVEL(tch) >= level)
-        act("You suddenly realize that $n is standing beside you.", FALSE, ch, 0,
-      tch, CommTarget::TO_VICT);
+      }
+      if (GET_LEVEL(tch) >= GET_INVIS_LEV(ch) && GET_LEVEL(tch) < level) {
+        act("You blink and suddenly realize that $n is gone.", FALSE, ch, 0, tch, CommTarget::TO_VICT);
+      }
+      if (GET_LEVEL(tch) < GET_INVIS_LEV(ch) && GET_LEVEL(tch) >= level) {
+        act("You suddenly realize that $n is standing beside you.", FALSE, ch, 0, tch, CommTarget::TO_VICT);
+      }
     }
 
     GET_INVIS_LEV(ch) = level;
@@ -486,42 +489,50 @@ namespace {
       if ((target_mob = get_char_vis(ch, mobobjstr, &num, FIND_CHAR_WORLD)) != NULL) {
         if ((location = IN_ROOM(target_mob)) == NOWHERE) {
           send_to_char(ch, "That character is currently lost.\r\n");
-          return (NOWHERE);
+          return NOWHERE;
         }
       } else if ((target_obj = get_obj_vis(ch, mobobjstr, &num)) != NULL) {
-        if (IN_ROOM(target_obj) != NOWHERE)
+        if (IN_ROOM(target_obj) != NOWHERE) {
           location = IN_ROOM(target_obj);
-        else if (target_obj->carried_by && IN_ROOM(target_obj->carried_by) != NOWHERE)
+        }
+        else if (target_obj->carried_by && IN_ROOM(target_obj->carried_by) != NOWHERE) {
           location = IN_ROOM(target_obj->carried_by);
-        else if (target_obj->worn_by && IN_ROOM(target_obj->worn_by) != NOWHERE)
+        }
+        else if (target_obj->worn_by && IN_ROOM(target_obj->worn_by) != NOWHERE) {
           location = IN_ROOM(target_obj->worn_by);
+        }
 
         if (location == NOWHERE) {
           send_to_char(ch, "That object is currently not in a room.\r\n");
-          return (NOWHERE);
+          return NOWHERE;
         }
       }
 
       if (location == NOWHERE) {
         send_to_char(ch, "Nothing exists by that name.\r\n");
-        return (NOWHERE);
+        return NOWHERE;
       }
     }
 
     /* a location has been found -- if you're >= GRGOD, no restrictions. */
-    if (GET_LEVEL(ch) >= LVL_GRGOD)
-      return (location);
+    if (GET_LEVEL(ch) >= LVL_GRGOD) {
+      return location;
+    }
 
-    if (ROOM_FLAGGED(location, ROOM_GODROOM))
+    if (ROOM_FLAGGED(location, ROOM_GODROOM)) {
       send_to_char(ch, "You are not godly enough to use that room!\r\n");
-    else if (ROOM_FLAGGED(location, ROOM_PRIVATE) && world[location].people && world[location].people->next_in_room)
+    }
+    else if (ROOM_FLAGGED(location, ROOM_PRIVATE) && world[location].people.size() >= 2) {
       send_to_char(ch, "There's a private conversation going on in that room.\r\n");
-    else if (ROOM_FLAGGED(location, ROOM_HOUSE) && !House_can_enter(ch, GET_ROOM_VNUM(location)))
+    }
+    else if (ROOM_FLAGGED(location, ROOM_HOUSE) && !House_can_enter(ch, GET_ROOM_VNUM(location))) {
       send_to_char(ch, "That's private property -- no trespassing!\r\n");
-    else
-      return (location);
+    }
+    else {
+      return location;
+    }
 
-    return (NOWHERE);
+    return NOWHERE;
   }
 
   void do_stat_room(struct char_data *ch)
@@ -552,14 +563,17 @@ namespace {
 
     send_to_char(ch, "Chars present:%s", CCYEL(ch, C_NRM));
     column = 14;  /* ^^^ strlen ^^^ */
-    for (found = FALSE, k = rm->people; k; k = k->next_in_room) {
-      if (!CAN_SEE(ch, k))
-        continue;
+    found = FALSE;
+    for (auto it = rm->people.begin(); it != rm->people.end(); ++it) {
+      k = *it;
 
-      column += send_to_char(ch, "%s %s(%s)", found++ ? "," : "", GET_NAME(k),
-      !IS_NPC(k) ? "PC" : (!IS_MOB(k) ? "NPC" : "MOB"));
+      if (!CAN_SEE(ch, k)) {
+        continue;
+      }
+
+      column += send_to_char(ch, "%s %s(%s)", found++ ? "," : "", GET_NAME(k), !IS_NPC(k) ? "PC" : (!IS_MOB(k) ? "NPC" : "MOB"));
       if (column >= 62) {
-        send_to_char(ch, "%s\r\n", k->next_in_room ? "," : "");
+        send_to_char(ch, "%s\r\n", it != rm->people.end() ? "," : "");
         found = FALSE;
         column = 0;
       }
@@ -576,8 +590,8 @@ namespace {
 
         column += send_to_char(ch, "%s %s", found++ ? "," : "", j->short_description.c_str());
         if (column >= 62) {
-    send_to_char(ch, "%s\r\n", j->next_content ? "," : "");
-    found = FALSE;
+          send_to_char(ch, "%s\r\n", j->next_content ? "," : "");
+          found = FALSE;
           column = 0;
         }
       }
@@ -1497,7 +1511,7 @@ ACMD(do_purge)
 
   /* argument supplied. destroy single object or char */
   if (*buf) {
-    if ((vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM)) != NULL) {
+    if ((vict = get_char_vis(ch, buf, nullptr, FIND_CHAR_ROOM)) != nullptr) {
       if (!IS_NPC(vict) && (GET_LEVEL(ch) <= GET_LEVEL(vict))) {
 	send_to_char(ch, "Fuuuuuuuuu!\r\n");
 	return;
@@ -1505,15 +1519,16 @@ ACMD(do_purge)
       act("$n disintegrates $N.", FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
 
       if (!IS_NPC(vict)) {
-	mudlog(BRF, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s has purged %s.", GET_NAME(ch), GET_NAME(vict));
-	if (vict->desc) {
-	  STATE(vict->desc) = CON_CLOSE;
-	  vict->desc->character = NULL;
-	  vict->desc = NULL;
-	}
+        mudlog(BRF, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s has purged %s.", GET_NAME(ch), GET_NAME(vict));
+
+        if (vict->desc) {
+          STATE(vict->desc) = CON_CLOSE;
+          vict->desc->character = nullptr;
+          vict->desc = nullptr;
+        }
       }
       extract_char(vict);
-    } else if ((obj = get_obj_in_list_vis(ch, buf, NULL, world[IN_ROOM(ch)].contents)) != NULL) {
+    } else if ((obj = get_obj_in_list_vis(ch, buf, NULL, world[IN_ROOM(ch)].contents)) != nullptr) {
       act("$n destroys $p.", FALSE, ch, obj, 0, CommTarget::TO_ROOM);
       extract_obj(obj);
     } else {
@@ -1525,30 +1540,36 @@ ACMD(do_purge)
   } else {			/* no argument. clean out the room */
     int i;
 
-    act("$n gestures... You are surrounded by scorching flames!",
-	FALSE, ch, 0, 0, CommTarget::TO_ROOM);
+    act("$n gestures... You are surrounded by scorching flames!",FALSE, ch, 0, 0, CommTarget::TO_ROOM);
     send_to_room(IN_ROOM(ch), "The world seems a little cleaner.\r\n");
 
-    for (vict = world[IN_ROOM(ch)].people; vict; vict = vict->next_in_room) {
-      if (!IS_NPC(vict))
+    for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+      vict = *it;
+
+      if (!IS_NPC(vict)) {
         continue;
+      }
 
       /* Dump inventory. */
-      while (vict->carrying)
+      while (vict->carrying) {
         extract_obj(vict->carrying);
+      }
 
       /* Dump equipment. */
-      for (i = 0; i < NUM_WEARS; i++)
-        if (GET_EQ(vict, i))
+      for (i = 0; i < NUM_WEARS; i++) {
+        if (GET_EQ(vict, i)) {
           extract_obj(GET_EQ(vict, i));
+        }
+      }
 
       /* Dump character. */
       extract_char(vict);
     }
 
     /* Clear the ground. */
-    while (world[IN_ROOM(ch)].contents)
+    while (world[IN_ROOM(ch)].contents) {
       extract_obj(world[IN_ROOM(ch)].contents);
+    }
   }
 }
 
@@ -1953,7 +1974,7 @@ ACMD(do_force)
 {
   TEMP_ARG_FIX;
   struct descriptor_data *i, *next_desc;
-  struct char_data *vict, *next_force;
+  struct char_data *vict;
   char arg[MAX_INPUT_LENGTH], to_force[MAX_INPUT_LENGTH], buf1[MAX_INPUT_LENGTH + 32];
 
   half_chop(argument, arg, to_force);
@@ -1978,10 +1999,12 @@ ACMD(do_force)
     mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s forced room %d to %s",
 		GET_NAME(ch), GET_ROOM_VNUM(IN_ROOM(ch)), to_force);
 
-    for (vict = world[IN_ROOM(ch)].people; vict; vict = next_force) {
-      next_force = vict->next_in_room;
-      if (!IS_NPC(vict) && GET_LEVEL(vict) >= GET_LEVEL(ch))
-	continue;
+    for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+      vict = *it;
+
+      if (!IS_NPC(vict) && GET_LEVEL(vict) >= GET_LEVEL(ch)) {
+        continue;
+      }
       act(buf1, TRUE, ch, NULL, vict, CommTarget::TO_VICT);
       command_interpreter(vict, to_force);
     }

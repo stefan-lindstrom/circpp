@@ -48,18 +48,24 @@ void reboot_wizlists(void);
 int graf(int grafage, int p0, int p1, int p2, int p3, int p4, int p5, int p6)
 {
 
-  if (grafage < 15)
-    return (p0);					/* < 15   */
-  else if (grafage <= 29)
+  if (grafage < 15) {
+    return p0;					/* < 15   */
+  }
+  else if (grafage <= 29) {
     return (p1 + (((grafage - 15) * (p2 - p1)) / 15));	/* 15..29 */
-  else if (grafage <= 44)
+  }
+  else if (grafage <= 44) {
     return (p2 + (((grafage - 30) * (p3 - p2)) / 15));	/* 30..44 */
-  else if (grafage <= 59)
+  }
+  else if (grafage <= 59) {
     return (p3 + (((grafage - 45) * (p4 - p3)) / 15));	/* 45..59 */
-  else if (grafage <= 79)
+  }
+  else if (grafage <= 79) {
     return (p4 + (((grafage - 60) * (p5 - p4)) / 20));	/* 60..79 */
-  else
-    return (p6);					/* >= 80 */
+  }
+  else {
+    return p6;					/* >= 80 */
+  }
 }
 
 
@@ -445,11 +451,12 @@ void point_update(void)
       }
 
       if (!GET_OBJ_TIMER(j)) {
-        if (j->carried_by)
+        if (j->carried_by) {
           act("$p decays in your hands.", FALSE, j->carried_by, j, 0, CommTarget::TO_CHAR);
-        else if ((IN_ROOM(j) != NOWHERE) && (world[IN_ROOM(j)].people)) {
-          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_ROOM);
-          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people, j, 0, CommTarget::TO_CHAR);
+        }
+        else if ((IN_ROOM(j) != NOWHERE) && !(world[IN_ROOM(j)].people.empty())) {
+          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people.front(), j, 0, CommTarget::TO_ROOM);
+          act("A quivering horde of maggots consumes $p.", TRUE, world[IN_ROOM(j)].people.front(), j, 0, CommTarget::TO_CHAR);
         }
         for (jj = j->contains; jj; jj = next_thing2) {
 

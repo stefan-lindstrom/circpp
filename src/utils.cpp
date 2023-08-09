@@ -609,12 +609,15 @@ int num_pc_in_room(struct room_data *room)
 {
   int i = 0;
   struct char_data *ch;
+  for (auto it = room->people.begin(); it != room->people.end(); ++it) {
+    ch = *it;
 
-  for (ch = room->people; ch != NULL; ch = ch->next_in_room)
-    if (!IS_NPC(ch))
+    if (!IS_NPC(ch)) {
       i++;
+    }
+  }
 
-  return (i);
+  return i;
 }
 
 /*

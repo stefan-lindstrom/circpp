@@ -379,16 +379,20 @@ SPECIAL(thief)
   TEMP_SPEC_ARGFIX;
   struct char_data *cons;
 
-  if (cmd || GET_POS(ch) != POS_STANDING)
+  if (cmd || GET_POS(ch) != POS_STANDING) {
     return (FALSE);
+  }
 
-  for (cons = world[IN_ROOM(ch)].people; cons; cons = cons->next_in_room)
+  for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+    cons = *it;
+
     if (!IS_NPC(cons) && GET_LEVEL(cons) < LVL_IMMORT && !rand_number(0, 4)) {
       npc_steal(ch, cons);
-      return (TRUE);
+      return TRUE;
     }
+  }
 
-  return (FALSE);
+  return FALSE;
 }
 
 
@@ -401,67 +405,77 @@ SPECIAL(magic_user)
     return (FALSE);
 
   /* pseudo-randomly choose someone in the room who is fighting me */
-  for (vict = world[IN_ROOM(ch)].people; vict; vict = vict->next_in_room)
-    if (FIGHTING(vict) == ch && !rand_number(0, 4))
+  for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+    vict = *it;
+
+    if (FIGHTING(vict) == ch && !rand_number(0, 4)) {
       break;
+    }
+  }
 
   /* if I didn't pick any of those, then just slam the guy I'm fighting */
-  if (vict == NULL && IN_ROOM(FIGHTING(ch)) == IN_ROOM(ch))
+  if (vict == NULL && IN_ROOM(FIGHTING(ch)) == IN_ROOM(ch)) {
     vict = FIGHTING(ch);
+  }
 
   /* Hm...didn't pick anyone...I'll wait a round. */
-  if (vict == NULL)
-    return (TRUE);
+  if (vict == nullptr) {
+    return TRUE;
+  }
 
-  if (GET_LEVEL(ch) > 13 && rand_number(0, 10) == 0)
-    cast_spell(ch, vict, NULL, SPELL_POISON);
+  if (GET_LEVEL(ch) > 13 && rand_number(0, 10) == 0) {
+    cast_spell(ch, vict, nullptr, SPELL_POISON);
+  }
 
-  if (GET_LEVEL(ch) > 7 && rand_number(0, 8) == 0)
-    cast_spell(ch, vict, NULL, SPELL_BLINDNESS);
+  if (GET_LEVEL(ch) > 7 && rand_number(0, 8) == 0) {
+    cast_spell(ch, vict, nullptr, SPELL_BLINDNESS);
+  }
 
   if (GET_LEVEL(ch) > 12 && rand_number(0, 12) == 0) {
-    if (IS_EVIL(ch))
+    if (IS_EVIL(ch)) {
       cast_spell(ch, vict, NULL, SPELL_ENERGY_DRAIN);
-    else if (IS_GOOD(ch))
+    }
+    else if (IS_GOOD(ch)) {
       cast_spell(ch, vict, NULL, SPELL_DISPEL_EVIL);
+    }
   }
 
-  if (rand_number(0, 4))
-    return (TRUE);
+  if (rand_number(0, 4)) {
+    return TRUE;
+  }
 
   switch (GET_LEVEL(ch)) {
-  case 4:
-  case 5:
-    cast_spell(ch, vict, NULL, SPELL_MAGIC_MISSILE);
-    break;
-  case 6:
-  case 7:
-    cast_spell(ch, vict, NULL, SPELL_CHILL_TOUCH);
-    break;
-  case 8:
-  case 9:
-    cast_spell(ch, vict, NULL, SPELL_BURNING_HANDS);
-    break;
-  case 10:
-  case 11:
-    cast_spell(ch, vict, NULL, SPELL_SHOCKING_GRASP);
-    break;
-  case 12:
-  case 13:
-    cast_spell(ch, vict, NULL, SPELL_LIGHTNING_BOLT);
-    break;
-  case 14:
-  case 15:
-  case 16:
-  case 17:
-    cast_spell(ch, vict, NULL, SPELL_COLOR_SPRAY);
-    break;
-  default:
-    cast_spell(ch, vict, NULL, SPELL_FIREBALL);
-    break;
+    case 4:
+    case 5:
+      cast_spell(ch, vict, NULL, SPELL_MAGIC_MISSILE);
+      break;
+    case 6:
+    case 7:
+      cast_spell(ch, vict, NULL, SPELL_CHILL_TOUCH);
+      break;
+    case 8:
+    case 9:
+      cast_spell(ch, vict, NULL, SPELL_BURNING_HANDS);
+      break;
+    case 10:
+    case 11:
+      cast_spell(ch, vict, NULL, SPELL_SHOCKING_GRASP);
+      break;
+    case 12:
+    case 13:
+      cast_spell(ch, vict, NULL, SPELL_LIGHTNING_BOLT);
+      break;
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+      cast_spell(ch, vict, NULL, SPELL_COLOR_SPRAY);
+      break;
+    default:
+      cast_spell(ch, vict, NULL, SPELL_FIREBALL);
+      break;
   }
-  return (TRUE);
-
+  return TRUE;
 }
 
 
@@ -586,27 +600,31 @@ SPECIAL(cityguard)
   struct char_data *tch, *evil, *spittle;
   int max_evil, min_cha;
 
-  if (cmd || !AWAKE(ch) || FIGHTING(ch))
-    return (FALSE);
+  if (cmd || !AWAKE(ch) || FIGHTING(ch)) {
+    return FALSE;
+  }
 
   max_evil = 1000;
   min_cha = 6;
-  spittle = evil = NULL;
+  spittle = evil = nullptr;
 
-  for (tch = world[IN_ROOM(ch)].people; tch; tch = tch->next_in_room) {
-    if (!CAN_SEE(ch, tch))
+  for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+    tch = *it;
+
+    if (!CAN_SEE(ch, tch)) {
       continue;
+    }
 
     if (!IS_NPC(tch) && PLR_FLAGGED(tch, PLR_KILLER)) {
       act("$n screams 'HEY!!!  You're one of those PLAYER KILLERS!!!!!!'", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
       hit(ch, tch, TYPE_UNDEFINED);
-      return (TRUE);
+      return TRUE;
     }
 
     if (!IS_NPC(tch) && PLR_FLAGGED(tch, PLR_THIEF)) {
       act("$n screams 'HEY!!!  You're one of those PLAYER THIEVES!!!!!!'", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
       hit(ch, tch, TYPE_UNDEFINED);
-      return (TRUE);
+      return TRUE;
     }
 
     if (FIGHTING(tch) && GET_ALIGNMENT(tch) < max_evil && (IS_NPC(tch) || IS_NPC(FIGHTING(tch)))) {
@@ -623,7 +641,7 @@ SPECIAL(cityguard)
   if (evil && GET_ALIGNMENT(FIGHTING(evil)) >= 0) {
     act("$n screams 'PROTECT THE INNOCENT!  BANZAI!  CHARGE!  ARARARAGGGHH!'", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
     hit(ch, evil, TYPE_UNDEFINED);
-    return (TRUE);
+    return TRUE;
   }
 
   /* Reward the socially inept. */
@@ -640,11 +658,11 @@ SPECIAL(cityguard)
       spitbuf[sizeof(spitbuf) - 1] = '\0';
 
       do_action(ch, spitbuf, spit_social, 0);
-      return (TRUE);
+      return TRUE;
     }
   }
 
-  return (FALSE);
+  return FALSE;
 }
 
 
@@ -662,24 +680,27 @@ SPECIAL(pet_shops)
 
   if (CMD_IS("list")) {
     send_to_char(ch, "Available pets are:\r\n");
-    for (pet = world[pet_room].people; pet; pet = pet->next_in_room) {
+    for (auto it = world[pet_room].people.begin(); it != world[pet_room].people.end(); ++it) {
+        pet = *it;
+
       /* No, you can't have the Implementor as a pet if he's in there. */
-      if (!IS_NPC(pet))
+      if (!IS_NPC(pet)) {
         continue;
+      }
       send_to_char(ch, "%8d - %s\r\n", PET_PRICE(pet), GET_NAME(pet));
     }
-    return (TRUE);
+    return TRUE;
   } else if (CMD_IS("buy")) {
 
     two_arguments(argument, buf, pet_name);
 
     if (!(pet = get_char_room(buf, NULL, pet_room)) || !IS_NPC(pet)) {
       send_to_char(ch, "There is no such pet!\r\n");
-      return (TRUE);
+      return TRUE;
     }
     if (GET_GOLD(ch) < PET_PRICE(pet)) {
       send_to_char(ch, "You don't have enough gold!\r\n");
-      return (TRUE);
+      return TRUE;
     }
     GET_GOLD(ch) -= PET_PRICE(pet);
 
@@ -691,8 +712,7 @@ SPECIAL(pet_shops)
       snprintf(buf, sizeof(buf), "%s %s", pet->player.name.c_str(), pet_name);
       pet->player.name = buf;
 
-      snprintf(buf, sizeof(buf), "%sA small sign on a chain around the neck says 'My name is %s'\r\n",
-	       pet->player.description.c_str(), pet_name);
+      snprintf(buf, sizeof(buf), "%sA small sign on a chain around the neck says 'My name is %s'\r\n", pet->player.description.c_str(), pet_name);
       pet->player.description = buf;
     }
     char_to_room(pet, IN_ROOM(ch));
@@ -705,11 +725,11 @@ SPECIAL(pet_shops)
     send_to_char(ch, "May you enjoy your pet.\r\n");
     act("$n buys $N as a pet.", FALSE, ch, 0, pet, CommTarget::TO_ROOM);
 
-    return (TRUE);
+    return TRUE;
   }
 
   /* All commands except list and buy */
-  return (FALSE);
+  return FALSE;
 }
 
 

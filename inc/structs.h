@@ -767,7 +767,7 @@ struct room_data {
   SPECIAL(*func);
   
   struct obj_data *contents;   /* List of items in room              */
-  struct char_data *people;    /* List of NPC / PC in room           */
+  std::list<char_data *> people;    /* List of NPC / PC in room           */
 };
 /* ====================================================================== */
 
@@ -1036,14 +1036,13 @@ struct char_data {
   struct obj_data *carrying;            /* Head of list                  */
   struct descriptor_data *desc;         /* NULL for mobiles              */
 
-  struct char_data *next_in_room;     /* For room->people - list         */
   struct char_data *next;             /* For either monster or ppl-list  */
 
   struct follow_type *followers;        /* List of chars followers       */
   struct char_data *master;             /* Who is char following?        */
   
   char_data() : pfilepos(0), nr(0), in_room(NOWHERE), was_in_room(NOWHERE), wait(0), player_specials(nullptr), 
-    equipment{nullptr}, carrying(nullptr), desc(nullptr), next_in_room(nullptr), next(nullptr), 
+    equipment{nullptr}, carrying(nullptr), desc(nullptr), next(nullptr), 
     followers(nullptr), master(nullptr) {}
 };
 /* ====================================================================== */

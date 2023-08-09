@@ -322,10 +322,12 @@ namespace {
         send_to_char(ch, "*");
 
       if (AFF_FLAGGED(ch, AFF_DETECT_ALIGN)) {
-        if (IS_EVIL(i))
-  	send_to_char(ch, "(Red Aura) ");
-        else if (IS_GOOD(i))
-  	send_to_char(ch, "(Blue Aura) ");
+        if (IS_EVIL(i)) {
+          send_to_char(ch, "(Red Aura) ");
+        }
+        else if (IS_GOOD(i)) {
+          send_to_char(ch, "(Blue Aura) ");
+        }
       }
       send_to_char(ch, "%s", i->player.long_descr.c_str());
 
@@ -380,18 +382,22 @@ namespace {
       act("...$e glows with a bright light!", FALSE, i, 0, ch, CommTarget::TO_VICT);
   }
 
-  void list_char_to_char(struct char_data *list, struct char_data *ch)
+  void list_char_to_char(const std::list<char_data *> &list, struct char_data *ch)
   {
     struct char_data *i;
 
-    for (i = list; i; i = i->next_in_room)
+    for (auto it = list.begin(); it != list.end(); ++it) {
+      i = *it;
+
       if (ch != i) {
-        if (CAN_SEE(ch, i))
-  	list_one_char(i, ch);
-        else if (IS_DARK(IN_ROOM(ch)) && !CAN_SEE_IN_DARK(ch) &&
-  	       AFF_FLAGGED(i, AFF_INFRAVISION))
-  	send_to_char(ch, "You see a pair of glowing red eyes looking your way.\r\n");
+        if (CAN_SEE(ch, i)) {
+          list_one_char(i, ch);
+        }
+        else if (IS_DARK(IN_ROOM(ch)) && !CAN_SEE_IN_DARK(ch) && AFF_FLAGGED(i, AFF_INFRAVISION))  {
+          send_to_char(ch, "You see a pair of glowing red eyes looking your way.\r\n");
+        }
       }
+    }
   }
 
   void do_auto_exits(struct char_data *ch)

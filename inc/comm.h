@@ -35,7 +35,6 @@ ENABLE_BITMASK_OPERATORS(CommTarget);
 void	perform_act(const char *orig, struct char_data *ch, struct obj_data *obj, const void *vict_obj, const struct char_data *to);
 void	act(const char *str, int hide_invisible, struct char_data *ch, struct obj_data *obj, const void *vict_obj, CommTarget type);
 
-
 /* I/O functions */
 void	write_to_q(const char *txt, struct txt_q *queue, int aliased);
 int	write_to_descriptor(socket_t desc, const char *txt);

@@ -594,12 +594,14 @@ void mag_masses(int level, struct char_data *ch, int spellnum, int savetype)
 {
   (void)level;
   (void)savetype;
-  struct char_data *tch, *tch_next;
+  struct char_data *tch;
 
-  for (tch = world[IN_ROOM(ch)].people; tch; tch = tch_next) {
-    tch_next = tch->next_in_room;
-    if (tch == ch)
+  for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+    tch = *it;
+
+    if (tch == ch) {
       continue;
+    }
 
     switch (spellnum) {
     }
@@ -618,11 +620,12 @@ void mag_masses(int level, struct char_data *ch, int spellnum, int savetype)
 void mag_areas(int level, struct char_data *ch, int spellnum, int savetype)
 {
   (void)savetype;
-  struct char_data *tch, *next_tch;
-  const char *to_char = NULL, *to_room = NULL;
+  struct char_data *tch;
+  const char *to_char = nullptr, *to_room = nullptr;
 
-  if (ch == NULL)
+  if (ch == nullptr) {
     return;
+  }
 
   /*
    * to add spells to this fn, just add the message here plus an entry
@@ -635,14 +638,16 @@ void mag_areas(int level, struct char_data *ch, int spellnum, int savetype)
     break;
   }
 
-  if (to_char != NULL)
+  if (to_char != nullptr) {
     act(to_char, FALSE, ch, 0, 0, CommTarget::TO_CHAR);
-  if (to_room != NULL)
+  }
+  if (to_room != nullptr) {
     act(to_room, FALSE, ch, 0, 0, CommTarget::TO_ROOM);
+  }
   
 
-  for (tch = world[IN_ROOM(ch)].people; tch; tch = next_tch) {
-    next_tch = tch->next_in_room;
+  for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+    tch = *it;
 
     /*
      * The skips: 1: the caster
@@ -651,14 +656,18 @@ void mag_areas(int level, struct char_data *ch, int spellnum, int savetype)
      *            4: pets (charmed NPCs)
      */
 
-    if (tch == ch)
+    if (tch == ch) {
       continue;
-    if (!IS_NPC(tch) && GET_LEVEL(tch) >= LVL_IMMORT)
+    }
+    if (!IS_NPC(tch) && GET_LEVEL(tch) >= LVL_IMMORT) {
       continue;
-    if (!pk_allowed && !IS_NPC(ch) && !IS_NPC(tch))
+    }
+    if (!pk_allowed && !IS_NPC(ch) && !IS_NPC(tch)) {
       continue;
-    if (!IS_NPC(ch) && IS_NPC(tch) && AFF_FLAGGED(tch, AFF_CHARM))
+    }
+    if (!IS_NPC(ch) && IS_NPC(tch) && AFF_FLAGGED(tch, AFF_CHARM)) {
       continue;
+    }
 
     /* Doesn't matter if they die here so we don't check. -gg 6/24/98 */
     mag_damage(level, ch, tch, spellnum, 1);

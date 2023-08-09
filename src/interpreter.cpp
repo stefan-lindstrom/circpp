@@ -1071,35 +1071,51 @@ int special(struct char_data *ch, int cmd, char *arg)
   int j;
 
   /* special in room? */
-  if (GET_ROOM_SPEC(IN_ROOM(ch)) != NULL)
-    if (GET_ROOM_SPEC(IN_ROOM(ch)) (ch, &world[IN_ROOM(ch)], cmd, arg))
-      return (1);
+  if (GET_ROOM_SPEC(IN_ROOM(ch)) != nullptr) {
+    if (GET_ROOM_SPEC(IN_ROOM(ch)) (ch, &world[IN_ROOM(ch)], cmd, arg)) {
+      return 1;
+    }
+  }
 
   /* special in equipment list? */
-  for (j = 0; j < NUM_WEARS; j++)
-    if (GET_EQ(ch, j) && GET_OBJ_SPEC(GET_EQ(ch, j)) != NULL)
-      if (GET_OBJ_SPEC(GET_EQ(ch, j)) (ch, GET_EQ(ch, j), cmd, arg))
-	return (1);
+  for (j = 0; j < NUM_WEARS; j++) {
+    if (GET_EQ(ch, j) && GET_OBJ_SPEC(GET_EQ(ch, j)) != nullptr) {
+      if (GET_OBJ_SPEC(GET_EQ(ch, j)) (ch, GET_EQ(ch, j), cmd, arg)) {
+        return 1;
+      }
+    }
+  }
 
   /* special in inventory? */
-  for (i = ch->carrying; i; i = i->next_content)
-    if (GET_OBJ_SPEC(i) != NULL)
-      if (GET_OBJ_SPEC(i) (ch, i, cmd, arg))
-	return (1);
+  for (i = ch->carrying; i; i = i->next_content) {
+    if (GET_OBJ_SPEC(i) != nullptr) {
+      if (GET_OBJ_SPEC(i) (ch, i, cmd, arg)) {
+        return 1;
+      }
+    }
+  }
 
   /* special in mobile present? */
-  for (k = world[IN_ROOM(ch)].people; k; k = k->next_in_room)
-    if (!MOB_FLAGGED(k, MOB_NOTDEADYET))
-      if (GET_MOB_SPEC(k) && GET_MOB_SPEC(k) (ch, k, cmd, arg))
-	return (1);
+  for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+    k = *it;
+
+    if (!MOB_FLAGGED(k, MOB_NOTDEADYET)) {
+      if (GET_MOB_SPEC(k) && GET_MOB_SPEC(k) (ch, k, cmd, arg)) {
+        return 1;
+      }
+    }
+  }
 
   /* special in object present? */
-  for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content)
-    if (GET_OBJ_SPEC(i) != NULL)
-      if (GET_OBJ_SPEC(i) (ch, i, cmd, arg))
-	return (1);
+  for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
+    if (GET_OBJ_SPEC(i) != nullptr) {
+      if (GET_OBJ_SPEC(i) (ch, i, cmd, arg)) {
+        return 1;
+      }
+    }
+  }
 
-  return (0);
+  return 0;
 }
 
 

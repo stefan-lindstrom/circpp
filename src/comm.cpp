@@ -2243,19 +2243,20 @@ void send_to_outdoor(const char *messg, ...)
 
 void send_to_room(room_rnum room, const char *messg, ...)
 {
-  struct char_data *i;
-  va_list args;
-
-  if (messg == NULL)
+  if (messg == nullptr) {
     return;
+  }
 
-  for (i = world[room].people; i; i = i->next_in_room) {
-    if (!i->desc)
-      continue;
+  for (auto it = world[room].people.begin(); it != world[room].people.end(); it++) {
+    auto i = *it;
+    
+    if (i->desc) {
+      va_list args;
 
-    va_start(args, messg);
-    vwrite_to_output(i->desc, messg, args);
-    va_end(args);
+      va_start(args, messg);
+      vwrite_to_output(i->desc, messg, args);
+      va_end(args);      
+    }
   }
 }
 
@@ -2378,8 +2379,7 @@ void perform_act(const char *orig, struct char_data *ch, struct obj_data *obj,
 #define SENDOK(ch)	((ch)->desc && (e2ut(to_sleeping) || AWAKE(ch)) && \
 			(IS_NPC(ch) || !PLR_FLAGGED((ch), PLR_WRITING)))
 
-void act(const char *str, int hide_invisible, struct char_data *ch,
-	 struct obj_data *obj, const void *vict_obj, CommTarget type)
+void act(const char *str, int hide_invisible, struct char_data *ch, struct obj_data *obj, const void *vict_obj, CommTarget type)
 {
   const struct char_data *to;
   CommTarget to_sleeping;
@@ -2409,28 +2409,36 @@ void act(const char *str, int hide_invisible, struct char_data *ch,
   }
 
   if (type == CommTarget::TO_VICT) {
-    if ((to = (const struct char_data *) vict_obj) != NULL && SENDOK(to))
+    if ((to = (const struct char_data *) vict_obj) != NULL && SENDOK(to)) {
       perform_act(str, ch, obj, vict_obj, to);
+    }
     return;
   }
   /* ASSUMPTION: at this point we know type must be CommTarget::TO_NOTVICT or CommTarget::TO_ROOM */
 
-  if (ch && IN_ROOM(ch) != NOWHERE)
-    to = world[IN_ROOM(ch)].people;
-  else if (obj && IN_ROOM(obj) != NOWHERE)
-    to = world[IN_ROOM(obj)].people;
+  room_rnum room;
+  if (ch && IN_ROOM(ch) != NOWHERE) {
+    room = IN_ROOM(ch);
+  }
+  else if (obj && IN_ROOM(obj) != NOWHERE) {
+    room = IN_ROOM(obj);
+  }
   else {
     basic_mud_log("SYSERR: no valid target to act()!");
     return;
   }
 
-  for (; to; to = to->next_in_room) {
-    if (!SENDOK(to) || (to == ch))
+  for (auto it = world[room].people.begin(); it != world[room].people.end(); ++it) {
+    to = *it;
+    if (!SENDOK(to) || (to == ch)) {
       continue;
-    if (hide_invisible && ch && !CAN_SEE(to, ch))
+    }
+    if (hide_invisible && ch && !CAN_SEE(to, ch)) {
       continue;
-    if (type != CommTarget::TO_ROOM && to == vict_obj)
+    }
+    if (type != CommTarget::TO_ROOM && to == vict_obj) {
       continue;
+    }
     perform_act(str, ch, obj, vict_obj, to);
   }
 }

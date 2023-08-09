@@ -28,7 +28,7 @@ void room_future::parse_single_idx(const std::string &idx, std::vector<room_data
 
     reading.func = nullptr;
     reading.contents = nullptr;
-    reading.people = nullptr;
+    reading.people.clear();
     reading.light = 0;	/* Zero light sources */
 
     // first line, #<vnum>
