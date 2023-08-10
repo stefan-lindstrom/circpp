@@ -148,12 +148,13 @@
 #define TYPE_SUFFERING		     399
 
 
-
+// make enum
 #define SAVING_PARA   0
 #define SAVING_ROD    1
 #define SAVING_PETRI  2
 #define SAVING_BREATH 3
 #define SAVING_SPELL  4
+#define NUM_SAVES 5
 
 
 #define TAR_IGNORE      (1 << 0)

@@ -1693,7 +1693,7 @@ void reset_char(struct char_data *ch)
   ch->master = NULL;
   IN_ROOM(ch) = NOWHERE;
   ch->carrying = NULL;
-  ch->next = NULL;
+
   FIGHTING(ch) = NULL;
   ch->char_specials.position = POS_STANDING;
   ch->mob_specials.default_pos = POS_STANDING;

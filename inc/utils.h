@@ -26,6 +26,19 @@ void split(const std::string &s, char delim, Out output) {
   }
 }
 
+
+template<typename T>
+constexpr bool in_range(T value, T min, T max) noexcept
+{
+    return value >= min && value <= max;
+}
+
+template<typename T>
+constexpr bool not_in_range(T value, T min, T max) noexcept 
+{
+  return !in_range(value, min, max);
+}
+
 /* external declarations and prototypes **********************************/
 
 extern struct weather_data weather_info;
