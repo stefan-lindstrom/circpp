@@ -865,13 +865,16 @@ namespace {
       send_to_char(ch, "Hunger: %d, Thirst: %d, Drunk: %d\r\n", GET_COND(k, FULL), GET_COND(k, THIRST), GET_COND(k, DRUNK));
 
     column = send_to_char(ch, "Master is: %s, Followers are:", k->master ? GET_NAME(k->master) : "<none>");
-    if (!k->followers)
+    if (k->followers.empty()) {
       send_to_char(ch, " <none>\r\n");
+    }
     else {
-      for (fol = k->followers; fol; fol = fol->next) {
+      for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+        fol = *it;
+
         column += send_to_char(ch, "%s %s", found++ ? "," : "", PERS(fol->follower, ch));
         if (column >= 62) {
-          send_to_char(ch, "%s\r\n", fol->next ? "," : "");
+          send_to_char(ch, "%s\r\n", it == k->followers.end() ? "," : "");
           found = FALSE;
           column = 0;
         }

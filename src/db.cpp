@@ -1689,7 +1689,7 @@ void reset_char(struct char_data *ch)
   for (i = 0; i < NUM_WEARS; i++)
     GET_EQ(ch, i) = NULL;
 
-  ch->followers = NULL;
+  ch->followers.clear();
   ch->master = NULL;
   IN_ROOM(ch) = NOWHERE;
   ch->carrying = NULL;

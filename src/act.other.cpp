@@ -53,8 +53,9 @@ namespace {
     struct char_data *k;
     struct follow_type *f;
 
-    if (!AFF_FLAGGED(ch, AFF_GROUP))
+    if (!AFF_FLAGGED(ch, AFF_GROUP)) {
       send_to_char(ch, "But you are not the member of a group!\r\n");
+    }
     else {
       char buf[MAX_STRING_LENGTH];
 
@@ -63,14 +64,16 @@ namespace {
       k = (ch->master ? ch->master : ch);
 
       if (AFF_FLAGGED(k, AFF_GROUP)) {
-        snprintf(buf, sizeof(buf), "     [%3dH %3dM %3dV] [%2d %s] $N (Head of group)",
-          GET_HIT(k), GET_MANA(k), GET_MOVE(k), GET_LEVEL(k), CLASS_ABBR(k));
+        snprintf(buf, sizeof(buf), "     [%3dH %3dM %3dV] [%2d %s] $N (Head of group)", GET_HIT(k), GET_MANA(k), GET_MOVE(k), GET_LEVEL(k), CLASS_ABBR(k));
         act(buf, FALSE, ch, 0, k, CommTarget::TO_CHAR);
       }
 
-      for (f = k->followers; f; f = f->next) {
-        if (!AFF_FLAGGED(f->follower, AFF_GROUP))
-    continue;
+      for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+        f = *it;
+
+        if (!AFF_FLAGGED(f->follower, AFF_GROUP)) {
+          continue;
+        }
 
         snprintf(buf, sizeof(buf), "     [%3dH %3dM %3dV] [%2d %s] $N", GET_HIT(f->follower),
           GET_MANA(f->follower), GET_MOVE(f->follower),
@@ -416,23 +419,34 @@ ACMD(do_group)
 
   if (!str_cmp(buf, "all")) {
     perform_group(ch, ch);
-    for (found = 0, f = ch->followers; f; f = f->next)
+
+    found = 0;
+    for (auto it = ch->followers.begin(); it != ch->followers.end(); ++it) {
+      f = *it;
       found += perform_group(ch, f->follower);
-    if (!found)
+    }
+
+    if (!found) {
       send_to_char(ch, "Everyone following you is already in your group.\r\n");
+    }
+    
     return;
   }
 
-  if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM)))
+  if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM))) {
     send_to_char(ch, "%s", NOPERSON.c_str());
-  else if ((vict->master != ch) && (vict != ch))
+  }
+  else if ((vict->master != ch) && (vict != ch)) {
     act("$N must follow you to enter your group.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
+  }
   else {
-    if (!AFF_FLAGGED(vict, AFF_GROUP))
+    if (!AFF_FLAGGED(vict, AFF_GROUP)) {
       perform_group(ch, vict);
+    }
     else {
-      if (ch != vict)
-	act("$N is no longer a member of your group.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
+      if (ch != vict) {
+        act("$N is no longer a member of your group.", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
+      }
       act("You have been kicked out of $n's group!", FALSE, ch, 0, vict, CommTarget::TO_VICT);
       act("$N has been kicked out of $n's group!", FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
       REMOVE_BIT(AFF_FLAGS(vict), AFF_GROUP);
@@ -447,7 +461,7 @@ ACMD(do_ungroup)
   TEMP_ARG_FIX;
 
   char buf[MAX_INPUT_LENGTH];
-  struct follow_type *f, *next_fol;
+  struct follow_type *f;
   struct char_data *tch;
 
   one_argument(argument, buf);
@@ -458,13 +472,16 @@ ACMD(do_ungroup)
       return;
     }
 
-    for (f = ch->followers; f; f = next_fol) {
-      next_fol = f->next;
+    for (auto it = ch->followers.begin(); it != ch->followers.end(); ++it) {
+      f = *it;
+
       if (AFF_FLAGGED(f->follower, AFF_GROUP)) {
-	REMOVE_BIT(AFF_FLAGS(f->follower), AFF_GROUP);
+        REMOVE_BIT(AFF_FLAGS(f->follower), AFF_GROUP);
         act("$N has disbanded the group.", TRUE, f->follower, NULL, ch, CommTarget::TO_CHAR);
-        if (!AFF_FLAGGED(f->follower, AFF_CHARM))
-	  stop_follower(f->follower);
+
+        if (!AFF_FLAGGED(f->follower, AFF_CHARM)) {
+          stop_follower(f->follower);
+        }
       }
     }
 
@@ -492,8 +509,9 @@ ACMD(do_ungroup)
   act("You have been kicked out of $n's group!", FALSE, ch, 0, tch, CommTarget::TO_VICT);
   act("$N has been kicked out of $n's group!", FALSE, ch, 0, tch, CommTarget::TO_NOTVICT);
  
-  if (!AFF_FLAGGED(tch, AFF_CHARM))
+  if (!AFF_FLAGGED(tch, AFF_CHARM)) {
     stop_follower(tch);
+  }
 }
 
 
@@ -519,12 +537,17 @@ ACMD(do_report)
 
   k = (ch->master ? ch->master : ch);
 
-  for (f = k->followers; f; f = f->next)
-    if (AFF_FLAGGED(f->follower, AFF_GROUP) && f->follower != ch)
-      act(buf, TRUE, ch, NULL, f->follower, CommTarget::TO_VICT);
+  for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+    f = *it;
 
-  if (k != ch)
-    act(buf, TRUE, ch, NULL, k, CommTarget::TO_VICT);
+    if (AFF_FLAGGED(f->follower, AFF_GROUP) && f->follower != ch) {
+      act(buf, TRUE, ch, nullptr, f->follower, CommTarget::TO_VICT);
+    }
+  }
+
+  if (k != ch) {
+    act(buf, TRUE, ch, nullptr, k, CommTarget::TO_VICT);
+  }
 
   send_to_char(ch, "You report to the group.\r\n");
 }
@@ -541,8 +564,9 @@ ACMD(do_split)
   struct char_data *k;
   struct follow_type *f;
 
-  if (IS_NPC(ch))
+  if (IS_NPC(ch)) {
     return;
+  }
 
   one_argument(argument, buf);
 
@@ -558,16 +582,20 @@ ACMD(do_split)
     }
     k = (ch->master ? ch->master : ch);
 
-    if (AFF_FLAGGED(k, AFF_GROUP) && (IN_ROOM(k) == IN_ROOM(ch)))
+    if (AFF_FLAGGED(k, AFF_GROUP) && (IN_ROOM(k) == IN_ROOM(ch))) {
       num = 1;
-    else
+    }
+    else {
       num = 0;
+    }
 
-    for (f = k->followers; f; f = f->next)
-      if (AFF_FLAGGED(f->follower, AFF_GROUP) &&
-	  (!IS_NPC(f->follower)) &&
-	  (IN_ROOM(f->follower) == IN_ROOM(ch)))
-	num++;
+    for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+      f = *it;
+
+      if (AFF_FLAGGED(f->follower, AFF_GROUP) && (!IS_NPC(f->follower)) && (IN_ROOM(f->follower) == IN_ROOM(ch))) {
+        num++;
+      }
+    }
 
     if (num && AFF_FLAGGED(ch, AFF_GROUP)) {
       share = amount / num;
@@ -583,32 +611,25 @@ ACMD(do_split)
     len = snprintf(buf, sizeof(buf), "%s splits %d coins; you receive %d.\r\n",
 		GET_NAME(ch), amount, share);
     if (rest && len < sizeof(buf)) {
-      snprintf(buf + len, sizeof(buf) - len,
-		"%d coin%s %s not splitable, so %s keeps the money.\r\n", rest,
-		(rest == 1) ? "" : "s", (rest == 1) ? "was" : "were", GET_NAME(ch));
+      snprintf(buf + len, sizeof(buf) - len, "%d coin%s %s not splitable, so %s keeps the money.\r\n", rest, (rest == 1) ? "" : "s", (rest == 1) ? "was" : "were", GET_NAME(ch));
     }
-    if (AFF_FLAGGED(k, AFF_GROUP) && IN_ROOM(k) == IN_ROOM(ch) &&
-		!IS_NPC(k) && k != ch) {
+    if (AFF_FLAGGED(k, AFF_GROUP) && IN_ROOM(k) == IN_ROOM(ch) && !IS_NPC(k) && k != ch) {
       GET_GOLD(k) += share;
       send_to_char(k, "%s", buf);
     }
 
-    for (f = k->followers; f; f = f->next) {
-      if (AFF_FLAGGED(f->follower, AFF_GROUP) &&
-	  (!IS_NPC(f->follower)) &&
-	  (IN_ROOM(f->follower) == IN_ROOM(ch)) &&
-	  f->follower != ch) {
-
-	GET_GOLD(f->follower) += share;
-	send_to_char(f->follower, "%s", buf);
+    for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+      f = *it;
+      
+      if (AFF_FLAGGED(f->follower, AFF_GROUP) && (!IS_NPC(f->follower)) && (IN_ROOM(f->follower) == IN_ROOM(ch)) && f->follower != ch) {
+        GET_GOLD(f->follower) += share;
+        send_to_char(f->follower, "%s", buf);
       }
     }
-    send_to_char(ch, "You split %d coins among %d members -- %d coins each.\r\n",
-	    amount, num, share);
+    send_to_char(ch, "You split %d coins among %d members -- %d coins each.\r\n", amount, num, share);
 
     if (rest) {
-      send_to_char(ch, "%d coin%s %s not splitable, so you keep the money.\r\n",
-		rest, (rest == 1) ? "" : "s", (rest == 1) ? "was" : "were");
+      send_to_char(ch, "%d coin%s %s not splitable, so you keep the money.\r\n", rest, (rest == 1) ? "" : "s", (rest == 1) ? "was" : "were");
       GET_GOLD(ch) += rest;
     }
   } else {

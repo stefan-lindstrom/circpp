@@ -556,26 +556,33 @@ void perform_mag_groups(int level, struct char_data *ch,
 void mag_groups(int level, struct char_data *ch, int spellnum, int savetype)
 {
   struct char_data *tch, *k;
-  struct follow_type *f, *f_next;
+  struct follow_type *f;
 
   if (ch == NULL)
     return;
 
   if (!AFF_FLAGGED(ch, AFF_GROUP))
     return;
-  if (ch->master != NULL)
+  if (ch->master != nullptr) {
     k = ch->master;
-  else
+  }
+  else {
     k = ch;
-  for (f = k->followers; f; f = f_next) {
-    f_next = f->next;
+  }
+
+  for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+    f = *it;
+
     tch = f->follower;
-    if (IN_ROOM(tch) != IN_ROOM(ch))
+    if (IN_ROOM(tch) != IN_ROOM(ch)) {
       continue;
-    if (!AFF_FLAGGED(tch, AFF_GROUP))
+    }
+    if (!AFF_FLAGGED(tch, AFF_GROUP)) {
       continue;
-    if (ch == tch)
+    }
+    if (ch == tch) {
       continue;
+    }
     perform_mag_groups(level, ch, tch, spellnum, savetype);
   }
 

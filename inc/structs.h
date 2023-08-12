@@ -1006,9 +1006,8 @@ struct affected_type {
 /* Structure used for chars following other chars */
 struct follow_type {
   struct char_data *follower;
-  struct follow_type *next;
 
-  follow_type() : follower(nullptr), next(nullptr)  {}
+  follow_type() : follower(nullptr)  {}
 };
 
 
@@ -1035,12 +1034,11 @@ struct char_data {
   struct obj_data *carrying;            /* Head of list                  */
   struct descriptor_data *desc;         /* NULL for mobiles              */
 
-  struct follow_type *followers;        /* List of chars followers       */
+  std::list<follow_type *> followers;   /* List of chars followers       */
   struct char_data *master;             /* Who is char following?        */
   
   char_data() : pfilepos(0), nr(0), in_room(NOWHERE), was_in_room(NOWHERE), wait(0), player_specials(nullptr), 
-    equipment{nullptr}, carrying(nullptr), desc(nullptr), //next(nullptr), 
-    followers(nullptr), master(nullptr) {}
+    equipment{nullptr}, carrying(nullptr), desc(nullptr),  master(nullptr) {}
 };
 /* ====================================================================== */
 

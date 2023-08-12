@@ -214,12 +214,15 @@ ACMD(do_order)
 
   half_chop(argument, name, message);
 
-  if (!*name || !*message)
+  if (!*name || !*message) {
     send_to_char(ch, "Order who to do what?\r\n");
-  else if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_ROOM)) && !is_abbrev(name, "followers"))
+  }
+  else if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_ROOM)) && !is_abbrev(name, "followers")) {
     send_to_char(ch, "That person isn't here.\r\n");
-  else if (ch == vict)
+  }
+  else if (ch == vict) {
     send_to_char(ch, "You obviously suffer from skitzofrenia.\r\n");
+  }
   else {
     if (AFF_FLAGGED(ch, AFF_CHARM)) {
       send_to_char(ch, "Your superior would not aprove of you giving orders.\r\n");
@@ -232,11 +235,12 @@ ACMD(do_order)
       act(buf, FALSE, vict, 0, ch, CommTarget::TO_CHAR);
       act("$n gives $N an order.", FALSE, ch, 0, vict, CommTarget::TO_ROOM);
 
-      if ((vict->master != ch) || !AFF_FLAGGED(vict, AFF_CHARM))
-	act("$n has an indifferent look.", FALSE, vict, 0, 0, CommTarget::TO_ROOM);
+      if ((vict->master != ch) || !AFF_FLAGGED(vict, AFF_CHARM)) {
+        act("$n has an indifferent look.", FALSE, vict, 0, 0, CommTarget::TO_ROOM);
+      }
       else {
-	send_to_char(ch, "%s", OK.c_str());
-	command_interpreter(vict, message);
+        send_to_char(ch, "%s", OK.c_str());
+        command_interpreter(vict, message);
       }
     } else {			/* This is order "followers" */
       char buf[MAX_STRING_LENGTH];
@@ -244,17 +248,22 @@ ACMD(do_order)
       snprintf(buf, sizeof(buf), "$n issues the order '%s'.", message);
       act(buf, FALSE, ch, 0, 0, CommTarget::TO_ROOM);
 
-      for (k = ch->followers; k; k = k->next) {
-	if (IN_ROOM(ch) == IN_ROOM(k->follower))
-	  if (AFF_FLAGGED(k->follower, AFF_CHARM)) {
-	    found = TRUE;
-	    command_interpreter(k->follower, message);
-	  }
+      for (auto it = ch->followers.begin(); it != ch->followers.end(); ++it) {
+        k = *it;
+
+        if (IN_ROOM(ch) == IN_ROOM(k->follower)) {
+          if (AFF_FLAGGED(k->follower, AFF_CHARM)) {
+            found = TRUE;
+            command_interpreter(k->follower, message);
+          }
+        }
       }
-      if (found)
+      if (found) {
         send_to_char(ch, "%s", OK.c_str());
-      else
+      }
+      else {
         send_to_char(ch, "Nobody here is a loyal subject of yours!\r\n");
+      }
     }
   }
 }

@@ -898,7 +898,7 @@ void extract_char_final(struct char_data *ch)
 
   /* On with the character's assets... */
 
-  if (ch->followers || ch->master)
+  if (!ch->followers.empty() || ch->master)
     die_follower(ch);
 
   /* transfer objects to room, if any */
