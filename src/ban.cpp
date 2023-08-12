@@ -19,31 +19,44 @@
 #include "handler.h"
 #include "db.h"
 #include "act.h"
+#include "ban.h"
 
-/* local globals */
-struct ban_list_element *ban_list = NULL;
-
-/* local functions */
-void load_banned(void);
-int isbanned(char *hostname);
-void _write_one_node(FILE *fp, struct ban_list_element *node);
-void write_ban_list(void);
-// move to an act.<ban|other>.c?
-ACMD(do_ban);
-ACMD(do_unban);
-int Valid_Name(char *newname);
-void Read_Invalid_List(void);
-void Free_Invalid_List(void);
+std::list<ban_list_element> ban_list;
 
 
-const char *ban_types[] = {
-  "no",
-  "new",
-  "select",
-  "all",
-  "ERROR"
-};
+namespace {
+  const int BANNED_SITE_LENGTH = 100;
 
+  const char *ban_types[] = {
+    "no",
+    "new",
+    "select",
+    "all",
+    "ERROR"
+  };
+
+  void _write_one_node(FILE *fp, const ban_list_element &node)
+  {
+    fprintf(fp, "%s %s %ld %s\n", ban_types[node.type], node.site.c_str(), (long) node.date, node.name.c_str());
+  }
+  void write_ban_list(void)
+  {
+  FILE *fl;
+
+  if (!(fl = fopen(BAN_FILE, "w"))) {
+    perror("SYSERR: Unable to open '" BAN_FILE "' for writing");
+    return;
+  }
+  std::for_each(
+    ban_list.begin(),
+    ban_list.end(), 
+    [fl](ban_list_element elem) { _write_one_node(fl, elem); }
+  );
+  fclose(fl);
+  return;
+}
+
+}
 
 void load_banned(void)
 {
@@ -51,9 +64,8 @@ void load_banned(void)
   int i, date;
   char site_name[BANNED_SITE_LENGTH + 1], ban_type[100];
   char name[MAX_NAME_LENGTH + 1];
-  struct ban_list_element *next_node;
 
-  ban_list = 0;
+  ban_list.clear();
 
   if (!(fl = fopen(BAN_FILE, "r"))) {
     if (errno != ENOENT) {
@@ -63,20 +75,17 @@ void load_banned(void)
     return;
   }
   while (fscanf(fl, " %s %s %d %s ", ban_type, site_name, &date, name) == 4) {
-    next_node = new ban_list_element;
+    ban_list_element next_node;
 
-    strncpy(next_node->site, site_name, BANNED_SITE_LENGTH);	/* strncpy: OK (n_n->site:BANNED_SITE_LENGTH+1) */
-    next_node->site[BANNED_SITE_LENGTH] = '\0';
-    strncpy(next_node->name, name, MAX_NAME_LENGTH);	/* strncpy: OK (n_n->name:MAX_NAME_LENGTH+1) */
-    next_node->name[MAX_NAME_LENGTH] = '\0';
-    next_node->date = date;
+    next_node.site = site_name;	
+    next_node.name = name;	/* strncpy: OK (n_n->name:MAX_NAME_LENGTH+1) */
+    next_node.date = date;
 
     for (i = BAN_NOT; i <= BAN_ALL; i++)
       if (!strcmp(ban_type, ban_types[i]))
-        next_node->type = i;
+        next_node.type = i;
 
-    next_node->next = ban_list;
-    ban_list = next_node;
+    ban_list.push_back(next_node);
   }
 
   fclose(fl);
@@ -86,46 +95,23 @@ void load_banned(void)
 int isbanned(char *hostname)
 {
   int i;
-  struct ban_list_element *banned_node;
   char *nextchar;
 
   if (!hostname || !*hostname)
-    return (0);
+    return 0;
 
   i = 0;
-  for (nextchar = hostname; *nextchar; nextchar++)
+  for (nextchar = hostname; *nextchar; nextchar++) {
     *nextchar = LOWER(*nextchar);
-
-  for (banned_node = ban_list; banned_node; banned_node = banned_node->next)
-    if (strstr(hostname, banned_node->site))	/* if hostname is a substring */
-      i = MAX(i, banned_node->type);
-
-  return (i);
-}
-
-
-void _write_one_node(FILE *fp, struct ban_list_element *node)
-{
-  if (node) {
-    _write_one_node(fp, node->next);
-    fprintf(fp, "%s %s %ld %s\n", ban_types[node->type],
-	    node->site, (long) node->date, node->name);
   }
-}
 
-
-
-void write_ban_list(void)
-{
-  FILE *fl;
-
-  if (!(fl = fopen(BAN_FILE, "w"))) {
-    perror("SYSERR: Unable to open '" BAN_FILE "' for writing");
-    return;
+  for (auto it = ban_list.begin(); it != ban_list.end(); ++it) {
+    if (strstr(hostname, it->site.c_str()))	{ /* if hostname is a substring */
+      i = MAX(i, it->type);
+    }
   }
-  _write_one_node(fl, ban_list);/* recursively write from end to start */
-  fclose(fl);
-  return;
+
+  return i;
 }
 
 
@@ -136,10 +122,9 @@ ACMD(do_ban)
   char flag[MAX_INPUT_LENGTH], site[MAX_INPUT_LENGTH], *nextchar;
   char timestr[16];
   int i;
-  struct ban_list_element *ban_node;
 
   if (!*argument) {
-    if (!ban_list) {
+    if (ban_list.empty()) {
       send_to_char(ch, "No sites are banned.\r\n");
       return;
     }
@@ -154,14 +139,14 @@ ACMD(do_ban)
 	    "---------------------------------",
 	    "---------------------------------");
 
-    for (ban_node = ban_list; ban_node; ban_node = ban_node->next) {
-      if (ban_node->date) {
-	strlcpy(timestr, asctime(localtime(&(ban_node->date))), 10);
-	timestr[10] = '\0';
-      } else
-	strcpy(timestr, "Unknown");	/* strcpy: OK (strlen("Unknown") < 16) */
-
-      send_to_char(ch, BAN_LIST_FORMAT, ban_node->site, ban_types[ban_node->type], timestr, ban_node->name);
+    for (auto it = ban_list.begin(); it != ban_list.end(); ++it) {
+      if (it->date) {
+        strlcpy(timestr, asctime(localtime(&(it->date))), 10);
+        timestr[10] = '\0';
+      } else {
+        strcpy(timestr, "Unknown");	/* strcpy: OK (strlen("Unknown") < 16) */
+      }
+      send_to_char(ch, BAN_LIST_FORMAT, it->site.c_str(), ban_types[it->type], timestr, it->name.c_str());
     }
     return;
   }
@@ -175,32 +160,32 @@ ACMD(do_ban)
     send_to_char(ch, "Flag must be ALL, SELECT, or NEW.\r\n");
     return;
   }
-  for (ban_node = ban_list; ban_node; ban_node = ban_node->next) {
-    if (!str_cmp(ban_node->site, site)) {
+
+  for (auto it = ban_list.begin(); it != ban_list.end(); ++it) {
+    if (it->site == site) {
       send_to_char(ch, "That site has already been banned -- unban it to change the ban type.\r\n");
       return;
     }
   }
 
-  ban_node = new ban_list_element;
 
-  strncpy(ban_node->site, site, BANNED_SITE_LENGTH);	/* strncpy: OK (b_n->site:BANNED_SITE_LENGTH+1) */
-  for (nextchar = ban_node->site; *nextchar; nextchar++)
+  for (nextchar = site; *nextchar; nextchar++) {
     *nextchar = LOWER(*nextchar);
-  ban_node->site[BANNED_SITE_LENGTH] = '\0';
-  strncpy(ban_node->name, GET_NAME(ch), MAX_NAME_LENGTH);	/* strncpy: OK (b_n->size:MAX_NAME_LENGTH+1) */
-  ban_node->name[MAX_NAME_LENGTH] = '\0';
-  ban_node->date = time(0);
+  }
+  ban_list_element ban_node;
+  ban_node.site = site; 
+  ban_node.name =  GET_NAME(ch);
+  ban_node.date = time(0);
 
-  for (i = BAN_NEW; i <= BAN_ALL; i++)
-    if (!str_cmp(flag, ban_types[i]))
-      ban_node->type = i;
+  for (i = BAN_NEW; i <= BAN_ALL; i++) {
+    if (!str_cmp(flag, ban_types[i])) {
+      ban_node.type = i;
+    }
+  }
 
-  ban_node->next = ban_list;
-  ban_list = ban_node;
-
-  mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "%s has banned %s for %s players.",
-	GET_NAME(ch), site, ban_types[ban_node->type]);
+  ban_list.push_back(ban_node);
+  
+  mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "%s has banned %s for %s players.", GET_NAME(ch), site, ban_types[ban_node.type]);
   send_to_char(ch, "Site banned.\r\n");
   write_ban_list();
 }
@@ -211,32 +196,31 @@ ACMD(do_unban)
 { 
   TEMP_ARG_FIX;
   char site[MAX_INPUT_LENGTH];
-  struct ban_list_element *ban_node, *temp;
-  int found = 0;
 
   one_argument(argument, site);
   if (!*site) {
     send_to_char(ch, "A site to unban might help.\r\n");
     return;
   }
-  ban_node = ban_list;
-  while (ban_node && !found) {
-    if (!str_cmp(ban_node->site, site))
-      found = 1;
-    else
-      ban_node = ban_node->next;
-  }
 
-  if (!found) {
+
+  std::string ssite = site;
+  auto find = std::find_if(
+    ban_list.begin(),
+    ban_list.end(),
+    [ssite](ban_list_element elem) { return elem.site == ssite; }
+  );
+
+  if (find == ban_list.end()) {
     send_to_char(ch, "That site is not currently banned.\r\n");
     return;
   }
-  REMOVE_FROM_LIST(ban_node, ban_list, next);
-  send_to_char(ch, "Site unbanned.\r\n");
-  mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "%s removed the %s-player ban on %s.",
-	GET_NAME(ch), ban_types[ban_node->type], ban_node->site);
 
-  free(ban_node);
+  ban_list.remove(*find);
+
+  send_to_char(ch, "Site unbanned.\r\n");
+  mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "%s removed the %s-player ban on %s.", GET_NAME(ch), ban_types[find->type], find->site.c_str());
+
   write_ban_list();
 }
 

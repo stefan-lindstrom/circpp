@@ -39,6 +39,7 @@
 #include "class.h"
 #include "config.h"
 #include "act.h"
+#include "ban.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -119,6 +120,7 @@ void log_zone_error(zone_rnum zone, int cmd_no, const char *message);
 void reset_time(void);
 long get_ptable_by_name(const char *name);
 
+
 /* external functions */
 void paginate_string(char *str, struct descriptor_data *d);
 struct time_info_data *mud_time_passed(time_t t2, time_t t1);
@@ -127,8 +129,6 @@ void weather_and_time(int mode);
 void mag_assign_spells(void);
 void update_obj_file(void);	/* In objsave.c */
 void sort_spells(void);
-void load_banned(void);
-void Read_Invalid_List(void);
 void prune_crlf(char *txt);
 void destroy_shops(void);
 

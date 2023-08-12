@@ -61,6 +61,7 @@
 #include "handler.h"
 #include "db.h"
 #include "house.h"
+#include "ban.h"
 
 #ifdef HAVE_ARPA_TELNET_H
 #include <arpa/telnet.h>
@@ -73,7 +74,6 @@
 #endif
 
 /* externs */
-extern struct ban_list_element *ban_list;
 extern int num_invalid;
 extern const char *circlemud_version;
 extern int circle_restrict;
@@ -155,12 +155,10 @@ void affect_update(void);	/* In magic.c */
 void mobile_activity(void);
 void perform_violence(void);
 void show_string(struct descriptor_data *d, char *input);
-int isbanned(char *hostname);
 void weather_and_time(int mode);
 int perform_alias(struct descriptor_data *d, char *orig, size_t maxlen);
 void clear_free_list(void);
 void Board_clear_all(void);
-void Free_Invalid_List(void);
 
 #ifdef __CXREF__
 #undef FD_ZERO
@@ -805,7 +803,7 @@ void game_loop(socket_t mother_desc)
     if (emergency_unban) {
       emergency_unban = FALSE;
       mudlog(BRF, LVL_IMMORT, TRUE, "Received SIGUSR2 - completely unrestricting game (emergent)");
-      ban_list = NULL;
+      ban_list.clear();
       circle_restrict = 0;
       num_invalid = 0;
     }

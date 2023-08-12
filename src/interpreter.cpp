@@ -25,6 +25,7 @@
 #include "class.h"
 #include "config.h"
 #include "act.h"
+#include "ban.h"
 
 /* external variables */
 extern room_rnum r_mortal_start_room;
@@ -39,8 +40,6 @@ extern int max_bad_pws;
 void echo_on(struct descriptor_data *d);
 void echo_off(struct descriptor_data *d);
 int special(struct char_data *ch, int cmd, char *arg);
-int isbanned(char *hostname);
-int Valid_Name(char *newname);
 void read_aliases(struct char_data *ch);
 void delete_aliases(const char *charname);
 
