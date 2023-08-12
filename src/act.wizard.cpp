@@ -1027,13 +1027,13 @@ ACMD(do_goto)
   if ((location = find_target_room(ch, argument)) == NOWHERE)
     return;
 
-  snprintf(buf, sizeof(buf), "$n %s", POOFOUT(ch) ? POOFOUT(ch) : "disappears in a puff of smoke.");
+  snprintf(buf, sizeof(buf), "$n %s", !POOFOUT(ch).empty() ? POOFOUT(ch).c_str() : "disappears in a puff of smoke.");
   act(buf, TRUE, ch, 0, 0, CommTarget::TO_ROOM);
 
   char_from_room(ch);
   char_to_room(ch, location);
 
-  snprintf(buf, sizeof(buf), "$n %s", POOFIN(ch) ? POOFIN(ch) : "appears with an ear-splitting bang.");
+  snprintf(buf, sizeof(buf), "$n %s", !POOFIN(ch).empty() ? POOFIN(ch).c_str() : "appears with an ear-splitting bang.");
   act(buf, TRUE, ch, 0, 0, CommTarget::TO_ROOM);
 
   look_at_room(ch, 0);
@@ -1801,24 +1801,13 @@ ACMD(do_gecho)
 ACMD(do_poofset)
 {
   TEMP_ARG_FIX;
-  char **msg;
-
-  switch (subcmd) {
-  case SCMD_POOFIN:    msg = &(POOFIN(ch));    break;
-  case SCMD_POOFOUT:   msg = &(POOFOUT(ch));   break;
-  default:    return;
-  }
 
   skip_spaces(&argument);
-
-  if (*msg)
-    free(*msg);
-
-  if (!*argument)
-    *msg = NULL;
-  else
-    *msg = strdup(argument);
-
+  if (subcmd == SCMD_POOFIN) {
+    POOFIN(ch) = argument;
+  } else {
+    POOFOUT(ch) = argument;
+  }  
   send_to_char(ch, "%s", OK.c_str());
 }
 

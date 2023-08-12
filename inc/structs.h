@@ -968,8 +968,8 @@ struct alias_data {
 struct player_special_data {
    struct player_special_data_saved saved;
 
-   char	*poofin;		               /* Description on arrival of a god.     */
-   char	*poofout;		            /* Description upon a god's exit.       */
+   std::string poofin;		               /* Description on arrival of a god.     */
+   std::string poofout;		            /* Description upon a god's exit.       */
    std::list<alias_data> aliases;	/* Character's aliases			*/
    long last_tell;	            	/* idnum of last tell from		*/
    void *last_olc_targ;		         /* olc control				*/

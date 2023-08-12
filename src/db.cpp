@@ -1317,8 +1317,8 @@ void store_to_char(struct char_file_u *st, struct char_data *ch)
   ch->points = st->points;
   ch->char_specials.saved = st->char_specials_saved;
   ch->player_specials->saved = st->player_specials_saved;
-  POOFIN(ch) = NULL;
-  POOFOUT(ch) = NULL;
+  POOFIN(ch).clear();
+  POOFOUT(ch).clear();
   GET_LAST_TELL(ch) = NOBODY;
 
   if (ch->points.max_mana < 100)
@@ -1523,13 +1523,13 @@ void free_char(struct char_data *ch)
   if (ch->player_specials != NULL && ch->player_specials != &dummy_mob) {
     GET_ALIASES(ch).clear();
 
-    if (ch->player_specials->poofin)
-      free(ch->player_specials->poofin);
-    if (ch->player_specials->poofout)
-      free(ch->player_specials->poofout);
+    ch->player_specials->poofin.clear();
+    ch->player_specials->poofout.clear();
+
     free(ch->player_specials);
-    if (IS_NPC(ch))
+    if (IS_NPC(ch)) {
       basic_mud_log("SYSERR: Mob %s (#%d) had player_specials allocated!", GET_NAME(ch), GET_MOB_VNUM(ch));
+    }
   }
 
   std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
