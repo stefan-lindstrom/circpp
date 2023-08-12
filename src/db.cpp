@@ -390,7 +390,7 @@ void boot_db(void)
   }
   basic_mud_log("Reading banned site and invalid-name list.");
   load_banned();
-  Read_Invalid_List();
+  read_invalid_list();
 
   if (!no_rent_check) {
     basic_mud_log("Deleting timed-out crash and rent files:");

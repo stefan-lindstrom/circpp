@@ -1303,21 +1303,20 @@ void nanny(struct descriptor_data *d, char *arg)
       struct char_file_u tmp_store;
       int player_i;
 
-      if ((_parse_name(arg, tmp_name)) || strlen(tmp_name) < 2 ||
-	  strlen(tmp_name) > MAX_NAME_LENGTH || !Valid_Name(tmp_name) ||
-	  fill_word(strcpy(buf, tmp_name)) || reserved_word(buf)) {	/* strcpy: OK (mutual MAX_INPUT_LENGTH) */
-	write_to_output(d, "Invalid name, please try another.\r\nName: ");
-	return;
+      if ((_parse_name(arg, tmp_name)) || strlen(tmp_name) < 2 || strlen(tmp_name) > MAX_NAME_LENGTH || !valid_name(tmp_name) ||
+     	                   fill_word(strcpy(buf, tmp_name)) || reserved_word(buf)) {	/* strcpy: OK (mutual MAX_INPUT_LENGTH) */
+ 	      write_to_output(d, "Invalid name, please try another.\r\nName: ");
+	     return;
       }
       if ((player_i = load_char(tmp_name, &tmp_store)) > -1) {
-	store_to_char(&tmp_store, d->character);
-	GET_PFILEPOS(d->character) = player_i;
+        store_to_char(&tmp_store, d->character);
+        GET_PFILEPOS(d->character) = player_i;
 
 	if (PLR_FLAGGED(d->character, PLR_DELETED)) {
 	  /* We get a false positive from the original deleted character. */
 	  free_char(d->character);
 	  /* Check for multiple creations... */
-	  if (!Valid_Name(tmp_name)) {
+	  if (!valid_name(tmp_name)) {
 	    write_to_output(d, "Invalid name, please try another.\r\nName: ");
 	    return;
 	  }
@@ -1344,7 +1343,7 @@ void nanny(struct descriptor_data *d, char *arg)
 	/* player unknown -- make new character */
 
 	/* Check for multiple creations of a character. */
-	if (!Valid_Name(tmp_name)) {
+	if (!valid_name(tmp_name)) {
 	  write_to_output(d, "Invalid name, please try another.\r\nName: ");
 	  return;
 	}

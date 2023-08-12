@@ -74,7 +74,6 @@
 #endif
 
 /* externs */
-extern int num_invalid;
 extern const char *circlemud_version;
 extern int circle_restrict;
 extern int mini_mud;
@@ -328,7 +327,7 @@ int main(int argc, char **argv)
     Board_clear_all();		/* boards.c */
     free(cmd_sort_info);	/* act.informative.c */
     free_help();		/* db.c */
-    Free_Invalid_List();	/* ban.c */
+    free_invalid_list();	/* ban.c */
   }
 
   basic_mud_log("Done.");
@@ -805,7 +804,7 @@ void game_loop(socket_t mother_desc)
       mudlog(BRF, LVL_IMMORT, TRUE, "Received SIGUSR2 - completely unrestricting game (emergent)");
       ban_list.clear();
       circle_restrict = 0;
-      num_invalid = 0;
+      free_invalid_list();
     }
 
     /* Roll pulse over after 10 hours */

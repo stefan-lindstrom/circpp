@@ -232,12 +232,11 @@ ACMD(do_unban)
 
 #define MAX_INVALID_NAMES	200
 
-char *invalid_list[MAX_INVALID_NAMES];
-int num_invalid = 0;
+std::vector<std::string> invalid_list;
 
-int Valid_Name(char *newname)
+bool valid_name(char *newname)
 {
-  int i;
+  unsigned int i;
   struct descriptor_data *dt;
   char tempname[MAX_INPUT_LENGTH];
 
@@ -247,41 +246,41 @@ int Valid_Name(char *newname)
    * will not have a character name yet and other people sitting at the
    * prompt won't have characters yet.
    */
-  for (dt = descriptor_list; dt; dt = dt->next)
-    if (dt->character && GET_NAME(dt->character) && !str_cmp(GET_NAME(dt->character), newname))
+  for (dt = descriptor_list; dt; dt = dt->next) {
+    if (dt->character && GET_NAME(dt->character) && !str_cmp(GET_NAME(dt->character), newname)) {
       return (STATE(dt) == CON_PLAYING);
+    }
+  }
 
   /* return valid if list doesn't exist */
-  if (num_invalid < 1)
-    return (1);
+  if (invalid_list.empty()) {
+    return true;
+  }
 
   /* change to lowercase */
   strlcpy(tempname, newname, sizeof(tempname));
-  for (i = 0; tempname[i]; i++)
+  for (i = 0; tempname[i]; i++) {
     tempname[i] = LOWER(tempname[i]);
+  }
 
   /* Does the desired name contain a string in the invalid list? */
-  for (i = 0; i < num_invalid; i++)
-    if (strstr(tempname, invalid_list[i]))
-      return (0);
+  for (i = 0; i < invalid_list.size(); i++) {
+    if (strstr(tempname, invalid_list[i].c_str()))
+      return false;
+  }
 
-  return (1);
+  return true;
 }
 
 
 /* What's with the wacky capitalization in here? */
-void Free_Invalid_List(void)
+void free_invalid_list(void)
 {
-  int invl;
-
-  for (invl = 0; invl < num_invalid; invl++)
-    free(invalid_list[invl]);
-
-  num_invalid = 0;
+  invalid_list.clear();
 }
 
 
-void Read_Invalid_List(void)
+void read_invalid_list(void)
 {
   FILE *fp;
   char temp[256];
@@ -291,13 +290,8 @@ void Read_Invalid_List(void)
     return;
   }
 
-  num_invalid = 0;
-  while (get_line(fp, temp) && num_invalid < MAX_INVALID_NAMES)
-    invalid_list[num_invalid++] = strdup(temp);
-
-  if (num_invalid >= MAX_INVALID_NAMES) {
-    basic_mud_log("SYSERR: Too many invalid names; change MAX_INVALID_NAMES in ban.c");
-    exit(1);
+  while (get_line(fp, temp)) {
+    invalid_list.push_back(temp);
   }
 
   fclose(fp);

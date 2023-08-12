@@ -31,8 +31,8 @@ extern std::list<ban_list_element> ban_list;
 // exported functions
 void load_banned(void);
 int isbanned(char *hostname);
-int Valid_Name(char *newname);
-void Read_Invalid_List(void);
-void Free_Invalid_List(void);
+bool valid_name(char *newname);
+void read_invalid_list(void);
+void free_invalid_list(void);
 
 #endif
