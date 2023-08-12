@@ -207,8 +207,8 @@ struct player_index_element {
 
 
 struct help_index_element {
-   char	*keyword;
-   char *entry;
+   std::string keyword;
+   std::string entry;
    int duplicate;
 };
 
@@ -246,10 +246,8 @@ extern std::vector<index_data> obj_index;
 extern std::vector<obj_data> obj_proto;
 extern std::list<obj_data *> object_list;
 
-extern int top_of_helpt;
-extern struct help_index_element *help_table;
+extern std::vector<help_index_element> help_table;
 extern struct time_info_data time_info;
-
 
 extern struct time_info_data time_info;
 
