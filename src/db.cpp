@@ -39,6 +39,7 @@
 #include "class.h"
 #include "config.h"
 #include "act.h"
+#include "ban.h"
 
 /**************************************************************************
 *  declarations of most of the 'global' variables                         *
@@ -81,8 +82,7 @@ std::string background;	/* background story		 */
 std::string handbook;		/* handbook for new immortals	 */
 std::string policies;		/* policies page		 */
 
-struct help_index_element *help_table = 0;	/* the help table	 */
-int top_of_helpt = 0;		/* top of help index table	 */
+std::vector<help_index_element> help_table;	/* the help table	 */
 
 struct time_info_data time_info;/* the infomation about the time    */
 struct weather_data weather_info;	/* the infomation about the weather */
@@ -120,6 +120,7 @@ void log_zone_error(zone_rnum zone, int cmd_no, const char *message);
 void reset_time(void);
 long get_ptable_by_name(const char *name);
 
+
 /* external functions */
 void paginate_string(char *str, struct descriptor_data *d);
 struct time_info_data *mud_time_passed(time_t t2, time_t t1);
@@ -128,9 +129,6 @@ void weather_and_time(int mode);
 void mag_assign_spells(void);
 void update_obj_file(void);	/* In objsave.c */
 void sort_spells(void);
-void load_banned(void);
-void Read_Invalid_List(void);
-int hsort(const void *a, const void *b);
 void prune_crlf(char *txt);
 void destroy_shops(void);
 
@@ -221,8 +219,9 @@ ACMD(do_reboot)
     GREETINGS = slurp_file_to_string(GREETINGS_FILE);
     prune_crlf(GREETINGS);
   } else if (!str_cmp(arg, "xhelp")) {
-    if (help_table)
+    if (!help_table.empty()) {
       free_help();
+    }
     help_boot();
   } else {
     send_to_char(ch, "Unknown reload option.\r\n");
@@ -653,7 +652,7 @@ static void help_boot()
   /*
    * NOTE: "bytes" does _not_ include strings or other later malloc'd things.
    */
-  help_table = new help_index_element[rec_count];
+  help_table.clear();
   size[0] = sizeof(struct help_index_element) * rec_count;
   basic_mud_log("   %d entries, %d bytes.", rec_count, size[0]);
 
@@ -673,8 +672,8 @@ static void help_boot()
   }
   fclose(db_index);
 
-  qsort(help_table, top_of_helpt, sizeof(struct help_index_element), hsort);
-  top_of_helpt--;
+
+  std::sort(help_table.begin(), help_table.end(), [](help_index_element a, help_index_element b) { return a.keyword < b.keyword; } );
 }
 
 /* make sure the start rooms exist & resolve their vnums to rnums */
@@ -789,21 +788,7 @@ void get_one_line(FILE *fl, char *buf)
 
 void free_help(void)
 {
-  int hp;
-
-  if (!help_table)
-     return;
-
-  for (hp = 0; hp <= top_of_helpt; hp++) {
-    if (help_table[hp].keyword)
-      free(help_table[hp].keyword);
-    if (help_table[hp].entry && !help_table[hp].duplicate)
-      free(help_table[hp].entry);
-  }
-
-  free(help_table);
-  help_table = NULL;
-  top_of_helpt = 0;
+  help_table.clear();
 }
 
 
@@ -836,27 +821,14 @@ void load_help(FILE *fl)
       get_one_line(fl, line);
     }
 
-    if (entrylen >= sizeof(entry) - 1) {
-      int keysize;
-      const char *truncmsg = "\r\n*TRUNCATED*\r\n";
-
-      strcpy(entry + sizeof(entry) - strlen(truncmsg) - 1, truncmsg);	/* strcpy: OK (assuming sane 'entry' size) */
-
-      keysize = strlen(key) - 2;
-      basic_mud_log("SYSERR: Help entry exceeded buffer space: %.*s", keysize, key);
-
-      /* If we ran out of buffer space, eat the rest of the entry. */
-      while (*line != '#')
-        get_one_line(fl, line);
-    }
-
     /* now, add the entry to the index with each keyword on the keyword line */
     el.duplicate = 0;
-    el.entry = strdup(entry);
+    el.entry = entry;
     scan = one_word(key, next_key);
+
     while (*next_key) {
-      el.keyword = strdup(next_key);
-      help_table[top_of_helpt++] = el;
+      el.keyword = next_key;
+      help_table.push_back(el);
       el.duplicate++;
       scan = one_word(scan, next_key);
     }
@@ -864,20 +836,8 @@ void load_help(FILE *fl)
     /* get next keyword line (or $) */
     get_one_line(fl, key);
   }
+
 }
-
-
-int hsort(const void *a, const void *b)
-{
-  const struct help_index_element *a1, *b1;
-
-  a1 = (const struct help_index_element *) a;
-  b1 = (const struct help_index_element *) b;
-
-  return (str_cmp(a1->keyword, b1->keyword));
-}
-
-
 /*************************************************************************
 *  procedures for resetting, both play-time and boot-time	 	 *
 *************************************************************************/
@@ -1357,8 +1317,8 @@ void store_to_char(struct char_file_u *st, struct char_data *ch)
   ch->points = st->points;
   ch->char_specials.saved = st->char_specials_saved;
   ch->player_specials->saved = st->player_specials_saved;
-  POOFIN(ch) = NULL;
-  POOFOUT(ch) = NULL;
+  POOFIN(ch).clear();
+  POOFOUT(ch).clear();
   GET_LAST_TELL(ch) = NOBODY;
 
   if (ch->points.max_mana < 100)
@@ -1563,13 +1523,13 @@ void free_char(struct char_data *ch)
   if (ch->player_specials != NULL && ch->player_specials != &dummy_mob) {
     GET_ALIASES(ch).clear();
 
-    if (ch->player_specials->poofin)
-      free(ch->player_specials->poofin);
-    if (ch->player_specials->poofout)
-      free(ch->player_specials->poofout);
+    ch->player_specials->poofin.clear();
+    ch->player_specials->poofout.clear();
+
     free(ch->player_specials);
-    if (IS_NPC(ch))
+    if (IS_NPC(ch)) {
       basic_mud_log("SYSERR: Mob %s (#%d) had player_specials allocated!", GET_NAME(ch), GET_MOB_VNUM(ch));
+    }
   }
 
   std::for_each(ch->affected.begin(), ch->affected.end(), [&ch](affected_type &a) { affect_remove(ch, a); });
@@ -1689,12 +1649,11 @@ void reset_char(struct char_data *ch)
   for (i = 0; i < NUM_WEARS; i++)
     GET_EQ(ch, i) = NULL;
 
-  ch->followers = NULL;
+  ch->followers.clear();
   ch->master = NULL;
   IN_ROOM(ch) = NOWHERE;
   ch->carrying = NULL;
-  ch->next = NULL;
-  ch->next_in_room = NULL;
+
   FIGHTING(ch) = NULL;
   ch->char_specials.position = POS_STANDING;
   ch->mob_specials.default_pos = POS_STANDING;

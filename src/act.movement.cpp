@@ -348,36 +348,42 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
 int perform_move(struct char_data *ch, int dir, int need_specials_check)
 {
   room_rnum was_in;
-  struct follow_type *k, *next;
+  struct follow_type *k;
 
-  if (ch == NULL || dir < 0 || dir >= NUM_OF_DIRS || FIGHTING(ch))
-    return (0);
-  else if (!EXIT(ch, dir) || GET_EXIT(ch, dir).to_room == NOWHERE)
+  if (ch == nullptr || dir < 0 || dir >= NUM_OF_DIRS || FIGHTING(ch)) {
+    return 0;
+  }
+  else if (!EXIT(ch, dir) || GET_EXIT(ch, dir).to_room == NOWHERE) {
     send_to_char(ch, "Alas, you cannot go that way...\r\n");
+  }
   else if (EXIT_FLAGGED(GET_EXIT(ch, dir), EX_CLOSED)) {
-    if (!GET_EXIT(ch, dir).keyword.empty())
+    if (!GET_EXIT(ch, dir).keyword.empty()) {
       send_to_char(ch, "The %s seems to be closed.\r\n", fname(GET_EXIT(ch, dir).keyword.c_str()));
-    else
+    }
+    else {
       send_to_char(ch, "It seems to be closed.\r\n");
+    }
   } else {
-    if (!ch->followers)
+    if (ch->followers.empty()) {
       return (do_simple_move(ch, dir, need_specials_check));
+    }
 
     was_in = IN_ROOM(ch);
-    if (!do_simple_move(ch, dir, need_specials_check))
-      return (0);
+    if (!do_simple_move(ch, dir, need_specials_check)) {
+      return 0;
+    }
 
-    for (k = ch->followers; k; k = next) {
-      next = k->next;
-      if ((IN_ROOM(k->follower) == was_in) &&
-	  (GET_POS(k->follower) >= POS_STANDING)) {
-	act("You follow $N.\r\n", FALSE, k->follower, 0, ch, CommTarget::TO_CHAR);
-	perform_move(k->follower, dir, 1);
+    for (auto it = ch->followers.begin(); it != ch->followers.end(); ++it) {
+      k = *it;
+
+      if ((IN_ROOM(k->follower) == was_in) && (GET_POS(k->follower) >= POS_STANDING)) {
+        act("You follow $N.\r\n", FALSE, k->follower, 0, ch, CommTarget::TO_CHAR);
+        perform_move(k->follower, dir, 1);
       }
     }
-    return (1);
+    return 1;
   }
-  return (0);
+  return 0;
 }
 
 

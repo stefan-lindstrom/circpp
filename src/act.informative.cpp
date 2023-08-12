@@ -322,10 +322,12 @@ namespace {
         send_to_char(ch, "*");
 
       if (AFF_FLAGGED(ch, AFF_DETECT_ALIGN)) {
-        if (IS_EVIL(i))
-  	send_to_char(ch, "(Red Aura) ");
-        else if (IS_GOOD(i))
-  	send_to_char(ch, "(Blue Aura) ");
+        if (IS_EVIL(i)) {
+          send_to_char(ch, "(Red Aura) ");
+        }
+        else if (IS_GOOD(i)) {
+          send_to_char(ch, "(Blue Aura) ");
+        }
       }
       send_to_char(ch, "%s", i->player.long_descr.c_str());
 
@@ -380,18 +382,22 @@ namespace {
       act("...$e glows with a bright light!", FALSE, i, 0, ch, CommTarget::TO_VICT);
   }
 
-  void list_char_to_char(struct char_data *list, struct char_data *ch)
+  void list_char_to_char(const std::list<char_data *> &list, struct char_data *ch)
   {
     struct char_data *i;
 
-    for (i = list; i; i = i->next_in_room)
+    for (auto it = list.begin(); it != list.end(); ++it) {
+      i = *it;
+
       if (ch != i) {
-        if (CAN_SEE(ch, i))
-  	list_one_char(i, ch);
-        else if (IS_DARK(IN_ROOM(ch)) && !CAN_SEE_IN_DARK(ch) &&
-  	       AFF_FLAGGED(i, AFF_INFRAVISION))
-  	send_to_char(ch, "You see a pair of glowing red eyes looking your way.\r\n");
+        if (CAN_SEE(ch, i)) {
+          list_one_char(i, ch);
+        }
+        else if (IS_DARK(IN_ROOM(ch)) && !CAN_SEE_IN_DARK(ch) && AFF_FLAGGED(i, AFF_INFRAVISION))  {
+          send_to_char(ch, "You see a pair of glowing red eyes looking your way.\r\n");
+        }
       }
+    }
   }
 
   void do_auto_exits(struct char_data *ch)
@@ -994,13 +1000,13 @@ ACMD(do_help)
     page_string(ch->desc, help);
     return;
   }
-  if (!help_table) {
+  if (help_table.empty()) {
     send_to_char(ch, "No help available.\r\n");
     return;
   }
 
   bot = 0;
-  top = top_of_helpt;
+  top = help_table.size() + 1;
   minlen = strlen(argument);
 
   for (;;) {
@@ -1009,12 +1015,12 @@ ACMD(do_help)
     if (bot > top) {
       send_to_char(ch, "There is no help on that word.\r\n");
       return;
-    } else if (!(chk = strn_cmp(argument, help_table[mid].keyword, minlen))) {
+    } else if (!(chk = strn_cmp(argument, help_table[mid].keyword.c_str(), minlen))) {
       /* trace backwards to find first matching entry. Thanks Jeff Fink! */
-      while ((mid > 0) &&
-	 (!(chk = strn_cmp(argument, help_table[mid - 1].keyword, minlen))))
-	mid--;
-      page_string(ch->desc, help_table[mid].entry, 0);
+      while ((mid > 0) && (!(chk = strn_cmp(argument, help_table[mid - 1].keyword.c_str(), minlen)))) {
+      	mid--;
+      }
+      page_string(ch->desc, help_table[mid].entry);
       return;
     } else {
       if (chk > 0)

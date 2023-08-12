@@ -98,7 +98,6 @@ ACMD(do_gsay)
   (void)subcmd;
 
   struct char_data *k;
-  struct follow_type *f;
 
   skip_spaces(&argument);
 
@@ -106,28 +105,41 @@ ACMD(do_gsay)
     send_to_char(ch, "But you are not the member of a group!\r\n");
     return;
   }
-  if (!*argument)
+  if (!*argument) {
     send_to_char(ch, "Yes, but WHAT do you want to group-say?\r\n");
+  }
   else {
     char buf[MAX_STRING_LENGTH];
 
-    if (ch->master)
+    if (ch->master) {
       k = ch->master;
-    else
+    }
+    else {
       k = ch;
+    }
 
     snprintf(buf, sizeof(buf), "$n tells the group, '%s'", argument);
 
-    if (AFF_FLAGGED(k, AFF_GROUP) && (k != ch))
+    if (AFF_FLAGGED(k, AFF_GROUP) && (k != ch)) {
       act(buf, FALSE, ch, 0, k, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
-    for (f = k->followers; f; f = f->next)
-      if (AFF_FLAGGED(f->follower, AFF_GROUP) && (f->follower != ch))
-	act(buf, FALSE, ch, 0, f->follower, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
+    }
 
-    if (PRF_FLAGGED(ch, PRF_NOREPEAT))
+    std::for_each(
+      k->followers.begin(),
+      k->followers.end(),
+      [buf, ch](follow_type *f) {
+        if (AFF_FLAGGED(f->follower, AFF_GROUP) && (f->follower != ch)) {
+          act(buf, FALSE, ch, 0, f->follower, CommTarget::TO_VICT | CommTarget::TO_SLEEP);
+        }        
+      }
+    );
+
+    if (PRF_FLAGGED(ch, PRF_NOREPEAT)) {
       send_to_char(ch, "%s", OK.c_str());
-    else
+    }
+    else {
       send_to_char(ch, "You tell the group, '%s'\r\n", argument);
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+
 /* ************************************************************************
 *   File: act.offensive.c                               Part of CircleMUD *
 *  Usage: player-level commands of an offensive nature                    *
@@ -35,31 +36,38 @@ ACMD(do_assist)
   }
   one_argument(argument, arg);
 
-  if (!*arg)
+  if (!*arg) {
     send_to_char(ch, "Whom do you wish to assist?\r\n");
-  else if (!(helpee = get_char_vis(ch, arg, NULL, FIND_CHAR_ROOM)))
+  }
+  else if (!(helpee = get_char_vis(ch, arg, NULL, FIND_CHAR_ROOM))) {
     send_to_char(ch, "%s", NOPERSON.c_str());
-  else if (helpee == ch)
+  }
+  else if (helpee == ch) {
     send_to_char(ch, "You can't help yourself any more than this!\r\n");
+  }
   else {
     /*
      * Hit the same enemy the person you're helping is.
      */
-    if (FIGHTING(helpee))
+    if (FIGHTING(helpee)) {
       opponent = FIGHTING(helpee);
-    else
-      for (opponent = world[IN_ROOM(ch)].people;
-	   opponent && (FIGHTING(opponent) != helpee);
-	   opponent = opponent->next_in_room)
-		;
+    }
+    else {
+      for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end() && (FIGHTING(*it) != helpee); it++) {
+        opponent = *it;
+      }
+    }
+      
 
-    if (!opponent)
+    if (!opponent) {
       act("But nobody is fighting $M!", FALSE, ch, 0, helpee, CommTarget::TO_CHAR);
-    else if (!CAN_SEE(ch, opponent))
+    }
+    else if (!CAN_SEE(ch, opponent)) {
       act("You can't see who is fighting $M!", FALSE, ch, 0, helpee, CommTarget::TO_CHAR);
-    else if (!pk_allowed && !IS_NPC(opponent))	/* prevent accidental pkill */
-      act("Use 'murder' if you really want to attack $N.", FALSE,
-	  ch, 0, opponent, CommTarget::TO_CHAR);
+    }
+    else if (!pk_allowed && !IS_NPC(opponent))	{/* prevent accidental pkill */
+      act("Use 'murder' if you really want to attack $N.", FALSE, ch, 0, opponent, CommTarget::TO_CHAR);
+    }
     else {
       send_to_char(ch, "You join the fight!\r\n");
       act("$N assists you!", 0, helpee, 0, ch, CommTarget::TO_CHAR);
@@ -206,12 +214,15 @@ ACMD(do_order)
 
   half_chop(argument, name, message);
 
-  if (!*name || !*message)
+  if (!*name || !*message) {
     send_to_char(ch, "Order who to do what?\r\n");
-  else if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_ROOM)) && !is_abbrev(name, "followers"))
+  }
+  else if (!(vict = get_char_vis(ch, name, NULL, FIND_CHAR_ROOM)) && !is_abbrev(name, "followers")) {
     send_to_char(ch, "That person isn't here.\r\n");
-  else if (ch == vict)
+  }
+  else if (ch == vict) {
     send_to_char(ch, "You obviously suffer from skitzofrenia.\r\n");
+  }
   else {
     if (AFF_FLAGGED(ch, AFF_CHARM)) {
       send_to_char(ch, "Your superior would not aprove of you giving orders.\r\n");
@@ -224,11 +235,12 @@ ACMD(do_order)
       act(buf, FALSE, vict, 0, ch, CommTarget::TO_CHAR);
       act("$n gives $N an order.", FALSE, ch, 0, vict, CommTarget::TO_ROOM);
 
-      if ((vict->master != ch) || !AFF_FLAGGED(vict, AFF_CHARM))
-	act("$n has an indifferent look.", FALSE, vict, 0, 0, CommTarget::TO_ROOM);
+      if ((vict->master != ch) || !AFF_FLAGGED(vict, AFF_CHARM)) {
+        act("$n has an indifferent look.", FALSE, vict, 0, 0, CommTarget::TO_ROOM);
+      }
       else {
-	send_to_char(ch, "%s", OK.c_str());
-	command_interpreter(vict, message);
+        send_to_char(ch, "%s", OK.c_str());
+        command_interpreter(vict, message);
       }
     } else {			/* This is order "followers" */
       char buf[MAX_STRING_LENGTH];
@@ -236,17 +248,22 @@ ACMD(do_order)
       snprintf(buf, sizeof(buf), "$n issues the order '%s'.", message);
       act(buf, FALSE, ch, 0, 0, CommTarget::TO_ROOM);
 
-      for (k = ch->followers; k; k = k->next) {
-	if (IN_ROOM(ch) == IN_ROOM(k->follower))
-	  if (AFF_FLAGGED(k->follower, AFF_CHARM)) {
-	    found = TRUE;
-	    command_interpreter(k->follower, message);
-	  }
+      for (auto it = ch->followers.begin(); it != ch->followers.end(); ++it) {
+        k = *it;
+
+        if (IN_ROOM(ch) == IN_ROOM(k->follower)) {
+          if (AFF_FLAGGED(k->follower, AFF_CHARM)) {
+            found = TRUE;
+            command_interpreter(k->follower, message);
+          }
+        }
       }
-      if (found)
+      if (found) {
         send_to_char(ch, "%s", OK.c_str());
-      else
+      }
+      else {
         send_to_char(ch, "Nobody here is a loyal subject of yours!\r\n");
+      }
     }
   }
 }
@@ -350,7 +367,7 @@ ACMD(do_rescue)
 {
   TEMP_ARG_FIX;
   char arg[MAX_INPUT_LENGTH];
-  struct char_data *vict, *tmp_ch;
+  struct char_data *vict;
   int percent, prob;
 
   if (IS_NPC(ch) || !GET_SKILL(ch, SKILL_RESCUE)) {
@@ -372,13 +389,18 @@ ACMD(do_rescue)
     send_to_char(ch, "How can you rescue someone you are trying to kill?\r\n");
     return;
   }
-  for (tmp_ch = world[IN_ROOM(ch)].people; tmp_ch &&
-       (FIGHTING(tmp_ch) != vict); tmp_ch = tmp_ch->next_in_room);
 
-  if (!tmp_ch) {
+  auto find = std::find_if(
+    world[IN_ROOM(ch)].people.begin(),
+    world[IN_ROOM(ch)].people.end(),
+    [vict](const char_data *s) { return FIGHTING(s) == vict; }
+  );
+
+  if (find == world[IN_ROOM(ch)].people.end()) {
     act("But nobody is fighting $M!", FALSE, ch, 0, vict, CommTarget::TO_CHAR);
     return;
   }
+
   percent = rand_number(1, 101);	/* 101% is a complete failure */
   prob = GET_SKILL(ch, SKILL_RESCUE);
 
@@ -390,15 +412,18 @@ ACMD(do_rescue)
   act("You are rescued by $N, you are confused!", FALSE, vict, 0, ch, CommTarget::TO_CHAR);
   act("$n heroically rescues $N!", FALSE, ch, 0, vict, CommTarget::TO_NOTVICT);
 
-  if (FIGHTING(vict) == tmp_ch)
+  if (FIGHTING(vict) == *find) {
     stop_fighting(vict);
-  if (FIGHTING(tmp_ch))
-    stop_fighting(tmp_ch);
-  if (FIGHTING(ch))
+  }
+  if (FIGHTING(*find)) {
+    stop_fighting(*find);
+  }
+  if (FIGHTING(ch)) {
     stop_fighting(ch);
+  }
 
-  set_fighting(ch, tmp_ch);
-  set_fighting(tmp_ch, ch);
+  set_fighting(ch, *find);
+  set_fighting(*find, ch);
 
   WAIT_STATE(vict, 2 * PULSE_VIOLENCE);
 }

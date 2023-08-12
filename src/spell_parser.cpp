@@ -109,8 +109,8 @@ void say_spell(struct char_data *ch, int spellnum, struct char_data *tch,
   while (lbuf[ofs]) {
     for (j = 0; *(syls[j].org); j++) {
       if (!strncmp(syls[j].org, lbuf + ofs, strlen(syls[j].org))) {
-	strcat(buf, syls[j].news);	/* strcat: BAD */
-	ofs += strlen(syls[j].org);
+        strcat(buf, syls[j].news);	/* strcat: BAD */
+        ofs += strlen(syls[j].org);
         break;
       }
     }
@@ -126,27 +126,32 @@ void say_spell(struct char_data *ch, int spellnum, struct char_data *tch,
       format = "$n closes $s eyes and utters the words, '%s'.";
     else
       format = "$n stares at $N and utters the words, '%s'.";
-  } else if (tobj != NULL &&
-	     ((IN_ROOM(tobj) == IN_ROOM(ch)) || (tobj->carried_by == ch)))
+  } else if (tobj != NULL && ((IN_ROOM(tobj) == IN_ROOM(ch)) || (tobj->carried_by == ch))) {
     format = "$n stares at $p and utters the words, '%s'.";
-  else
+  }
+  else {
     format = "$n utters the words, '%s'.";
+  }
 
   snprintf(buf1, sizeof(buf1), format, skill_name(spellnum));
   snprintf(buf2, sizeof(buf2), format, buf);
 
-  for (i = world[IN_ROOM(ch)].people; i; i = i->next_in_room) {
-    if (i == ch || i == tch || !i->desc || !AWAKE(i))
+  for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+    i = *it;
+
+    if (i == ch || i == tch || !i->desc || !AWAKE(i)) {
       continue;
-    if (GET_CLASS(ch) == GET_CLASS(i))
+    }
+    if (GET_CLASS(ch) == GET_CLASS(i)) {
       perform_act(buf1, ch, tobj, tch, i);
-    else
+    }
+    else {
       perform_act(buf2, ch, tobj, tch, i);
+    }
   }
 
   if (tch != NULL && tch != ch && IN_ROOM(tch) == IN_ROOM(ch)) {
-    snprintf(buf1, sizeof(buf1), "$n stares at you and utters the words, '%s'.",
-	    GET_CLASS(ch) == GET_CLASS(tch) ? skill_name(spellnum) : buf);
+    snprintf(buf1, sizeof(buf1), "$n stares at you and utters the words, '%s'.", GET_CLASS(ch) == GET_CLASS(tch) ? skill_name(spellnum) : buf);
     act(buf1, FALSE, ch, NULL, tch, CommTarget::TO_VICT);
   }
 }
@@ -306,8 +311,8 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
 {
   char arg[MAX_INPUT_LENGTH];
   int i, k;
-  struct char_data *tch = NULL, *next_tch;
-  struct obj_data *tobj = NULL;
+  struct char_data *tch = nullptr;
+  struct obj_data *tobj = nullptr;
 
   one_argument(argument, arg);
 
@@ -338,37 +343,44 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
        * Solution: We special case the area/mass spells here.
        */
       if (HAS_SPELL_ROUTINE(GET_OBJ_VAL(obj, 3), MAG_MASSES | MAG_AREAS)) {
-        for (i = 0, tch = world[IN_ROOM(ch)].people; tch; tch = tch->next_in_room)
-	  i++;
-	while (i-- > 0)
-	  call_magic(ch, NULL, NULL, GET_OBJ_VAL(obj, 3), k, CAST_STAFF);
+        i = world[IN_ROOM(ch)].people.size();
+        while (i-- > 0) {
+          call_magic(ch, NULL, NULL, GET_OBJ_VAL(obj, 3), k, CAST_STAFF);
+        }
       } else {
-	for (tch = world[IN_ROOM(ch)].people; tch; tch = next_tch) {
-	  next_tch = tch->next_in_room;
-	  if (ch != tch)
-	    call_magic(ch, tch, NULL, GET_OBJ_VAL(obj, 3), k, CAST_STAFF);
-	}
+        for (auto it = world[IN_ROOM(ch)].people.begin(); it != world[IN_ROOM(ch)].people.end(); ++it) {
+          tch = *it;
+
+          if (ch != tch) {
+            call_magic(ch, tch, NULL, GET_OBJ_VAL(obj, 3), k, CAST_STAFF);
+          }
+        }
       }
     }
     break;
   case ITEM_WAND:
     if (k == FIND_CHAR_ROOM) {
       if (tch == ch) {
-	act("You point $p at yourself.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
-	act("$n points $p at $mself.", FALSE, ch, obj, 0, CommTarget::TO_ROOM);
+        act("You point $p at yourself.", FALSE, ch, obj, 0, CommTarget::TO_CHAR);
+        act("$n points $p at $mself.", FALSE, ch, obj, 0, CommTarget::TO_ROOM);
       } else {
-	act("You point $p at $N.", FALSE, ch, obj, tch, CommTarget::TO_CHAR);
-	if (!obj->action_description.empty())
-	  act(obj->action_description.c_str(), FALSE, ch, obj, tch, CommTarget::TO_ROOM);
-	else
-	  act("$n points $p at $N.", TRUE, ch, obj, tch, CommTarget::TO_ROOM);
+        act("You point $p at $N.", FALSE, ch, obj, tch, CommTarget::TO_CHAR);
+
+        if (!obj->action_description.empty()) {
+          act(obj->action_description.c_str(), FALSE, ch, obj, tch, CommTarget::TO_ROOM);
+        }
+        else {
+          act("$n points $p at $N.", TRUE, ch, obj, tch, CommTarget::TO_ROOM);
+        }
       }
-    } else if (tobj != NULL) {
+    } else if (tobj != nullptr) {
       act("You point $p at $P.", FALSE, ch, obj, tobj, CommTarget::TO_CHAR);
-      if (!obj->action_description.empty())
-	act(obj->action_description.c_str(), FALSE, ch, obj, tobj, CommTarget::TO_ROOM);
-      else
-	act("$n points $p at $P.", TRUE, ch, obj, tobj, CommTarget::TO_ROOM);
+      if (!obj->action_description.empty()) {
+        act(obj->action_description.c_str(), FALSE, ch, obj, tobj, CommTarget::TO_ROOM);
+      }
+      else {
+        act("$n points $p at $P.", TRUE, ch, obj, tobj, CommTarget::TO_ROOM);
+      }
     } else if (IS_SET(spell_info[GET_OBJ_VAL(obj, 3)].routines, MAG_AREAS | MAG_MASSES)) {
       /* Wands with area spells don't need to be pointed. */
       act("You point $p outward.", FALSE, ch, obj, NULL, CommTarget::TO_CHAR);
@@ -385,37 +397,41 @@ void mag_objectmagic(struct char_data *ch, struct obj_data *obj,
     }
     GET_OBJ_VAL(obj, 2)--;
     WAIT_STATE(ch, PULSE_VIOLENCE);
-    if (GET_OBJ_VAL(obj, 0))
-      call_magic(ch, tch, tobj, GET_OBJ_VAL(obj, 3),
-		 GET_OBJ_VAL(obj, 0), CAST_WAND);
-    else
-      call_magic(ch, tch, tobj, GET_OBJ_VAL(obj, 3),
-		 DEFAULT_WAND_LVL, CAST_WAND);
+    if (GET_OBJ_VAL(obj, 0)) {
+      call_magic(ch, tch, tobj, GET_OBJ_VAL(obj, 3), GET_OBJ_VAL(obj, 0), CAST_WAND);
+    }
+    else  {
+      call_magic(ch, tch, tobj, GET_OBJ_VAL(obj, 3), DEFAULT_WAND_LVL, CAST_WAND);
+    }
     break;
   case ITEM_SCROLL:
     if (*arg) {
       if (!k) {
-	act("There is nothing to here to affect with $p.", FALSE,
-	    ch, obj, NULL, CommTarget::TO_CHAR);
-	return;
+      	act("There is nothing to here to affect with $p.", FALSE, ch, obj, NULL, CommTarget::TO_CHAR);
+        return;
       }
-    } else
+    } else {
       tch = ch;
+    }
 
     act("You recite $p which dissolves.", TRUE, ch, obj, 0, CommTarget::TO_CHAR);
-    if (!obj->action_description.empty())
+    if (!obj->action_description.empty()) {
       act(obj->action_description.c_str(), FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
-    else
+    }
+    else {
       act("$n recites $p.", FALSE, ch, obj, NULL, CommTarget::TO_ROOM);
+    }
 
     WAIT_STATE(ch, PULSE_VIOLENCE);
-    for (i = 1; i <= 3; i++)
-      if (call_magic(ch, tch, tobj, GET_OBJ_VAL(obj, i),
-		       GET_OBJ_VAL(obj, 0), CAST_SCROLL) <= 0)
-	break;
+    for (i = 1; i <= 3; i++) {
+      if (call_magic(ch, tch, tobj, GET_OBJ_VAL(obj, i), GET_OBJ_VAL(obj, 0), CAST_SCROLL) <= 0) {
+        break;
+      }
+    }
 
-    if (obj != NULL)
+    if (obj != nullptr) {
       extract_obj(obj);
+    }
     break;
   case ITEM_POTION:
     tch = ch;

@@ -351,41 +351,46 @@ void affect_join(struct char_data *ch, affected_type &af, bool add_dur, bool avg
 /* move a player out of a room */
 void char_from_room(struct char_data *ch)
 {
-  struct char_data *temp;
-
-  if (ch == NULL || IN_ROOM(ch) == NOWHERE) {
+  if (ch == nullptr || IN_ROOM(ch) == NOWHERE) {
     basic_mud_log("SYSERR: NULL character or NOWHERE in %s, char_from_room", __FILE__);
     exit(1);
   }
 
-  if (FIGHTING(ch) != NULL)
+  if (FIGHTING(ch) != nullptr) {
     stop_fighting(ch);
+  }
 
-  if (GET_EQ(ch, WEAR_LIGHT) != NULL)
-    if (GET_OBJ_TYPE(GET_EQ(ch, WEAR_LIGHT)) == ITEM_LIGHT)
-      if (GET_OBJ_VAL(GET_EQ(ch, WEAR_LIGHT), 2))	/* Light is ON */
-	world[IN_ROOM(ch)].light--;
+  if (GET_EQ(ch, WEAR_LIGHT) != nullptr) {
+    if (GET_OBJ_TYPE(GET_EQ(ch, WEAR_LIGHT)) == ITEM_LIGHT) {
+      if (GET_OBJ_VAL(GET_EQ(ch, WEAR_LIGHT), 2))	{  /* Light is ON */
+        world[IN_ROOM(ch)].light--;
+      }
+    }
+  }
 
-  REMOVE_FROM_LIST(ch, world[IN_ROOM(ch)].people, next_in_room);
+  world[IN_ROOM(ch)].people.remove(ch);
   IN_ROOM(ch) = NOWHERE;
-  ch->next_in_room = NULL;
 }
 
 
 /* place a character in a room */
 void char_to_room(struct char_data *ch, room_rnum room)
 {
-  if (ch == NULL || room == NOWHERE || static_cast<unsigned long>(room) >= world.size())
+  if (ch == nullptr || room == NOWHERE || static_cast<unsigned long>(room) >= world.size()) {
     basic_mud_log("SYSERR: Illegal value(s) passed to char_to_room. (Room: %d/%ld Ch: %p", room, world.size(), reinterpret_cast<void *>(ch));
+  }
   else {
-    ch->next_in_room = world[room].people;
-    world[room].people = ch;
+    world[room].people.push_back(ch);
     IN_ROOM(ch) = room;
 
-    if (GET_EQ(ch, WEAR_LIGHT))
-      if (GET_OBJ_TYPE(GET_EQ(ch, WEAR_LIGHT)) == ITEM_LIGHT)
-	if (GET_OBJ_VAL(GET_EQ(ch, WEAR_LIGHT), 2))	/* Light ON */
-	  world[room].light++;
+    if (GET_EQ(ch, WEAR_LIGHT)) {
+      if (GET_OBJ_TYPE(GET_EQ(ch, WEAR_LIGHT)) == ITEM_LIGHT) {
+        if (GET_OBJ_VAL(GET_EQ(ch, WEAR_LIGHT), 2))	{
+          /* Light ON */
+          world[room].light++;
+        }
+      }
+    }
 
     /* Stop fighting now, if we left. */
     if (FIGHTING(ch) && IN_ROOM(ch) != IN_ROOM(FIGHTING(ch))) {
@@ -635,15 +640,21 @@ struct char_data *get_char_room(char *name, int *number, room_rnum room)
     num = get_number(&name);
   }
 
-  if (*number == 0)
-    return (NULL);
+  if (*number == 0) {
+    return nullptr;
+  }
 
-  for (i = world[room].people; i && *number; i = i->next_in_room)
-    if (isname(name, i->player.name))
-      if (--(*number) == 0)
-	return (i);
+  for(auto it = world[room].people.begin(); it != world[room].people.end(); ++it) {
+    i = *it;
 
-  return (NULL);
+    if (isname(name, i->player.name)) {
+      if (--(*number) == 0) {
+        return i;
+      }
+    }
+  }
+
+  return nullptr;
 }
 
 
@@ -887,7 +898,7 @@ void extract_char_final(struct char_data *ch)
 
   /* On with the character's assets... */
 
-  if (ch->followers || ch->master)
+  if (!ch->followers.empty() || ch->master)
     die_follower(ch);
 
   /* transfer objects to room, if any */
@@ -1060,20 +1071,27 @@ struct char_data *get_char_room_vis(struct char_data *ch, char *name, int *numbe
   }
 
   /* JE 7/18/94 :-) :-) */
-  if (!str_cmp(name, "self") || !str_cmp(name, "me"))
-    return (ch);
+  if (!str_cmp(name, "self") || !str_cmp(name, "me")) {
+    return ch;
+  }
 
   /* 0.<name> means PC with name */
-  if (*number == 0)
+  if (*number == 0) {
     return (get_player_vis(ch, name, NULL, FIND_CHAR_ROOM));
+  }
 
-  for (i = world[IN_ROOM(ch)].people; i && *number; i = i->next_in_room)
-    if (isname(name, i->player.name))
-      if (CAN_SEE(ch, i))
-	if (--(*number) == 0)
-	  return (i);
+  for (auto it = world[IN_ROOM(ch)].people.begin(); (it != world[IN_ROOM(ch)].people.end()) && *number; ++it) {
+    i = *it;
+    if (isname(name, i->player.name)) {
+      if (CAN_SEE(ch, i)) {
+        if (--(*number) == 0) {
+          return i;
+        }
+      }
+    }
+  }
 
-  return (NULL);
+  return nullptr;
 }
 
 

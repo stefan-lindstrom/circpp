@@ -207,25 +207,9 @@ struct player_index_element {
 
 
 struct help_index_element {
-   char	*keyword;
-   char *entry;
+   std::string keyword;
+   std::string entry;
    int duplicate;
-};
-
-
-/* don't change these */
-#define BAN_NOT 	0
-#define BAN_NEW 	1
-#define BAN_SELECT	2
-#define BAN_ALL		3
-
-#define BANNED_SITE_LENGTH    50
-struct ban_list_element {
-   char	site[BANNED_SITE_LENGTH+1];
-   int	type;
-   time_t date;
-   char	name[MAX_NAME_LENGTH+1];
-   struct ban_list_element *next;
 };
 
 // Exported functions
@@ -246,10 +230,8 @@ extern std::vector<index_data> obj_index;
 extern std::vector<obj_data> obj_proto;
 extern std::list<obj_data *> object_list;
 
-extern int top_of_helpt;
-extern struct help_index_element *help_table;
+extern std::vector<help_index_element> help_table;
 extern struct time_info_data time_info;
-
 
 extern struct time_info_data time_info;
 

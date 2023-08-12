@@ -217,11 +217,15 @@ struct char_data *find_npc_by_name(struct char_data *chAtChar,
 {
   struct char_data *ch;
 
-  for (ch = world[IN_ROOM(chAtChar)].people; ch; ch = ch->next_in_room)
-    if (IS_NPC(ch) && !strncmp(pszName, ch->player.short_descr.c_str(), iLen))
-      return (ch);
+  for (auto it = world[IN_ROOM(chAtChar)].people.begin(); it != world[IN_ROOM(chAtChar)].people.end(); ++it) {
+    ch = *it;
 
-  return (NULL);
+    if (IS_NPC(ch) && !strncmp(pszName, ch->player.short_descr.c_str(), iLen)) {
+      return ch;
+    }
+  }
+
+  return nullptr;
 }
 
 
@@ -235,11 +239,15 @@ struct char_data *find_guard(struct char_data *chAtChar)
 {
   struct char_data *ch;
 
-  for (ch = world[IN_ROOM(chAtChar)].people; ch; ch = ch->next_in_room)
-    if (!FIGHTING(ch) && member_of_royal_guard(ch))
-      return (ch);
+  for (auto it = world[IN_ROOM(chAtChar)].people.begin(); it != world[IN_ROOM(chAtChar)].people.end(); ++it) {
+    ch = *it;
 
-  return (NULL);
+    if (!FIGHTING(ch) && member_of_royal_guard(ch)) {
+      return ch;
+    }
+  }
+
+  return nullptr;
 }
 
 
@@ -255,33 +263,44 @@ struct char_data *get_victim(struct char_data *chAtChar)
   struct char_data *ch;
   int iNum_bad_guys = 0, iVictim;
 
-  for (ch = world[IN_ROOM(chAtChar)].people; ch; ch = ch->next_in_room)
-    if (FIGHTING(ch) && member_of_staff(FIGHTING(ch)))
-      iNum_bad_guys++;
+  for (auto it = world[IN_ROOM(chAtChar)].people.begin(); it != world[IN_ROOM(chAtChar)].people.end(); ++it) {
+    ch = *it;
 
-  if (!iNum_bad_guys)
-    return (NULL);
+    if (FIGHTING(ch) && member_of_staff(FIGHTING(ch))) {
+      iNum_bad_guys++;
+    }
+  }
+
+  if (!iNum_bad_guys) {
+    return nullptr;
+  }
 
   iVictim = rand_number(0, iNum_bad_guys);	/* How nice, we give them a chance */
-  if (!iVictim)
-    return (NULL);
+  if (!iVictim) {
+    return nullptr;
+  }
 
   iNum_bad_guys = 0;
 
-  for (ch = world[IN_ROOM(chAtChar)].people; ch; ch = ch->next_in_room) {
-    if (FIGHTING(ch) == NULL)
-      continue;
+  for (auto it = world[IN_ROOM(chAtChar)].people.begin(); it != world[IN_ROOM(chAtChar)].people.end(); ++it) {
+    ch = *it;
 
-    if (!member_of_staff(FIGHTING(ch)))
+    if (FIGHTING(ch) == nullptr) {
       continue;
+    }
 
-    if (++iNum_bad_guys != iVictim)
+    if (!member_of_staff(FIGHTING(ch))) {
       continue;
+    }
 
-    return (ch);
+    if (++iNum_bad_guys != iVictim) {
+      continue;
+    }
+
+    return ch;
   }
 
-  return (NULL);
+  return nullptr;
 }
 
 
@@ -315,27 +334,35 @@ int do_npc_rescue(struct char_data *ch_hero, struct char_data *ch_victim)
 {
   struct char_data *ch_bad_guy;
 
-  for (ch_bad_guy = world[IN_ROOM(ch_hero)].people;
-       ch_bad_guy && (FIGHTING(ch_bad_guy) != ch_victim);
-       ch_bad_guy = ch_bad_guy->next_in_room);
+  auto find = std::find_if(
+    world[IN_ROOM(ch_hero)].people.begin(),
+    world[IN_ROOM(ch_hero)].people.end(), 
+    [ch_victim](char_data *mook) { return FIGHTING(mook) == ch_victim; }
+  );
+
+
 
   /* NO WAY I'll rescue the one I'm fighting! */
-  if (!ch_bad_guy || ch_bad_guy == ch_hero)
-    return (FALSE);
+  if (find == world[IN_ROOM(ch_hero)].people.end() || *find == ch_hero) {
+    return FALSE;
+  }
+  ch_bad_guy = *find;
 
   act("You bravely rescue $N.\r\n", FALSE, ch_hero, 0, ch_victim, CommTarget::TO_CHAR);
   act("You are rescued by $N, your loyal friend!\r\n",
 	FALSE, ch_victim, 0, ch_hero, CommTarget::TO_CHAR);
   act("$n heroically rescues $N.", FALSE, ch_hero, 0, ch_victim, CommTarget::TO_NOTVICT);
 
-  if (FIGHTING(ch_bad_guy))
+  if (FIGHTING(ch_bad_guy)) {
     stop_fighting(ch_bad_guy);
-  if (FIGHTING(ch_hero))
+  }
+  if (FIGHTING(ch_hero)) {
     stop_fighting(ch_hero);
+  }
 
   set_fighting(ch_hero, ch_bad_guy);
   set_fighting(ch_bad_guy, ch_hero);
-  return (TRUE);
+  return TRUE;
 }
 
 

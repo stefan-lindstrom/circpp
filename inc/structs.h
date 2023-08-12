@@ -767,7 +767,7 @@ struct room_data {
   SPECIAL(*func);
   
   struct obj_data *contents;   /* List of items in room              */
-  struct char_data *people;    /* List of NPC / PC in room           */
+  std::list<char_data *> people;    /* List of NPC / PC in room           */
 };
 /* ====================================================================== */
 
@@ -968,8 +968,8 @@ struct alias_data {
 struct player_special_data {
    struct player_special_data_saved saved;
 
-   char	*poofin;		               /* Description on arrival of a god.     */
-   char	*poofout;		            /* Description upon a god's exit.       */
+   std::string poofin;		               /* Description on arrival of a god.     */
+   std::string poofout;		            /* Description upon a god's exit.       */
    std::list<alias_data> aliases;	/* Character's aliases			*/
    long last_tell;	            	/* idnum of last tell from		*/
    void *last_olc_targ;		         /* olc control				*/
@@ -1006,9 +1006,8 @@ struct affected_type {
 /* Structure used for chars following other chars */
 struct follow_type {
   struct char_data *follower;
-  struct follow_type *next;
 
-  follow_type() : follower(nullptr), next(nullptr)  {}
+  follow_type() : follower(nullptr)  {}
 };
 
 
@@ -1030,21 +1029,16 @@ struct char_data {
   struct mob_special_data mob_specials;	/* NPC specials		  */
   
   std::list<affected_type> affected;
-  //  struct affected_type *affected;       /* affected by what spells       */
   struct obj_data *equipment[NUM_WEARS];/* Equipment array               */
 
   struct obj_data *carrying;            /* Head of list                  */
   struct descriptor_data *desc;         /* NULL for mobiles              */
 
-  struct char_data *next_in_room;     /* For room->people - list         */
-  struct char_data *next;             /* For either monster or ppl-list  */
-
-  struct follow_type *followers;        /* List of chars followers       */
+  std::list<follow_type *> followers;   /* List of chars followers       */
   struct char_data *master;             /* Who is char following?        */
   
   char_data() : pfilepos(0), nr(0), in_room(NOWHERE), was_in_room(NOWHERE), wait(0), player_specials(nullptr), 
-    equipment{nullptr}, carrying(nullptr), desc(nullptr), next_in_room(nullptr), next(nullptr), 
-    followers(nullptr), master(nullptr) {}
+    equipment{nullptr}, carrying(nullptr), desc(nullptr),  master(nullptr) {}
 };
 /* ====================================================================== */
 

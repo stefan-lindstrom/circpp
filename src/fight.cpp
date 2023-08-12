@@ -70,21 +70,6 @@ struct attack_hit_type attack_hit_text[] =
 
 /* The Fight related routines */
 
-static std::string __fread_action(FILE *fl, int nr)
-{
-  // for now
-  auto val = fread_action(fl, nr);
-  std::string rc;
-
-  if (nullptr != val) {
-    rc = val;
-    free(val);
-  }
-
-  return rc;
-}
-
-
 void appear(struct char_data *ch)
 {
   if (affected_by_spell(ch, SPELL_INVISIBLE))
@@ -143,18 +128,18 @@ void load_messages(void)
     message_type messages;
     fight_messages[i].a_type = type;
 
-    messages.die_msg.attacker_msg = __fread_action(fl, i);
-    messages.die_msg.victim_msg = __fread_action(fl, i);
-    messages.die_msg.room_msg = __fread_action(fl, i);
-    messages.miss_msg.attacker_msg = __fread_action(fl, i);
-    messages.miss_msg.victim_msg = __fread_action(fl, i);
-    messages.miss_msg.room_msg = __fread_action(fl, i);
-    messages.hit_msg.attacker_msg = __fread_action(fl, i);
-    messages.hit_msg.victim_msg = __fread_action(fl, i);
-    messages.hit_msg.room_msg = __fread_action(fl, i);
-    messages.god_msg.attacker_msg = __fread_action(fl, i);
-    messages.god_msg.victim_msg = __fread_action(fl, i);
-    messages.god_msg.room_msg = __fread_action(fl, i);
+    messages.die_msg.attacker_msg = fread_action(fl, i);
+    messages.die_msg.victim_msg = fread_action(fl, i);
+    messages.die_msg.room_msg = fread_action(fl, i);
+    messages.miss_msg.attacker_msg = fread_action(fl, i);
+    messages.miss_msg.victim_msg = fread_action(fl, i);
+    messages.miss_msg.room_msg = fread_action(fl, i);
+    messages.hit_msg.attacker_msg = fread_action(fl, i);
+    messages.hit_msg.victim_msg = fread_action(fl, i);
+    messages.hit_msg.room_msg = fread_action(fl, i);
+    messages.god_msg.attacker_msg = fread_action(fl, i);
+    messages.god_msg.victim_msg = fread_action(fl, i);
+    messages.god_msg.room_msg = fread_action(fl, i);
 
     fight_messages[i].msg.push_back(messages);
 
@@ -384,9 +369,13 @@ void group_gain(struct char_data *ch, struct char_data *victim)
   else
     tot_members = 0;
 
-  for (f = k->followers; f; f = f->next)
-    if (AFF_FLAGGED(f->follower, AFF_GROUP) && IN_ROOM(f->follower) == IN_ROOM(ch))
+  for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+    f = *it;
+
+    if (AFF_FLAGGED(f->follower, AFF_GROUP) && IN_ROOM(f->follower) == IN_ROOM(ch)) {
       tot_members++;
+    }
+  }
 
   /* round up to the next highest tot_members */
   tot_gain = (GET_EXP(victim) / 3) + tot_members - 1;
@@ -403,9 +392,13 @@ void group_gain(struct char_data *ch, struct char_data *victim)
   if (AFF_FLAGGED(k, AFF_GROUP) && IN_ROOM(k) == IN_ROOM(ch))
     perform_group_gain(k, base, victim);
 
-  for (f = k->followers; f; f = f->next)
-    if (AFF_FLAGGED(f->follower, AFF_GROUP) && IN_ROOM(f->follower) == IN_ROOM(ch))
+  for (auto it = k->followers.begin(); it != k->followers.end(); ++it) {
+    f = *it;
+
+    if (AFF_FLAGGED(f->follower, AFF_GROUP) && IN_ROOM(f->follower) == IN_ROOM(ch)) {
       perform_group_gain(f->follower, base, victim);
+    }
+  }
 }
 
 

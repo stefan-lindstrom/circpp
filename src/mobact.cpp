@@ -99,42 +99,49 @@ void mobile_activity(void)
     /* Aggressive Mobs */
     if (MOB_FLAGGED(ch, MOB_AGGRESSIVE | MOB_AGGR_TO_ALIGN)) {
       found = FALSE;
-      for (vict = world[IN_ROOM(ch)].people; vict && !found; vict = vict->next_in_room) {
-	if (IS_NPC(vict) || !CAN_SEE(ch, vict) || PRF_FLAGGED(vict, PRF_NOHASSLE))
-	  continue;
+      for (auto it = world[IN_ROOM(ch)].people.begin(); (it != world[IN_ROOM(ch)].people.end()) && !found; ++it) {
+        vict = *it;
 
-	if (MOB_FLAGGED(ch, MOB_WIMPY) && AWAKE(vict))
-	  continue;
+        if (IS_NPC(vict) || !CAN_SEE(ch, vict) || PRF_FLAGGED(vict, PRF_NOHASSLE)) {
+          continue;
+        }
 
-	if (MOB_FLAGGED(ch, MOB_AGGRESSIVE  ) ||
-	   (MOB_FLAGGED(ch, MOB_AGGR_EVIL   ) && IS_EVIL(vict)) ||
-	   (MOB_FLAGGED(ch, MOB_AGGR_NEUTRAL) && IS_NEUTRAL(vict)) ||
-	   (MOB_FLAGGED(ch, MOB_AGGR_GOOD   ) && IS_GOOD(vict))) {
+        if (MOB_FLAGGED(ch, MOB_WIMPY) && AWAKE(vict)) {
+          continue;
+        }
 
+        if (MOB_FLAGGED(ch, MOB_AGGRESSIVE  ) || (MOB_FLAGGED(ch, MOB_AGGR_EVIL   ) && IS_EVIL(vict)) ||
+          (MOB_FLAGGED(ch, MOB_AGGR_NEUTRAL) && IS_NEUTRAL(vict)) || (MOB_FLAGGED(ch, MOB_AGGR_GOOD   ) && IS_GOOD(vict))) {
           /* Can a master successfully control the charmed monster? */
-          if (aggressive_mob_on_a_leash(ch, ch->master, vict))
+          if (aggressive_mob_on_a_leash(ch, ch->master, vict)) {
             continue;
+          }
 
-	  hit(ch, vict, TYPE_UNDEFINED);
-	  found = TRUE;
-	}
+          hit(ch, vict, TYPE_UNDEFINED);
+          found = TRUE;
+        }
       }
     }
 
     /* Mob Memory */
     if (MOB_FLAGGED(ch, MOB_MEMORY) && MEMORY(ch)) {
       found = FALSE;
-      for (vict = world[IN_ROOM(ch)].people; vict && !found; vict = vict->next_in_room) {
-	if (IS_NPC(vict) || !CAN_SEE(ch, vict) || PRF_FLAGGED(vict, PRF_NOHASSLE))
-	  continue;
+      for (auto it = world[IN_ROOM(ch)].people.begin(); (it != world[IN_ROOM(ch)].people.end()) && !found; ++it) {
+        vict = *it;
 
-	for (names = MEMORY(ch); names && !found; names = names->next) {
-	  if (names->id != GET_IDNUM(vict))
+        if (IS_NPC(vict) || !CAN_SEE(ch, vict) || PRF_FLAGGED(vict, PRF_NOHASSLE)) {
+          continue;
+        }
+
+        for (names = MEMORY(ch); names && !found; names = names->next) {
+          if (names->id != GET_IDNUM(vict)) {
             continue;
+          }
 
           /* Can a master successfully control the charmed monster? */
-          if (aggressive_mob_on_a_leash(ch, ch->master, vict))
+          if (aggressive_mob_on_a_leash(ch, ch->master, vict)) {
             continue;
+          }
 
           found = TRUE;
           act("'Hey!  You're the fiend that attacked me!!!', exclaims $n.", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
@@ -163,15 +170,20 @@ void mobile_activity(void)
     /* Helper Mobs */
     if (MOB_FLAGGED(ch, MOB_HELPER) && !AFF_FLAGGED(ch, AFF_BLIND | AFF_CHARM)) {
       found = FALSE;
-      for (vict = world[IN_ROOM(ch)].people; vict && !found; vict = vict->next_in_room) {
-	if (ch == vict || !IS_NPC(vict) || !FIGHTING(vict))
-	  continue;
-	if (IS_NPC(FIGHTING(vict)) || ch == FIGHTING(vict))
-	  continue;
 
-	act("$n jumps to the aid of $N!", FALSE, ch, 0, vict, CommTarget::TO_ROOM);
-	hit(ch, FIGHTING(vict), TYPE_UNDEFINED);
-	found = TRUE;
+      for (auto it = world[IN_ROOM(ch)].people.begin(); (it != world[IN_ROOM(ch)].people.end()) && !found; ++it) {
+        vict = *it;
+
+        if (ch == vict || !IS_NPC(vict) || !FIGHTING(vict)) {
+          continue;
+        }
+        if (IS_NPC(FIGHTING(vict)) || ch == FIGHTING(vict)) {
+          continue;
+        }
+
+        act("$n jumps to the aid of $N!", FALSE, ch, 0, vict, CommTarget::TO_ROOM);
+        hit(ch, FIGHTING(vict), TYPE_UNDEFINED);
+        found = TRUE;
       }
     }
 

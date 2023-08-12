@@ -426,9 +426,7 @@ bool circle_follow(struct char_data *ch, struct char_data *victim)
 /* This will NOT do if a character quits/dies!!          */
 void stop_follower(struct char_data *ch)
 {
-  struct follow_type *j, *k;
-
-  if (ch->master == NULL) {
+  if (ch->master == nullptr) {
     core_dump();
     return;
   }
@@ -445,19 +443,20 @@ void stop_follower(struct char_data *ch)
     act("$n stops following you.", TRUE, ch, 0, ch->master, CommTarget::TO_VICT);
   }
 
-  if (ch->master->followers->follower == ch) {	/* Head of follower-list? */
-    k = ch->master->followers;
-    ch->master->followers = k->next;
-    free(k);
-  } else {			/* locate follower who is not head of list */
-    for (k = ch->master->followers; k->next->follower != ch; k = k->next);
 
-    j = k->next;
-    k->next = j->next;
-    free(j);
+  auto find = std::find_if(
+    ch->master->followers.begin(),
+    ch->master->followers.end(),
+    [ch](follow_type *f) { return f->follower == ch; }
+  );
+
+  if (find == ch->master->followers.end()) {
+    return;    
   }
 
-  ch->master = NULL;
+  ch->master->followers.remove(*find);
+  delete *find;
+  ch->master = nullptr;
   REMOVE_BIT(AFF_FLAGS(ch), AFF_CHARM | AFF_GROUP);
 }
 
@@ -467,25 +466,30 @@ int num_followers_charmed(struct char_data *ch)
   struct follow_type *lackey;
   int total = 0;
 
-  for (lackey = ch->followers; lackey; lackey = lackey->next)
-    if (AFF_FLAGGED(lackey->follower, AFF_CHARM) && lackey->follower->master == ch)
-      total++;
+  for (auto it = ch->followers.begin(); it != ch->followers.end(); ++it) {
+    lackey = *it;
 
-  return (total);
+    if (AFF_FLAGGED(lackey->follower, AFF_CHARM) && lackey->follower->master == ch) {
+      total++;
+    }
+  }
+
+  return total;
 }
 
 
 /* Called when a character that follows/is followed dies */
 void die_follower(struct char_data *ch)
 {
-  struct follow_type *j, *k;
-
-  if (ch->master)
+  if (ch->master) {
     stop_follower(ch);
+  }
 
-  for (k = ch->followers; k; k = j) {
-    j = k->next;
-    stop_follower(k->follower);
+  while (!ch->followers.empty()) {
+    auto follower = ch->followers.front();
+    ch->followers.pop_front();
+    stop_follower(follower->follower);
+
   }
 }
 
@@ -507,12 +511,12 @@ void add_follower(struct char_data *ch, struct char_data *leader)
   k = new follow_type;
 
   k->follower = ch;
-  k->next = leader->followers;
-  leader->followers = k;
+  leader->followers.push_back(k);
 
   act("You now follow $N.", FALSE, ch, 0, leader, CommTarget::TO_CHAR);
-  if (CAN_SEE(leader, ch))
+  if (CAN_SEE(leader, ch)) {
     act("$n starts following you.", TRUE, ch, 0, leader, CommTarget::TO_VICT);
+  }
   act("$n starts to follow $N.", TRUE, ch, 0, leader, CommTarget::TO_NOTVICT);
 }
 
@@ -609,12 +613,15 @@ int num_pc_in_room(struct room_data *room)
 {
   int i = 0;
   struct char_data *ch;
+  for (auto it = room->people.begin(); it != room->people.end(); ++it) {
+    ch = *it;
 
-  for (ch = room->people; ch != NULL; ch = ch->next_in_room)
-    if (!IS_NPC(ch))
+    if (!IS_NPC(ch)) {
       i++;
+    }
+  }
 
-  return (i);
+  return i;
 }
 
 /*
