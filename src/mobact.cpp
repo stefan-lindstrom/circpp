@@ -41,7 +41,6 @@ void mobile_activity(void)
   struct char_data *ch, *vict;
   struct obj_data *obj, *best_obj;
   int door, found, max;
-  memory_rec *names;
 
   for (auto it = character_list.begin(); it != character_list.end(); ++it) {
     ch = *it;
@@ -124,7 +123,7 @@ void mobile_activity(void)
     }
 
     /* Mob Memory */
-    if (MOB_FLAGGED(ch, MOB_MEMORY) && MEMORY(ch)) {
+    if (MOB_FLAGGED(ch, MOB_MEMORY) && !MEMORY(ch).empty()) {
       found = FALSE;
       for (auto it = world[IN_ROOM(ch)].people.begin(); (it != world[IN_ROOM(ch)].people.end()) && !found; ++it) {
         vict = *it;
@@ -133,8 +132,8 @@ void mobile_activity(void)
           continue;
         }
 
-        for (names = MEMORY(ch); names && !found; names = names->next) {
-          if (names->id != GET_IDNUM(vict)) {
+        for (auto it = MEMORY(ch).begin(); it != MEMORY(ch).end(); ++it) {
+          if (it->id != GET_IDNUM(vict)) {
             continue;
           }
 
@@ -199,21 +198,21 @@ void mobile_activity(void)
 /* make ch remember victim */
 void remember(struct char_data *ch, struct char_data *victim)
 {
-  memory_rec *tmp;
-  bool present = FALSE;
+  bool present = false;
 
   if (!IS_NPC(ch) || IS_NPC(victim) || PRF_FLAGGED(victim, PRF_NOHASSLE))
     return;
 
-  for (tmp = MEMORY(ch); tmp && !present; tmp = tmp->next)
-    if (tmp->id == GET_IDNUM(victim))
-      present = TRUE;
+  for (auto it = MEMORY(ch).begin(); it != MEMORY(ch).end() && !present; ++it) {
+    if (it->id == GET_IDNUM(victim)) {
+      present = true;
+    }
+  }
 
   if (!present) {
-    tmp = new memory_rec;
-    tmp->next = MEMORY(ch);
-    tmp->id = GET_IDNUM(victim);
-    MEMORY(ch) = tmp;
+    memory_rec tmp;
+    MEMORY(ch).push_back(tmp);
+    tmp.id = GET_IDNUM(victim);
   }
 }
 
@@ -221,42 +220,28 @@ void remember(struct char_data *ch, struct char_data *victim)
 /* make ch forget victim */
 void forget(struct char_data *ch, struct char_data *victim)
 {
-  memory_rec *curr, *prev = NULL;
-
-  if (!(curr = MEMORY(ch)))
+  if (MEMORY(ch).empty()) {
     return;
-
-  while (curr && curr->id != GET_IDNUM(victim)) {
-    prev = curr;
-    curr = curr->next;
   }
 
-  if (!curr)
+  auto found = std::find_if(
+    MEMORY(ch).begin(),
+    MEMORY(ch).end(),
+    [victim](const memory_rec &rec) { return rec.id == GET_IDNUM(victim); }
+  );
+
+  if (found == MEMORY(ch).end()) {
     return;			/* person wasn't there at all. */
+  }
 
-  if (curr == MEMORY(ch))
-    MEMORY(ch) = curr->next;
-  else
-    prev->next = curr->next;
-
-  free(curr);
+  MEMORY(ch).remove(*found);
 }
 
 
 /* erase ch's memory */
 void clearMemory(struct char_data *ch)
 {
-  memory_rec *curr, *next;
-
-  curr = MEMORY(ch);
-
-  while (curr) {
-    next = curr->next;
-    free(curr);
-    curr = next;
-  }
-
-  MEMORY(ch) = NULL;
+  MEMORY(ch).clear();
 }
 
 

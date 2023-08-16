@@ -778,7 +778,14 @@ struct room_data {
 /* memory structure for characters */
 struct memory_rec_struct {
    long	id;
-   struct memory_rec_struct *next;
+
+   bool operator==(const memory_rec_struct &other) const {
+      return id == other.id;
+   }
+
+   bool operator!=(const memory_rec_struct &other) const {
+      return id != other.id;
+   }
 };
 
 typedef struct memory_rec_struct memory_rec;
@@ -981,13 +988,13 @@ struct player_special_data {
 
 /* Specials used by NPCs, not PCs */
 struct mob_special_data {
-  memory_rec *memory;	    /* List of attackers to remember	       */
+  std::list<memory_rec> memory;	    /* List of attackers to remember	       */
   byte	attack_type;        /* The Attack Type Bitvector for NPC's     */
   byte default_pos;        /* Default position for NPC                */
   byte damnodice;          /* The number of damage dice's	       */
   byte damsizedice;        /* The size of the damage dice's           */
 
-  mob_special_data() : memory(nullptr), attack_type(0), default_pos(0), damnodice(0), damsizedice(0) {}
+  mob_special_data() :  attack_type(0), default_pos(0), damnodice(0), damsizedice(0) {}
 };
 
 

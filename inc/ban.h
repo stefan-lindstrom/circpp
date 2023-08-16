@@ -14,6 +14,7 @@
 struct ban_list_element {
    std::string site;
    int	type;
+   
    time_t date;
    std::string name;
 
