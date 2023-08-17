@@ -201,17 +201,22 @@ SPECIAL(dump)
   struct obj_data *k;
   int value = 0;
 
-  for (k = world[IN_ROOM(ch)].contents; k; k = world[IN_ROOM(ch)].contents) {
+  while(!world[IN_ROOM(ch)].contents.empty()) {
+    k = world[IN_ROOM(ch)].contents.front();
+
     act("$p vanishes in a puff of smoke!", FALSE, 0, k, 0, CommTarget::TO_ROOM);
     extract_obj(k);
   }
 
-  if (!CMD_IS("drop"))
-    return (FALSE);
+  if (!CMD_IS("drop")) {
+    return FALSE;
+  }
 
   do_drop(ch, argument, cmd, SCMD_DROP);
 
-  for (k = world[IN_ROOM(ch)].contents; k; k = world[IN_ROOM(ch)].contents) {
+  while(!world[IN_ROOM(ch)].contents.empty()) {
+    k = world[IN_ROOM(ch)].contents.front();
+
     act("$p vanishes in a puff of smoke!", FALSE, 0, k, 0, CommTarget::TO_ROOM);
     value += MAX(1, MIN(50, GET_OBJ_COST(k) / 10));
     extract_obj(k);
@@ -221,12 +226,14 @@ SPECIAL(dump)
     send_to_char(ch, "You are awarded for outstanding performance.\r\n");
     act("$n has been awarded for being a good citizen.", TRUE, ch, 0, 0, CommTarget::TO_ROOM);
 
-    if (GET_LEVEL(ch) < 3)
+    if (GET_LEVEL(ch) < 3) {
       gain_exp(ch, value);
-    else
+    }
+    else {
       GET_GOLD(ch) += value;
+    }
   }
-  return (TRUE);
+  return TRUE;
 }
 
 
@@ -547,28 +554,31 @@ SPECIAL(puff)
 SPECIAL(fido)
 {
   TEMP_SPEC_ARGFIX;
-  struct obj_data *i, *temp, *next_obj;
+  struct obj_data *temp, *next_obj;
 
-  if (cmd || !AWAKE(ch))
-    return (FALSE);
-
-  for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
-    if (!IS_CORPSE(i))
-      continue;
-
-    act("$n savagely devours a corpse.", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
-    for (temp = i->contains; temp; temp = next_obj) {
-      next_obj = temp->next_content;
-      obj_from_obj(temp);
-      obj_to_room(temp, IN_ROOM(ch));
-    }
-    extract_obj(i);
-    return (TRUE);
+  if (cmd || !AWAKE(ch)) {
+    return FALSE;
   }
 
-  return (FALSE);
-}
+  auto found = std::find_if(
+    world[IN_ROOM(ch)].contents.begin(),
+    world[IN_ROOM(ch)].contents.end(),
+    [](obj_data *o) { return IS_CORPSE(o); }
+  );
 
+  if (found == world[IN_ROOM(ch)].contents.end()) {
+    return FALSE;
+  }
+
+  act("$n savagely devours a corpse.", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
+  for (temp = (*found)->contains; temp; temp = next_obj) {
+    next_obj = temp->next_content;
+    obj_from_obj(temp);
+    obj_to_room(temp, IN_ROOM(ch));
+  }
+  extract_obj(*found);
+  return TRUE;
+}
 
 
 SPECIAL(janitor)
@@ -576,21 +586,26 @@ SPECIAL(janitor)
   TEMP_SPEC_ARGFIX;
   struct obj_data *i;
 
-  if (cmd || !AWAKE(ch))
+  if (cmd || !AWAKE(ch)) {
     return (FALSE);
+  }
 
-  for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
-    if (!CAN_WEAR(i, ITEM_WEAR_TAKE))
+  for (auto it = world[IN_ROOM(ch)].contents.begin(); it != world[IN_ROOM(ch)].contents.end(); ++it) {
+    i = *it;
+    
+    if (!CAN_WEAR(i, ITEM_WEAR_TAKE)) {
       continue;
-    if (GET_OBJ_TYPE(i) != ITEM_DRINKCON && GET_OBJ_COST(i) >= 15)
+    }
+    if (GET_OBJ_TYPE(i) != ITEM_DRINKCON && GET_OBJ_COST(i) >= 15) {
       continue;
+    }
     act("$n picks up some trash.", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
     obj_from_room(i);
     obj_to_char(i, ch);
-    return (TRUE);
+    return TRUE;
   }
 
-  return (FALSE);
+  return FALSE;
 }
 
 

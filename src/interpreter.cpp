@@ -1106,7 +1106,8 @@ int special(struct char_data *ch, int cmd, char *arg)
   }
 
   /* special in object present? */
-  for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
+  for (auto it = world[IN_ROOM(ch)].contents.begin(); it != world[IN_ROOM(ch)].contents.end(); ++it) {
+    i = *it;
     if (GET_OBJ_SPEC(i) != nullptr) {
       if (GET_OBJ_SPEC(i) (ch, i, cmd, arg)) {
         return 1;

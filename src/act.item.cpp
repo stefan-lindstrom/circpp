@@ -94,20 +94,20 @@ namespace {
 
   void get_from_room(struct char_data *ch, char *arg, int howmany)
   {
-    struct obj_data *obj, *next_obj;
+    struct obj_data *obj;
     int dotmode, found = 0;
 
     dotmode = find_all_dots(arg);
 
     if (dotmode == FIND_INDIV) {
-      if (!(obj = get_obj_in_list_vis(ch, arg, NULL, world[IN_ROOM(ch)].contents)))
+      if (!(obj = get_obj_in_list_vis(ch, arg, nullptr, world[IN_ROOM(ch)].contents))) {
         send_to_char(ch, "You don't see %s %s here.\r\n", AN(arg), arg);
-      else {
-        struct obj_data *obj_next;
-        while(obj && howmany--) {
-    obj_next = obj->next_content;
+      }
+      else {      
+        while(!world[IN_ROOM(ch)].contents.empty() && howmany--) {
+          obj = world[IN_ROOM(ch)].contents.front();
           perform_get_from_room(ch, obj);
-          obj = get_obj_in_list_vis(ch, arg, NULL, obj_next);
+          obj = get_obj_in_list_vis(ch, arg, nullptr, world[IN_ROOM(ch)].contents);
         }
       }
     } else {
@@ -115,19 +115,22 @@ namespace {
         send_to_char(ch, "Get all of what?\r\n");
         return;
       }
-      for (obj = world[IN_ROOM(ch)].contents; obj; obj = next_obj) {
-        next_obj = obj->next_content;
-        if (CAN_SEE_OBJ(ch, obj) &&
-      (dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
-    found = 1;
-    perform_get_from_room(ch, obj);
+
+      while(!world[IN_ROOM(ch)].contents.empty()) {
+        obj = world[IN_ROOM(ch)].contents.front();
+
+        if (CAN_SEE_OBJ(ch, obj) && (dotmode == FIND_ALL || isname(arg, obj->name.c_str()))) {
+          found = 1;
+          perform_get_from_room(ch, obj);
         }
       }
       if (!found) {
-        if (dotmode == FIND_ALL)
-    send_to_char(ch, "There doesn't seem to be anything here.\r\n");
-        else
-    send_to_char(ch, "You don't see any %ss here.\r\n", arg);
+        if (dotmode == FIND_ALL) {
+          send_to_char(ch, "There doesn't seem to be anything here.\r\n");
+        }
+        else {
+          send_to_char(ch, "You don't see any %ss here.\r\n", arg);
+        }
       }
     }
   }
@@ -578,12 +581,15 @@ ACMD(do_get)
 
   one_argument(two_arguments(argument, arg1, arg2), arg3);	/* three_arguments */
 
-  if (!*arg1)
+  if (!*arg1) {
     send_to_char(ch, "Get what?\r\n");
-  else if (!*arg2)
+  }
+  else if (!*arg2) {
     get_from_room(ch, arg1, 1);
-  else if (is_number(arg1) && !*arg3)
+  }
+  else if (is_number(arg1) && !*arg3)  {
     get_from_room(ch, arg2, atoi(arg1));
+  }
   else {
     int amount = 1;
     if (is_number(arg1)) {
@@ -594,49 +600,57 @@ ACMD(do_get)
     cont_dotmode = find_all_dots(arg2);
     if (cont_dotmode == FIND_INDIV) {
       mode = generic_find(arg2, FIND_OBJ_INV | FIND_OBJ_ROOM, ch, &tmp_char, &cont);
-      if (!cont)
-	send_to_char(ch, "You don't have %s %s.\r\n", AN(arg2), arg2);
-      else if (GET_OBJ_TYPE(cont) != ITEM_CONTAINER)
-	act("$p is not a container.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
-      else
-	get_from_container(ch, cont, arg1, mode, amount);
+      if (!cont) {
+        send_to_char(ch, "You don't have %s %s.\r\n", AN(arg2), arg2);
+      }
+      else if (GET_OBJ_TYPE(cont) != ITEM_CONTAINER) {
+        act("$p is not a container.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
+      }
+      else {
+        get_from_container(ch, cont, arg1, mode, amount);
+      }
     } else {
       if (cont_dotmode == FIND_ALLDOT && !*arg2) {
-	send_to_char(ch, "Get from all of what?\r\n");
-	return;
+        send_to_char(ch, "Get from all of what?\r\n");
+        return;
       }
-      for (cont = ch->carrying; cont; cont = cont->next_content)
-	if (CAN_SEE_OBJ(ch, cont) &&
-	    (cont_dotmode == FIND_ALL || isname(arg2, cont->name.c_str()))) {
-	  if (GET_OBJ_TYPE(cont) == ITEM_CONTAINER) {
-	    found = 1;
-	    get_from_container(ch, cont, arg1, FIND_OBJ_INV, amount);
-	  } else if (cont_dotmode == FIND_ALLDOT) {
-	    found = 1;
-	    act("$p is not a container.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
-	  }
-	}
-      for (cont = world[IN_ROOM(ch)].contents; cont; cont = cont->next_content)
-	if (CAN_SEE_OBJ(ch, cont) &&
-	    (cont_dotmode == FIND_ALL || isname(arg2, cont->name.c_str()))) {
-	  if (GET_OBJ_TYPE(cont) == ITEM_CONTAINER) {
-	    get_from_container(ch, cont, arg1, FIND_OBJ_ROOM, amount);
-	    found = 1;
-	  } else if (cont_dotmode == FIND_ALLDOT) {
-	    act("$p is not a container.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
-	    found = 1;
-	  }
-	}
+      for (cont = ch->carrying; cont; cont = cont->next_content) {
+        if (CAN_SEE_OBJ(ch, cont) && (cont_dotmode == FIND_ALL || isname(arg2, cont->name.c_str()))) {
+          if (GET_OBJ_TYPE(cont) == ITEM_CONTAINER) {
+            found = 1;
+            get_from_container(ch, cont, arg1, FIND_OBJ_INV, amount);
+          } else if (cont_dotmode == FIND_ALLDOT) {
+            found = 1;
+            act("$p is not a container.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
+          }
+        }
+      }
+
+      while(!world[IN_ROOM(ch)].contents.empty()) {
+        cont = world[IN_ROOM(ch)].contents.front();
+
+        if (CAN_SEE_OBJ(ch, cont) && (cont_dotmode == FIND_ALL || isname(arg2, cont->name.c_str()))) {
+          if (GET_OBJ_TYPE(cont) == ITEM_CONTAINER) {
+            get_from_container(ch, cont, arg1, FIND_OBJ_ROOM, amount);
+            found = 1;
+          } else if (cont_dotmode == FIND_ALLDOT) {
+            act("$p is not a container.", FALSE, ch, cont, 0, CommTarget::TO_CHAR);
+            found = 1;
+          }
+        }
+      }
+	
       if (!found) {
-	if (cont_dotmode == FIND_ALL)
-	  send_to_char(ch, "You can't seem to find any containers.\r\n");
-	else
-	  send_to_char(ch, "You can't seem to find any %ss here.\r\n", arg2);
+        if (cont_dotmode == FIND_ALL) {
+          send_to_char(ch, "You can't seem to find any containers.\r\n");
+        }
+        else {
+          send_to_char(ch, "You can't seem to find any %ss here.\r\n", arg2);
+        }
       }
     }
   }
 }
-
 
 
 ACMD(do_drop)

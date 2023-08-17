@@ -69,10 +69,12 @@ void mobile_activity(void)
 
     /* Scavenger (picking up objects) */
     if (MOB_FLAGGED(ch, MOB_SCAVENGER))
-      if (world[IN_ROOM(ch)].contents && !rand_number(0, 10)) {
+      if (!world[IN_ROOM(ch)].contents.empty() && !rand_number(0, 10)) {
         max = 1;
         best_obj = nullptr;
-        for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content) {
+        for (auto it = world[IN_ROOM(ch)].contents.begin(); it != world[IN_ROOM(ch)].contents.begin(); ++it) {
+          obj = *it;
+          
           if (CAN_GET_OBJ(ch, obj) && GET_OBJ_COST(obj) > max) {
             best_obj = obj;
             max = GET_OBJ_COST(obj);

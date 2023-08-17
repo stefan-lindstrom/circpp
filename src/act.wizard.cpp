@@ -580,17 +580,20 @@ namespace {
     }
     send_to_char(ch, "%s", CCNRM(ch, C_NRM));
 
-    if (rm->contents) {
+    if (!rm->contents.empty()) {
       send_to_char(ch, "Contents:%s", CCGRN(ch, C_NRM));
       column = 9; /* ^^^ strlen ^^^ */
 
-      for (found = 0, j = rm->contents; j; j = j->next_content) {
-        if (!CAN_SEE_OBJ(ch, j))
-    continue;
+      found = 0;
+      for (auto it = rm->contents.begin(); it != rm->contents.end(); ++it) {
+        j = *it;
+        if (!CAN_SEE_OBJ(ch, j))  {
+          continue;
+        }
 
         column += send_to_char(ch, "%s %s", found++ ? "," : "", j->short_description.c_str());
         if (column >= 62) {
-          send_to_char(ch, "%s\r\n", j->next_content ? "," : "");
+          send_to_char(ch, "%s\r\n", it != rm->contents.end() ? "," : "");
           found = FALSE;
           column = 0;
         }
@@ -601,13 +604,16 @@ namespace {
     for (i = 0; i < NUM_OF_DIRS; i++) {
       char buf1[128];
 
-      if (!std::get<1>(rm->dir_option[i]))
+      if (!std::get<1>(rm->dir_option[i])) {
         continue;
+      }
 
-      if (std::get<0>(rm->dir_option[i]).to_room == NOWHERE)
+      if (std::get<0>(rm->dir_option[i]).to_room == NOWHERE) {
         snprintf(buf1, sizeof(buf1), " %sNONE%s", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
-      else
+      }
+      else {
         snprintf(buf1, sizeof(buf1), "%s%5d%s", CCCYN(ch, C_NRM), GET_ROOM_VNUM(std::get<0>(rm->dir_option[i]).to_room), CCNRM(ch, C_NRM));
+      }
 
       sprintbit(std::get<0>(rm->dir_option[i]).exit_info, exit_bits, buf2, sizeof(buf2));
 
@@ -1570,8 +1576,8 @@ ACMD(do_purge)
     }
 
     /* Clear the ground. */
-    while (world[IN_ROOM(ch)].contents) {
-      extract_obj(world[IN_ROOM(ch)].contents);
+    while (!world[IN_ROOM(ch)].contents.empty()) {
+      extract_obj(world[IN_ROOM(ch)].contents.front());
     }
   }
 }

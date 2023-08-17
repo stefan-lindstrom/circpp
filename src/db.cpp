@@ -1138,8 +1138,9 @@ void reset_zone(zone_rnum zone)
       break;
 
     case 'R': /* rem obj from room */
-      if ((obj = get_obj_in_list_num(ZCMD.arg2, world[ZCMD.arg1].contents)) != NULL)
+      if ((obj = get_obj_in_list_num(ZCMD.arg2, world[ZCMD.arg1].contents)) != NULL) {
         extract_obj(obj);
+      }
       last_cmd = 1;
       break;
 

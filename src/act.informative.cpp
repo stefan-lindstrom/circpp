@@ -130,16 +130,34 @@ namespace {
   void list_obj_to_char(struct obj_data *list, struct char_data *ch, int mode, int show)
   {
     struct obj_data *i;
-    bool found = FALSE;
+    bool found = false;
 
     for (i = list; i; i = i->next_content) {
       if (CAN_SEE_OBJ(ch, i)) {
         show_obj_to_char(i, ch, mode);
-        found = TRUE;
+        found = true;
       }
     }
-    if (!found && show)
+    if (!found && show) {
       send_to_char(ch, " Nothing.\r\n");
+    }
+  }
+
+  void list_obj_to_char(const std::list<obj_data *> &list, struct char_data *ch, int mode, int show)
+  {
+    bool found = false;
+
+    for (auto it = list.begin(); it != list.end(); ++it) { 
+      obj_data *o = *it;
+      
+      if (CAN_SEE_OBJ(ch, o)) {
+        show_obj_to_char(o, ch, mode);
+        found = true;
+      }
+    }
+    if (!found && show) {
+      send_to_char(ch, " Nothing.\r\n");
+    }
   }
 
   void perform_mortal_where(struct char_data *ch, char *arg)
@@ -564,23 +582,29 @@ namespace {
     }
 
     /* Does the argument match an extra desc of an object in the room? */
-    for (obj = world[IN_ROOM(ch)].contents; obj && !found; obj = obj->next_content)
-      if (CAN_SEE_OBJ(ch, obj))
+    for (auto it = world[IN_ROOM(ch)].contents.begin(); it != world[IN_ROOM(ch)].contents.end(); ++it) {
+      obj = *it;
+
+      if (CAN_SEE_OBJ(ch, obj)) {
         if ((desc = find_exdesc(arg, obj->ex_description)) != "" && ++i == fnum) {
-    send_to_char(ch, "%s", desc.c_str());
-    found = TRUE;
+          send_to_char(ch, "%s", desc.c_str());
+          found = TRUE;
         }
+      }
+    }
 
     /* If an object was found back in generic_find */
     if (bits) {
-      if (!found)
+      if (!found) {
         show_obj_to_char(found_obj, ch, SHOW_OBJ_ACTION);
+      }
       else {
         show_obj_modifiers(found_obj, ch);
         send_to_char(ch, "\r\n");
       }
-    } else if (!found)
+    } else if (!found) {
       send_to_char(ch, "You do not see that here.\r\n");
+    }
   }
 } // anonymous ns
 
@@ -601,23 +625,26 @@ ACMD(do_exits)
   send_to_char(ch, "Obvious exits:\r\n");
 
   for (door = 0; door < NUM_OF_DIRS; door++) {
-    if (!EXIT(ch, door) || GET_EXIT(ch, door).to_room == NOWHERE)
+    if (!EXIT(ch, door) || GET_EXIT(ch, door).to_room == NOWHERE) {
       continue;
-    if (EXIT_FLAGGED(GET_EXIT(ch, door), EX_CLOSED))
+    }
+    if (EXIT_FLAGGED(GET_EXIT(ch, door), EX_CLOSED)) {
       continue;
+    }
 
     len++;
 
-    if (GET_LEVEL(ch) >= LVL_IMMORT)
-      send_to_char(ch, "%-5s - [%5d] %s\r\n", dirs[door], GET_ROOM_VNUM(GET_EXIT(ch, door).to_room),
-		   world[GET_EXIT(ch, door).to_room].name.c_str());
-    else
-      send_to_char(ch, "%-5s - %s\r\n", dirs[door], IS_DARK(GET_EXIT(ch, door).to_room) &&
-		   !CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[GET_EXIT(ch, door).to_room].name.c_str());
+    if (GET_LEVEL(ch) >= LVL_IMMORT) {
+      send_to_char(ch, "%-5s - [%5d] %s\r\n", dirs[door], GET_ROOM_VNUM(GET_EXIT(ch, door).to_room), world[GET_EXIT(ch, door).to_room].name.c_str());
+    }
+    else {
+      send_to_char(ch, "%-5s - %s\r\n", dirs[door], IS_DARK(GET_EXIT(ch, door).to_room) && !CAN_SEE_IN_DARK(ch) ? "Too dark to tell." : world[GET_EXIT(ch, door).to_room].name.c_str());
+    }
   }
 
-  if (!len)
+  if (!len) {
     send_to_char(ch, " None.\r\n");
+  }
 }
 
 

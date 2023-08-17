@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "structs.h"
+
 #define ACMD(name) void name(struct char_data *ch, char *argument, int cmd, int subcmd)
 
 // ACMDs

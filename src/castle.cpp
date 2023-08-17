@@ -734,26 +734,27 @@ SPECIAL(James)
  */
 int castle_cleaner(struct char_data *ch, int cmd, int gripe)
 {
-  struct obj_data *i;
-
-  if (cmd || !AWAKE(ch) || GET_POS(ch) == POS_FIGHTING)
-    return (FALSE);
-
-  for (i = world[IN_ROOM(ch)].contents; i; i = i->next_content) {
-    if (!is_trash(i))
-      continue;
-
-    if (gripe) {
-      act("$n says: 'My oh my!  I ought to fire that lazy cleaning woman!'",
-          FALSE, ch, 0, 0, CommTarget::TO_ROOM);
-      act("$n picks up a piece of trash.", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
-    }
-    obj_from_room(i);
-    obj_to_char(i, ch);
-    return (TRUE);
+  if (cmd || !AWAKE(ch) || GET_POS(ch) == POS_FIGHTING) {
+    return FALSE;
   }
 
-  return (FALSE);
+  auto found = std::find_if(
+    world[IN_ROOM(ch)].contents.begin(), 
+    world[IN_ROOM(ch)].contents.end(),
+    [](obj_data *obj)  { return is_trash(obj); }
+  );
+
+  if (found == world[IN_ROOM(ch)].contents.end()) {
+    return FALSE;
+  }
+
+  if (gripe) {
+    act("$n says: 'My oh my!  I ought to fire that lazy cleaning woman!'", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
+    act("$n picks up a piece of trash.", FALSE, ch, 0, 0, CommTarget::TO_ROOM);
+  }
+  obj_from_room(*found);
+  obj_to_char(*found, ch);
+  return TRUE;
 }
 
 

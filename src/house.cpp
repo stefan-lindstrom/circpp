@@ -32,8 +32,8 @@ int num_of_houses = 0;
 /* local functions */
 int House_get_filename(room_vnum vnum, char *filename, size_t maxlen);
 int House_load(room_vnum vnum);
-int House_save(struct obj_data *obj, FILE *fp);
-void House_restore_weight(struct obj_data *obj);
+int House_save(std::list<obj_data *> &obj, FILE *fp);
+void House_restore_weight(std::list<obj_data *> &objs);
 void House_delete_file(room_vnum vnum);
 int find_house(room_vnum vnum);
 void House_save_control(void);
@@ -91,33 +91,32 @@ int House_load(room_vnum vnum)
 
 /* Save all objects for a house (recursive; initial call must be followed
    by a call to House_restore_weight)  Assumes file is open already. */
-int House_save(struct obj_data *obj, FILE *fp)
+int House_save(std::list<obj_data *> &objs, FILE *fp)
 {
   struct obj_data *tmp;
   int result;
 
-  if (obj) {
-    House_save(obj->contains, fp);
-    House_save(obj->next_content, fp);
-    result = Obj_to_store(obj, fp, 0);
-    if (!result)
-      return (0);
+  for (auto it = objs.begin(); it != objs.end(); ++it) {
+    result = Obj_to_store(*it, fp, 0);
 
-    for (tmp = obj->in_obj; tmp; tmp = tmp->in_obj)
-      GET_OBJ_WEIGHT(tmp) -= GET_OBJ_WEIGHT(obj);
+    if (!result) {
+      return 0;
+    }
+    for (tmp = (*it)->in_obj; tmp; tmp = tmp->in_obj) {
+      GET_OBJ_WEIGHT(tmp) -= GET_OBJ_WEIGHT(*it);
+    }
   }
-  return (1);
+  return 1;
 }
 
 
 /* restore weight of containers after House_save has changed them for saving */
-void House_restore_weight(struct obj_data *obj)
+void House_restore_weight(std::list<obj_data *> &objs)
 {
-  if (obj) {
-    House_restore_weight(obj->contains);
-    House_restore_weight(obj->next_content);
-    if (obj->in_obj)
-      GET_OBJ_WEIGHT(obj->in_obj) += GET_OBJ_WEIGHT(obj);
+  for(auto it = objs.begin(); it != objs.end(); ++it) {
+    if ((*it)->in_obj) {
+      GET_OBJ_WEIGHT((*it)->in_obj) += GET_OBJ_WEIGHT(*it);
+    }
   }
 }
 

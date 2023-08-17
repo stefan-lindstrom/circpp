@@ -606,9 +606,22 @@ struct obj_data *get_obj_in_list_num(int num, struct obj_data *list)
 {
   struct obj_data *i;
 
-  for (i = list; i; i = i->next_content)
-    if (GET_OBJ_RNUM(i) == num)
-      return (i);
+  for (i = list; i; i = i->next_content) {
+    if (GET_OBJ_RNUM(i) == num) {
+      return i;
+    }
+  }
+
+  return nullptr;
+}
+
+struct obj_data *get_obj_in_list_num(int num, std::list<obj_data *> &list)
+{
+  for (auto it = list.begin(); it != list.end(); ++it) {
+    if (GET_OBJ_RNUM(*it) == num) {
+      return *it;
+    }
+  }
 
   return nullptr;
 }
@@ -680,13 +693,13 @@ struct char_data *get_char_num(mob_rnum nr)
 /* put an object in a room */
 void obj_to_room(struct obj_data *object, room_rnum room)
 {
-  if (!object || room == NOWHERE || static_cast<unsigned long>(room) >= world.size())
+  if (!object || room == NOWHERE || static_cast<unsigned long>(room) >= world.size()) {
     basic_mud_log("SYSERR: Illegal value(s) passed to obj_to_room. (Room #%d/%ld, obj %p)", room, world.size(), reinterpret_cast<void *>(object));
+  }
   else {
-    object->next_content = world[room].contents;
-    world[room].contents = object;
+    world[room].contents.push_back(object);
     IN_ROOM(object) = room;
-    object->carried_by = NULL;
+    object->carried_by = nullptr;
     if (ROOM_FLAGGED(room, ROOM_HOUSE))
       SET_BIT(ROOM_FLAGS(room), ROOM_HOUSE_CRASH);
   }
@@ -696,19 +709,17 @@ void obj_to_room(struct obj_data *object, room_rnum room)
 /* Take an object from a room */
 void obj_from_room(struct obj_data *object)
 {
-  struct obj_data *temp;
-
   if (!object || IN_ROOM(object) == NOWHERE) {
     basic_mud_log("SYSERR: NULL object (%p) or obj not in a room (%d) passed to obj_from_room", reinterpret_cast<void *>(object), IN_ROOM(object));
     return;
   }
 
-  REMOVE_FROM_LIST(object, world[IN_ROOM(object)].contents, next_content);
+  world[IN_ROOM(object)].contents.remove(object);
 
-  if (ROOM_FLAGGED(IN_ROOM(object), ROOM_HOUSE))
+  if (ROOM_FLAGGED(IN_ROOM(object), ROOM_HOUSE)) {
     SET_BIT(ROOM_FLAGS(IN_ROOM(object)), ROOM_HOUSE_CRASH);
+  }
   IN_ROOM(object) = NOWHERE;
-  object->next_content = NULL;
 }
 
 
@@ -1135,14 +1146,42 @@ struct char_data *get_char_world_vis(struct char_data *ch, char *name, int *numb
 
 struct char_data *get_char_vis(struct char_data *ch, char *name, int *number, int where)
 {
-  if (where == FIND_CHAR_ROOM)
+  if (where == FIND_CHAR_ROOM) {
     return get_char_room_vis(ch, name, number);
-  else if (where == FIND_CHAR_WORLD)
+  }
+  else if (where == FIND_CHAR_WORLD) {
     return get_char_world_vis(ch, name, number);
-  else
-    return (NULL);
+  }
+  return nullptr;
 }
 
+struct obj_data *get_obj_in_list_vis(struct char_data *ch, char *name, int *number, std::list<obj_data *> &list)
+{
+  int num;
+
+  if (!number) {
+    number = &num;
+    num = get_number(&name);
+  }
+
+  if (*number == 0) {
+    return nullptr;
+  }
+
+  for (auto it = list.begin(); it != list.end(); ++it) {
+    auto i = *it;
+
+    if (isname(name, i->name)) {
+      if (CAN_SEE_OBJ(ch, i)) {
+        if (--(*number) == 0) {
+          return i;
+        }
+      }
+    }
+  }
+
+  return nullptr;
+}
 
 struct obj_data *get_obj_in_list_vis(struct char_data *ch, char *name, int *number, struct obj_data *list)
 {
@@ -1154,16 +1193,21 @@ struct obj_data *get_obj_in_list_vis(struct char_data *ch, char *name, int *numb
     num = get_number(&name);
   }
 
-  if (*number == 0)
-    return (NULL);
+  if (*number == 0) {
+    return nullptr;
+  }
 
-  for (i = list; i && *number; i = i->next_content)
-    if (isname(name, i->name))
-      if (CAN_SEE_OBJ(ch, i))
-	if (--(*number) == 0)
-	  return (i);
+  for (i = list; i && *number; i = i->next_content) {
+    if (isname(name, i->name)) {
+      if (CAN_SEE_OBJ(ch, i)) {
+        if (--(*number) == 0) {
+          return i;
+        }
+      }
+    }
+  }
 
-  return (NULL);
+  return nullptr;
 }
 
 

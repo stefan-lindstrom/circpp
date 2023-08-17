@@ -766,7 +766,7 @@ struct room_data {
   byte light;                  /* Number of lightsources in room     */
   SPECIAL(*func);
   
-  struct obj_data *contents;   /* List of items in room              */
+  std::list<obj_data *> contents;
   std::list<char_data *> people;    /* List of NPC / PC in room           */
 };
 /* ====================================================================== */

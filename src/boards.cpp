@@ -102,18 +102,28 @@ int find_board(struct char_data *ch)
   struct obj_data *obj;
   int i;
 
-  for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content)
-    for (i = 0; i < NUM_OF_BOARDS; i++)
-      if (BOARD_RNUM(i) == GET_OBJ_RNUM(obj))
-	return (i);
 
-  if (GET_LEVEL(ch) >= LVL_IMMORT)
-    for (obj = ch->carrying; obj; obj = obj->next_content)
-      for (i = 0; i < NUM_OF_BOARDS; i++)
-        if (BOARD_RNUM(i) == GET_OBJ_RNUM(obj))
-          return (i);
+  for (auto it = world[IN_ROOM(ch)].contents.begin(); it != world[IN_ROOM(ch)].contents.end(); ++it) {
+    obj = *it;
 
-  return (-1);
+    for (i = 0; i < NUM_OF_BOARDS; i++) {
+      if (BOARD_RNUM(i) == GET_OBJ_RNUM(obj)) {
+        return i;
+      }
+    }
+  }
+
+  if (GET_LEVEL(ch) >= LVL_IMMORT) {
+    for (obj = ch->carrying; obj; obj = obj->next_content) {
+      for (i = 0; i < NUM_OF_BOARDS; i++) {
+        if (BOARD_RNUM(i) == GET_OBJ_RNUM(obj)) {
+          return i;
+        }
+      }
+    }
+  }
+
+  return -1;
 }
 
 
