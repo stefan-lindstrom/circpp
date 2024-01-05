@@ -982,7 +982,7 @@ struct player_special_data {
    void *last_olc_targ;		         /* olc control				*/
    OlcMode last_olc_mode;	         /* olc control				*/
 
-  player_special_data() : poofin(nullptr), poofout(nullptr), last_tell(0), last_olc_targ(nullptr), last_olc_mode(OlcMode::OLC_SET) {}
+  player_special_data() : poofin(""), poofout(""), last_tell(0), last_olc_targ(nullptr), last_olc_mode(OlcMode::OLC_SET) {}
 };
 
 
